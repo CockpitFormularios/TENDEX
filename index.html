@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+  <title>Login | Sistema de Acesso</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: system-ui, 'Segoe UI', 'Inter', -apple-system, BlinkMacSystemFont, 'Roboto', sans-serif;
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+      position: relative;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: radial-gradient(circle at 1px 1px, rgba(255,255,255,0.05) 1px, transparent 1px);
+      background-size: 32px 32px;
+      pointer-events: none;
+    }
+
+    .login-card {
+      background: rgba(255, 255, 255, 0.96);
+      border-radius: 2rem;
+      width: 100%;
+      max-width: 460px;
+      padding: 2rem 1.8rem 2.2rem;
+      box-shadow: 0 25px 45px -12px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255,255,255,0.2);
+      transition: transform 0.2s ease;
+      animation: fadeSlideUp 0.5s cubic-bezier(0.2, 0.9, 0.4, 1.1);
+    }
+
+    @keyframes fadeSlideUp {
+      0% {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .login-header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+
+    .login-header h1 {
+      font-size: 2rem;
+      font-weight: 700;
+      background: linear-gradient(120deg, #0f2b3d, #1e4a76);
+      background-clip: text;
+      -webkit-background-clip: text;
+      color: transparent;
+      letter-spacing: -0.3px;
+    }
+
+    .login-header p {
+      color: #5b6e8c;
+      font-size: 0.85rem;
+      margin-top: 0.5rem;
+    }
+
+    .input-group {
+      margin-bottom: 1.5rem;
+    }
+
+    .input-group label {
+      display: block;
+      font-weight: 600;
+      font-size: 0.85rem;
+      color: #1e2a3e;
+      margin-bottom: 0.5rem;
+      letter-spacing: -0.2px;
+    }
+
+    .input-group input {
+      width: 100%;
+      padding: 0.9rem 1rem;
+      font-size: 1rem;
+      border: 1.5px solid #e2e8f0;
+      border-radius: 1.2rem;
+      background: #fefefe;
+      transition: all 0.2s;
+      outline: none;
+      font-weight: 500;
+      color: #0f172a;
+    }
+
+    .input-group input:focus {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 3px rgba(59,130,246,0.2);
+      background: white;
+    }
+
+    .input-group input::placeholder {
+      color: #94a3b8;
+      font-weight: 400;
+    }
+
+    .btn-entrar {
+      width: 100%;
+      background: linear-gradient(98deg, #0f2b3d, #1e4a76);
+      border: none;
+      padding: 0.9rem;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: white;
+      border-radius: 2rem;
+      cursor: pointer;
+      transition: all 0.25s;
+      margin-top: 0.5rem;
+      letter-spacing: 0.5px;
+      box-shadow: 0 8px 18px rgba(0, 35, 70, 0.2);
+    }
+
+    .btn-entrar:hover {
+      background: linear-gradient(98deg, #1e3a5f, #0f2b3d);
+      transform: scale(0.98);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+
+    .btn-entrar:active {
+      transform: scale(0.97);
+    }
+
+    .message-area {
+      margin-top: 1.2rem;
+      text-align: center;
+      font-size: 0.85rem;
+      min-height: 3rem;
+      padding: 0.4rem;
+      border-radius: 2rem;
+      font-weight: 500;
+    }
+
+    .error-message {
+      color: #b91c1c;
+      background: #fee2e2;
+      padding: 0.6rem;
+      border-radius: 2rem;
+    }
+
+    .info-message {
+      color: #075985;
+      background: #e0f2fe;
+      padding: 0.6rem;
+      border-radius: 2rem;
+    }
+
+    .loading {
+      color: #1e4a76;
+      background: #e6f0fa;
+      padding: 0.6rem;
+      border-radius: 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+
+    .file-hint {
+      background: #f1f5f9;
+      border-radius: 1rem;
+      padding: 0.8rem;
+      margin-top: 1.8rem;
+      font-size: 0.7rem;
+      color: #334155;
+      text-align: left;
+      border-left: 3px solid #3b82f6;
+    }
+
+    .file-hint strong {
+      color: #0f172a;
+      font-weight: 700;
+    }
+
+    .file-hint code {
+      background: #e2e8f0;
+      padding: 0.2rem 0.4rem;
+      border-radius: 8px;
+      font-family: monospace;
+      font-size: 0.7rem;
+    }
+
+    hr {
+      margin: 1rem 0 0.5rem;
+      border: none;
+      height: 1px;
+      background: #e2e8f0;
+    }
+
+    footer {
+      text-align: center;
+      font-size: 0.7rem;
+      color: #7c8ea0;
+      margin-top: 1rem;
+    }
+  </style>
+</head>
+<body>
+
+<div class="login-card">
+  <div class="login-header">
+    <h1>🔐 Acesso</h1>
+    <p>Insira suas credenciais</p>
+  </div>
+
+  <form id="loginForm" autocomplete="off">
+    <div class="input-group">
+      <label>👤 Usuário</label>
+      <input type="text" id="username" name="username" placeholder="MOVO" value="" autocomplete="username" required>
+    </div>
+
+    <div class="input-group">
+      <label>🔒 Senha</label>
+      <input type="password" id="password" name="password" placeholder="••••••••" autocomplete="current-password" required>
+    </div>
+
+    <button type="submit" class="btn-entrar" id="submitBtn">ENTRAR</button>
+    <div id="messageContainer" class="message-area"></div>
+  </form>
+
+  <div class="file-hint">
+    📄 <strong>Credenciais externas</strong><br>
+    Os dados de usuário e senha são carregados do arquivo <code>credenciais.txt</code> (mesmo diretório).<br>
+    Formato: <code>usuario:senha</code> (uma por linha). Exemplo: <code>MOVO:123</code><br>
+    🔁 Edite o arquivo de texto para adicionar ou alterar acessos.
+  </div>
+  <hr>
+  <footer>
+    Após login → redireciona para página futura (dashboard em construção)
+  </footer>
+</div>
+
+<script>
+  (function() {
+    const form = document.getElementById('loginForm');
+    const usernameInput = document.getElementById('username');
+    const passwordInput = document.getElementById('password');
+    const messageDiv = document.getElementById('messageContainer');
+    const submitBtn = document.getElementById('submitBtn');
+
+    const CREDENTIALS_FILE = 'credenciais.txt';
+
+    function showMessage(msg, type = 'error') {
+      messageDiv.innerHTML = '';
+      const msgBox = document.createElement('div');
+      msgBox.textContent = msg;
+      if (type === 'error') {
+        msgBox.className = 'error-message';
+      } else if (type === 'info') {
+        msgBox.className = 'info-message';
+      } else if (type === 'loading') {
+        msgBox.className = 'loading';
+        msgBox.innerHTML = '⏳ Verificando credenciais...';
+      } else {
+        msgBox.className = 'info-message';
+      }
+      if (type !== 'loading') {
+        messageDiv.appendChild(msgBox);
+      } else {
+        messageDiv.innerHTML = '';
+        messageDiv.appendChild(msgBox);
+      }
+    }
+
+    function clearMessage() {
+      messageDiv.innerHTML = '';
+    }
+
+    function parseCredentialsFile(content) {
+      const lines = content.split(/\r?\n/);
+      const credentials = [];
+      for (let line of lines) {
+        line = line.trim();
+        if (line === '') continue;
+        if (line.startsWith('#')) continue;
+        const colonIndex = line.indexOf(':');
+        if (colonIndex === -1) continue;
+        const username = line.substring(0, colonIndex).trim();
+        const password = line.substring(colonIndex + 1).trim();
+        if (username && password) {
+          credentials.push({ username, password });
+        }
+      }
+      return credentials;
+    }
+
+    async function fetchCredentials() {
+      try {
+        const url = `${CREDENTIALS_FILE}?t=${Date.now()}`;
+        const response = await fetch(url, {
+          method: 'GET',
+          cache: 'no-store',
+          headers: { 'Cache-Control': 'no-cache' }
+        });
+        if (!response.ok) {
+          throw new Error(`Não foi possível carregar o arquivo "${CREDENTIALS_FILE}". Status: ${response.status}. Verifique se o arquivo existe no mesmo diretório.`);
+        }
+        const fileContent = await response.text();
+        if (!fileContent.trim()) {
+          throw new Error(`O arquivo "${CREDENTIALS_FILE}" está vazio. Adicione pelo menos uma linha no formato usuario:senha`);
+        }
+        const credsList = parseCredentialsFile(fileContent);
+        if (credsList.length === 0) {
+          throw new Error(`Nenhuma credencial válida encontrada em "${CREDENTIALS_FILE}". Use o formato usuario:senha (ex: MOVO:123)`);
+        }
+        return credsList;
+      } catch (err) {
+        console.error('Erro ao buscar credenciais:', err);
+        throw err;
+      }
+    }
+
+    function validateCredentials(inputUser, inputPass, credentialsList) {
+      if (!inputUser || !inputPass) return false;
+      return credentialsList.some(cred => 
+        cred.username === inputUser && cred.password === inputPass
+      );
+    }
+
+    async function handleLogin(event) {
+      event.preventDefault();
+      clearMessage();
+      
+      const username = usernameInput.value.trim();
+      const password = passwordInput.value;
+      
+      if (!username || !password) {
+        showMessage('❌ Por favor, preencha usuário e senha.', 'error');
+        return;
+      }
+      
+      showMessage('', 'loading');
+      submitBtn.disabled = true;
+      submitBtn.style.opacity = '0.7';
+      submitBtn.style.cursor = 'wait';
+      
+      try {
+        const credentialsList = await fetchCredentials();
+        const isValid = validateCredentials(username, password, credentialsList);
+        
+        if (isValid) {
+          showMessage('✅ Login bem-sucedido! Redirecionando para o painel...', 'info');
+          setTimeout(() => {
+            window.location.href = 'dashboard.html';
+          }, 900);
+        } else {
+          showMessage('❌ Usuário ou senha incorretos. Verifique suas credenciais no arquivo credenciais.txt', 'error');
+          submitBtn.disabled = false;
+          submitBtn.style.opacity = '1';
+          submitBtn.style.cursor = 'pointer';
+          passwordInput.value = '';
+          passwordInput.focus();
+        }
+      } catch (err) {
+        let errorMsg = err.message || 'Erro desconhecido ao acessar o arquivo de credenciais.';
+        if (errorMsg.includes('Failed to fetch') || errorMsg.includes('NetworkError')) {
+          errorMsg = `⚠️ Não foi possível acessar o arquivo "${CREDENTIALS_FILE}". Verifique se você está rodando o projeto em um servidor local (ex: Live Server, Python HTTP). Arquivos locais com fetch podem ter restrições. Use "npx serve" ou "python -m http.server".`;
+        }
+        showMessage(errorMsg, 'error');
+        console.error('Login error:', err);
+        submitBtn.disabled = false;
+        submitBtn.style.opacity = '1';
+        submitBtn.style.cursor = 'pointer';
+      }
+    }
+    
+    form.addEventListener('submit', handleLogin);
+    usernameInput.focus();
+  })();
+</script>
+</body>
+</html>
