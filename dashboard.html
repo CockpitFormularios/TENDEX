@@ -5,327 +5,52 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dashboard | Cadastro com Memorial e Mensais</title>
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-      font-family: system-ui, 'Segoe UI', 'Inter', sans-serif;
-    }
-
-    body {
-      background: #f3f6fc;
-      padding: 2rem 1.5rem;
-    }
-
-    .dashboard-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 1rem;
-      margin-bottom: 2rem;
-      padding-bottom: 0.75rem;
-      border-bottom: 2px solid #cbd5e1;
-    }
-
-    .dashboard-header h1 {
-      font-size: 1.8rem;
-      background: linear-gradient(135deg, #0f2b3d, #1e4a76);
-      background-clip: text;
-      -webkit-background-clip: text;
-      color: transparent;
-    }
-
-    .logout-btn {
-      background: #ef4444;
-      color: white;
-      border: none;
-      padding: 0.5rem 1.2rem;
-      border-radius: 2rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: 0.2s;
-    }
-
-    .logout-btn:hover {
-      background: #dc2626;
-    }
-
-    .items-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
-      gap: 1.5rem;
-      margin-top: 1rem;
-    }
-
-    .item-card {
-      background: white;
-      border-radius: 1.5rem;
-      box-shadow: 0 8px 20px rgba(0,0,0,0.05);
-      overflow: hidden;
-      border: 1px solid #e2edff;
-      transition: 0.2s;
-    }
-
-    .item-card:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 12px 24px rgba(0,0,0,0.1);
-    }
-
-    .item-header {
-      background: #f8fafc;
-      padding: 1rem 1.2rem;
-      border-bottom: 1px solid #e2e8f0;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .item-info h3 {
-      font-size: 1.2rem;
-      color: #0f172a;
-    }
-
-    .item-info p {
-      font-size: 0.8rem;
-      color: #4b5563;
-      margin-top: 0.2rem;
-    }
-
-    .delete-item {
-      background: none;
-      border: none;
-      font-size: 1.3rem;
-      cursor: pointer;
-      color: #94a3b8;
-      padding: 0.3rem;
-      border-radius: 50%;
-    }
-
-    .delete-item:hover {
-      color: #dc2626;
-      background: #fee2e2;
-    }
-
-    .attachments-area {
-      padding: 1rem 1.2rem;
-    }
-
-    .attachments-title {
-      font-size: 0.8rem;
-      font-weight: 600;
-      color: #334155;
-      margin-bottom: 0.8rem;
-      border-left: 3px solid #3b82f6;
-      padding-left: 0.6rem;
-    }
-
-    .pdf-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      background: #f9fafb;
-      margin-bottom: 0.6rem;
-      padding: 0.4rem 0.8rem;
-      border-radius: 2rem;
-      border: 1px solid #eef2ff;
-    }
-
-    .pdf-label {
-      font-weight: 600;
-      font-size: 0.75rem;
-      background: #e2e8f0;
-      padding: 0.2rem 0.6rem;
-      border-radius: 2rem;
-      min-width: 85px;
-      text-align: center;
-      color: #1e293b;
-    }
-
-    .pdf-file-info {
-      flex: 1;
-      margin: 0 0.8rem;
-      font-size: 0.75rem;
-      color: #1e4a76;
-      text-decoration: none;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .pdf-file-info a {
-      text-decoration: none;
-      color: #1e4a76;
-    }
-
-    .pdf-file-info a:hover {
-      text-decoration: underline;
-    }
-
-    .pdf-actions {
-      display: flex;
-      gap: 0.4rem;
-    }
-
-    .upload-pdf-btn, .remove-pdf-btn {
-      background: none;
-      border: none;
-      cursor: pointer;
-      font-size: 1rem;
-      padding: 0.2rem;
-      border-radius: 50%;
-      width: 28px;
-      height: 28px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      transition: 0.1s;
-    }
-
-    .upload-pdf-btn {
-      color: #2c6e9e;
-    }
-
-    .upload-pdf-btn:hover {
-      background: #e0f2fe;
-    }
-
-    .remove-pdf-btn {
-      color: #9ca3af;
-    }
-
-    .remove-pdf-btn:hover {
-      background: #fee2e2;
-      color: #dc2626;
-    }
-
-    .empty-state {
-      text-align: center;
-      color: #6c86a3;
-      margin-top: 4rem;
-    }
-
-    .fab {
-      position: fixed;
-      bottom: 2rem;
-      right: 2rem;
-      background: linear-gradient(135deg, #0f2b3d, #1e4a76);
-      color: white;
-      width: 56px;
-      height: 56px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 2rem;
-      box-shadow: 0 8px 16px rgba(0,0,0,0.2);
-      cursor: pointer;
-      transition: 0.2s;
-      border: none;
-      z-index: 10;
-    }
-
-    .fab:hover {
-      transform: scale(1.05);
-    }
-
-    /* Modal */
-    .modal {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0,0,0,0.5);
-      align-items: center;
-      justify-content: center;
-      z-index: 1000;
-    }
-
-    .modal-content {
-      background: white;
-      max-width: 550px;
-      width: 90%;
-      border-radius: 1.5rem;
-      padding: 1.5rem;
-      max-height: 85vh;
-      overflow-y: auto;
-    }
-
-    .modal-content h2 {
-      margin-bottom: 1rem;
-    }
-
-    .form-group {
-      margin-bottom: 1rem;
-    }
-
-    .form-group label {
-      display: block;
-      font-weight: 600;
-      margin-bottom: 0.3rem;
-      font-size: 0.85rem;
-    }
-
-    .form-group input[type="text"] {
-      width: 100%;
-      padding: 0.6rem;
-      border: 1px solid #cbd5e1;
-      border-radius: 1rem;
-    }
-
-    .month-group {
-      margin-bottom: 1rem;
-    }
-
-    .month-group label {
-      font-weight: 600;
-      display: inline-block;
-      width: 110px;
-      font-size: 0.8rem;
-    }
-
-    .month-group input[type="file"] {
-      display: inline-block;
-      width: calc(100% - 120px);
-    }
-
-    .modal-buttons {
-      display: flex;
-      justify-content: flex-end;
-      gap: 0.8rem;
-      margin-top: 1.2rem;
-    }
-
-    .btn-save {
-      background: #1e4a76;
-      color: white;
-      padding: 0.5rem 1.2rem;
-      border-radius: 2rem;
-      border: none;
-      cursor: pointer;
-    }
-
-    .btn-cancel {
-      background: #e2e8f0;
-      color: #1e293b;
-      padding: 0.5rem 1.2rem;
-      border-radius: 2rem;
-      border: none;
-      cursor: pointer;
-    }
-
-    hr {
-      margin: 0.8rem 0;
-    }
-
-    .notice {
-      font-size: 0.7rem;
-      color: #5b6e8c;
-      margin-top: 0.8rem;
-      text-align: center;
-    }
+    * { margin:0; padding:0; box-sizing: border-box; font-family: system-ui, 'Segoe UI', 'Inter', sans-serif; }
+    body { background: #f3f6fc; padding: 2rem 1.5rem; }
+    .dashboard-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem; padding-bottom: 0.75rem; border-bottom: 2px solid #cbd5e1; }
+    .dashboard-header h1 { font-size: 1.8rem; background: linear-gradient(135deg, #0f2b3d, #1e4a76); background-clip: text; -webkit-background-clip: text; color: transparent; }
+    .logout-btn { background: #ef4444; color: white; border: none; padding: 0.5rem 1.2rem; border-radius: 2rem; font-weight: 600; cursor: pointer; }
+    .logout-btn:hover { background: #dc2626; }
+    .items-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(420px, 1fr)); gap: 1.5rem; margin-top: 1rem; }
+    .item-card { background: white; border-radius: 1.5rem; box-shadow: 0 8px 20px rgba(0,0,0,0.05); overflow: hidden; border: 1px solid #e2edff; transition: 0.2s; }
+    .item-card:hover { transform: translateY(-3px); box-shadow: 0 12px 24px rgba(0,0,0,0.1); }
+    .item-header { background: #f8fafc; padding: 1rem 1.2rem; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; }
+    .item-info h3 { font-size: 1.2rem; color: #0f172a; }
+    .item-info p { font-size: 0.8rem; color: #4b5563; margin-top: 0.2rem; }
+    .delete-item, .edit-item { background: none; border: none; font-size: 1.3rem; cursor: pointer; padding: 0.3rem; border-radius: 50%; }
+    .delete-item { color: #94a3b8; }
+    .delete-item:hover { color: #dc2626; background: #fee2e2; }
+    .edit-item { color: #3b82f6; margin-right: 0.5rem; }
+    .edit-item:hover { background: #e0f2fe; }
+    .attachments-area { padding: 1rem 1.2rem; }
+    .attachments-title { font-size: 0.8rem; font-weight: 600; color: #334155; margin-bottom: 0.8rem; border-left: 3px solid #3b82f6; padding-left: 0.6rem; }
+    .pdf-row { display: flex; align-items: center; justify-content: space-between; background: #f9fafb; margin-bottom: 0.6rem; padding: 0.4rem 0.8rem; border-radius: 2rem; border: 1px solid #eef2ff; }
+    .pdf-label { font-weight: 600; font-size: 0.75rem; background: #e2e8f0; padding: 0.2rem 0.6rem; border-radius: 2rem; min-width: 85px; text-align: center; color: #1e293b; }
+    .pdf-file-info { flex: 1; margin: 0 0.8rem; font-size: 0.75rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .pdf-file-info a { text-decoration: none; color: #1e4a76; }
+    .pdf-file-info a:hover { text-decoration: underline; }
+    .pdf-actions { display: flex; gap: 0.4rem; }
+    .upload-pdf-btn, .remove-pdf-btn { background: none; border: none; cursor: pointer; font-size: 1rem; width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; }
+    .upload-pdf-btn { color: #2c6e9e; }
+    .upload-pdf-btn:hover { background: #e0f2fe; }
+    .remove-pdf-btn { color: #9ca3af; }
+    .remove-pdf-btn:hover { background: #fee2e2; color: #dc2626; }
+    .empty-state { text-align: center; color: #6c86a3; margin-top: 4rem; }
+    .fab { position: fixed; bottom: 2rem; right: 2rem; background: linear-gradient(135deg, #0f2b3d, #1e4a76); color: white; width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; box-shadow: 0 8px 16px rgba(0,0,0,0.2); cursor: pointer; border: none; z-index: 10; }
+    .fab:hover { transform: scale(1.05); }
+    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; z-index: 1000; }
+    .modal-content { background: white; max-width: 550px; width: 90%; border-radius: 1.5rem; padding: 1.5rem; max-height: 85vh; overflow-y: auto; }
+    .modal-content h2 { margin-bottom: 1rem; }
+    .form-group { margin-bottom: 1rem; }
+    .form-group label { display: block; font-weight: 600; margin-bottom: 0.3rem; font-size: 0.85rem; }
+    .form-group input[type="text"] { width: 100%; padding: 0.6rem; border: 1px solid #cbd5e1; border-radius: 1rem; }
+    .month-group { margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+    .month-group label { font-weight: 600; width: 110px; font-size: 0.8rem; }
+    .month-group input[type="file"] { flex: 1; }
+    .modal-buttons { display: flex; justify-content: flex-end; gap: 0.8rem; margin-top: 1.2rem; }
+    .btn-save { background: #1e4a76; color: white; padding: 0.5rem 1.2rem; border-radius: 2rem; border: none; cursor: pointer; }
+    .btn-cancel { background: #e2e8f0; color: #1e293b; padding: 0.5rem 1.2rem; border-radius: 2rem; border: none; cursor: pointer; }
+    .notice { font-size: 0.7rem; color: #5b6e8c; margin-top: 0.8rem; text-align: center; }
   </style>
 </head>
 <body>
@@ -335,595 +60,463 @@
   <button class="logout-btn" id="logoutBtn">Sair</button>
 </div>
 
-<div id="itemsContainer" class="items-grid">
-  <!-- itens serão renderizados aqui -->
-</div>
-
+<div id="itemsContainer" class="items-grid"></div>
 <button class="fab" id="addItemBtn">+</button>
 
-<!-- Modal para criação/edição de item -->
+<!-- Modal para criação/edição -->
 <div id="itemModal" class="modal">
   <div class="modal-content">
     <h2 id="modalTitle">➕ Novo Item</h2>
     <input type="hidden" id="editItemId" value="">
     <div class="form-group">
       <label>Nome do Item *</label>
-      <input type="text" id="itemName" placeholder="Ex: Projeto Ponte" autocomplete="off">
+      <input type="text" id="itemName" placeholder="Ex: Projeto Ponte">
     </div>
     <div class="form-group">
       <label>Código / ID *</label>
-      <input type="text" id="itemCode" placeholder="Ex: P-001" autocomplete="off">
+      <input type="text" id="itemCode" placeholder="Ex: P-001">
     </div>
-
     <div class="attachments-title">📄 Memorial de Cálculo e Projeto</div>
     <div class="month-group">
       <label>Memorial:</label>
       <input type="file" id="memorialFile" accept=".pdf">
     </div>
-
-    <div class="attachments-title" style="margin-top: 1rem;">📅 Documentos Mensais (Janeiro a Dezembro)</div>
-    <div id="monthlyFilesContainer">
-      <!-- meses serão inseridos via js -->
-    </div>
-
+    <div class="attachments-title" style="margin-top: 1rem;">📅 Documentos Mensais</div>
+    <div id="monthlyFilesContainer"></div>
     <div class="modal-buttons">
       <button class="btn-cancel" id="closeModalBtn">Cancelar</button>
       <button class="btn-save" id="saveItemBtn">Salvar</button>
     </div>
-    <div class="notice">* Cada PDF pode ser adicionado/substituído individualmente. Deixe em branco para manter o existente (na edição).</div>
+    <div class="notice">* Deixe os campos de arquivo em branco para manter os existentes (na edição).</div>
   </div>
 </div>
 
 <script>
-  // Nomes dos meses (índice 0 = janeiro)
-  const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
-  const monthKeys = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+  (function() {
+    // ---------- CONSTANTES ----------
+    const DB_NAME = 'ItemPDFMemorialDB';
+    const DB_VERSION = 4; // incrementado para forçar upgrade
+    const STORE_ITEMS = 'items';
+    const STORE_FILES = 'files';
+    const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+    const monthKeys = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 
-  // Configuração IndexedDB
-  const DB_NAME = 'ItemPDFMemorialDB';
-  const DB_VERSION = 3;
-  const STORE_ITEMS = 'items';
-  const STORE_FILES = 'files';   // armazena arquivos com referência ao item e categoria
+    let db = null;
+    let editingItemId = null;
 
-  let db = null;
+    // ---------- ABRIR BANCO DE DADOS ----------
+    async function openDB() {
+      if (db && db.name === DB_NAME) return db;
+      return new Promise((resolve, reject) => {
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
+        request.onerror = (e) => reject(request.error);
+        request.onsuccess = (e) => {
+          db = request.result;
+          resolve(db);
+        };
+        request.onupgradeneeded = (e) => {
+          const dbUp = e.target.result;
+          if (!dbUp.objectStoreNames.contains(STORE_ITEMS)) {
+            dbUp.createObjectStore(STORE_ITEMS, { keyPath: 'id', autoIncrement: true });
+          }
+          if (!dbUp.objectStoreNames.contains(STORE_FILES)) {
+            const fileStore = dbUp.createObjectStore(STORE_FILES, { keyPath: 'id', autoIncrement: true });
+            fileStore.createIndex('by_item_cat', ['itemId', 'category'], { unique: true });
+          }
+        };
+      });
+    }
 
-  function openDB() {
-    return new Promise((resolve, reject) => {
-      if (db && db.name === DB_NAME) {
-        resolve(db);
+    // ---------- FUNÇÕES AUXILIARES ----------
+    function readFileAsBuffer(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target.result);
+        reader.onerror = (e) => reject(e);
+        reader.readAsArrayBuffer(file);
+      });
+    }
+
+    async function saveFileForItem(itemId, category, file) {
+      if (!file) return null;
+      const dbConn = await openDB();
+      const tx = dbConn.transaction(STORE_FILES, 'readwrite');
+      const store = tx.objectStore(STORE_FILES);
+      const index = store.index('by_item_cat');
+      // Verificar se já existe um arquivo para essa categoria
+      const existing = await new Promise((resolve) => {
+        const request = index.get([itemId, category]);
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => resolve(null);
+      });
+      const fileBuffer = await readFileAsBuffer(file);
+      const fileRecord = {
+        itemId: itemId,
+        category: category,
+        fileName: file.name,
+        fileType: file.type,
+        fileSize: file.size,
+        blob: fileBuffer,
+        updatedAt: new Date().toISOString()
+      };
+      if (existing) {
+        fileRecord.id = existing.id; // manter o mesmo id para substituição
+      }
+      return new Promise((resolve, reject) => {
+        const request = store.put(fileRecord);
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+    }
+
+    async function getFilesForItem(itemId) {
+      const dbConn = await openDB();
+      const tx = dbConn.transaction(STORE_FILES, 'readonly');
+      const store = tx.objectStore(STORE_FILES);
+      const index = store.index('by_item_cat');
+      const range = IDBKeyRange.bound([itemId, ''], [itemId, '\uffff']);
+      const files = [];
+      return new Promise((resolve) => {
+        const request = index.openCursor(range);
+        request.onsuccess = (e) => {
+          const cursor = e.target.result;
+          if (cursor) {
+            files.push(cursor.value);
+            cursor.continue();
+          } else {
+            resolve(files);
+          }
+        };
+        request.onerror = () => resolve([]);
+      });
+    }
+
+    async function saveItem(itemId, name, code) {
+      const dbConn = await openDB();
+      const tx = dbConn.transaction(STORE_ITEMS, 'readwrite');
+      const store = tx.objectStore(STORE_ITEMS);
+      const item = { name: name.trim(), code: code.trim() };
+      if (itemId) item.id = parseInt(itemId);
+      return new Promise((resolve, reject) => {
+        const request = store.put(item);
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+    }
+
+    async function deleteItemAndFiles(itemId) {
+      const dbConn = await openDB();
+      const files = await getFilesForItem(itemId);
+      const tx = dbConn.transaction([STORE_ITEMS, STORE_FILES], 'readwrite');
+      const itemStore = tx.objectStore(STORE_ITEMS);
+      const fileStore = tx.objectStore(STORE_FILES);
+      itemStore.delete(itemId);
+      for (const file of files) {
+        fileStore.delete(file.id);
+      }
+      return new Promise((resolve, reject) => {
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      });
+    }
+
+    async function deleteFileById(fileId) {
+      const dbConn = await openDB();
+      const tx = dbConn.transaction(STORE_FILES, 'readwrite');
+      const store = tx.objectStore(STORE_FILES);
+      return new Promise((resolve, reject) => {
+        const req = store.delete(fileId);
+        req.onsuccess = () => resolve();
+        req.onerror = () => reject(req.error);
+      });
+    }
+
+    async function getAllItemsWithFiles() {
+      const dbConn = await openDB();
+      const items = await new Promise((resolve) => {
+        const tx = dbConn.transaction(STORE_ITEMS, 'readonly');
+        const store = tx.objectStore(STORE_ITEMS);
+        const req = store.getAll();
+        req.onsuccess = () => resolve(req.result);
+        req.onerror = () => resolve([]);
+      });
+      const itemsWithFiles = [];
+      for (const item of items) {
+        const files = await getFilesForItem(item.id);
+        itemsWithFiles.push({ ...item, files });
+      }
+      return itemsWithFiles;
+    }
+
+    // ---------- RENDERIZAÇÃO ----------
+    function escapeHtml(str) {
+      if (!str) return '';
+      return str.replace(/[&<>]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
+      });
+    }
+
+    function renderPdfRow(category, label, file, itemId) {
+      if (file) {
+        return `
+          <div class="pdf-row">
+            <span class="pdf-label">${escapeHtml(label)}</span>
+            <div class="pdf-file-info">
+              <a href="#" data-fileid="${file.id}">📄 ${escapeHtml(file.fileName)}</a>
+            </div>
+            <div class="pdf-actions">
+              <button class="upload-pdf-btn" data-itemid="${itemId}" data-category="${category}" data-label="${label}" title="Substituir PDF">🔄</button>
+              <button class="remove-pdf-btn" data-fileid="${file.id}" title="Remover">✖</button>
+            </div>
+          </div>
+        `;
+      } else {
+        return `
+          <div class="pdf-row">
+            <span class="pdf-label">${escapeHtml(label)}</span>
+            <div class="pdf-file-info">— Nenhum PDF anexado —</div>
+            <div class="pdf-actions">
+              <button class="upload-pdf-btn" data-itemid="${itemId}" data-category="${category}" data-label="${label}" title="Adicionar PDF">➕</button>
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    async function renderDashboard() {
+      const container = document.getElementById('itemsContainer');
+      try {
+        const items = await getAllItemsWithFiles();
+        if (items.length === 0) {
+          container.innerHTML = `<div class="empty-state">✨ Nenhum item cadastrado. Clique no botão + para adicionar.</div>`;
+          return;
+        }
+        let html = '';
+        for (const item of items) {
+          const files = item.files;
+          const memorialFile = files.find(f => f.category === 'memorial');
+          const monthlyFiles = monthKeys.map(key => files.find(f => f.category === key));
+          html += `
+            <div class="item-card" data-item-id="${item.id}">
+              <div class="item-header">
+                <div class="item-info">
+                  <h3>📌 ${escapeHtml(item.name)}</h3>
+                  <p>ID: ${escapeHtml(item.code)}</p>
+                </div>
+                <div>
+                  <button class="edit-item" data-id="${item.id}" title="Editar item">✏️</button>
+                  <button class="delete-item" data-id="${item.id}" title="Excluir item">🗑️</button>
+                </div>
+              </div>
+              <div class="attachments-area">
+                <div class="attachments-title">📄 Memorial de Cálculo</div>
+                ${renderPdfRow('memorial', 'Memorial', memorialFile, item.id)}
+                <div class="attachments-title" style="margin-top: 1rem;">📅 Documentos Mensais</div>
+                ${monthNames.map((month, idx) => renderPdfRow(monthKeys[idx], month, monthlyFiles[idx], item.id)).join('')}
+              </div>
+            </div>
+          `;
+        }
+        container.innerHTML = html;
+
+        // Eventos dinâmicos
+        document.querySelectorAll('.delete-item').forEach(btn => {
+          btn.addEventListener('click', async (e) => {
+            const id = Number(btn.dataset.id);
+            if (confirm('Excluir este item e todos os PDFs?')) {
+              await deleteItemAndFiles(id);
+              renderDashboard();
+            }
+          });
+        });
+        document.querySelectorAll('.edit-item').forEach(btn => {
+          btn.addEventListener('click', async (e) => {
+            const id = Number(btn.dataset.id);
+            await openEditModal(id);
+          });
+        });
+        document.querySelectorAll('.pdf-file-info a').forEach(link => {
+          link.addEventListener('click', async (e) => {
+            e.preventDefault();
+            const fileId = Number(link.dataset.fileid);
+            const dbConn = await openDB();
+            const tx = dbConn.transaction(STORE_FILES, 'readonly');
+            const store = tx.objectStore(STORE_FILES);
+            const getReq = store.get(fileId);
+            getReq.onsuccess = () => {
+              const fileRecord = getReq.result;
+              if (fileRecord && fileRecord.blob) {
+                const blob = new Blob([fileRecord.blob], { type: 'application/pdf' });
+                const url = URL.createObjectURL(blob);
+                window.open(url, '_blank');
+                setTimeout(() => URL.revokeObjectURL(url), 1000);
+              } else {
+                alert('Arquivo não encontrado');
+              }
+            };
+            getReq.onerror = () => alert('Erro ao carregar PDF');
+          });
+        });
+        document.querySelectorAll('.upload-pdf-btn').forEach(btn => {
+          btn.addEventListener('click', async (e) => {
+            const itemId = Number(btn.dataset.itemid);
+            const category = btn.dataset.category;
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.pdf';
+            input.onchange = async (ev) => {
+              const file = ev.target.files[0];
+              if (file && file.type === 'application/pdf') {
+                await saveFileForItem(itemId, category, file);
+                renderDashboard();
+              } else if (file) alert('Selecione um PDF.');
+            };
+            input.click();
+          });
+        });
+        document.querySelectorAll('.remove-pdf-btn').forEach(btn => {
+          btn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const fileId = Number(btn.dataset.fileid);
+            if (confirm('Remover este PDF?')) {
+              await deleteFileById(fileId);
+              renderDashboard();
+            }
+          });
+        });
+      } catch (err) {
+        console.error('Erro ao renderizar dashboard:', err);
+        container.innerHTML = `<div class="empty-state">Erro ao carregar dados. Verifique o console.</div>`;
+      }
+    }
+
+    // ---------- MODAL ----------
+    const modal = document.getElementById('itemModal');
+    const modalTitle = document.getElementById('modalTitle');
+    const itemNameInput = document.getElementById('itemName');
+    const itemCodeInput = document.getElementById('itemCode');
+    const memorialFileInput = document.getElementById('memorialFile');
+    const monthlyFilesContainer = document.getElementById('monthlyFilesContainer');
+    const saveItemBtn = document.getElementById('saveItemBtn');
+    const closeModalBtn = document.getElementById('closeModalBtn');
+    const editItemIdField = document.getElementById('editItemId');
+
+    function buildMonthlyInputs() {
+      monthlyFilesContainer.innerHTML = '';
+      monthNames.forEach((month, idx) => {
+        const div = document.createElement('div');
+        div.className = 'month-group';
+        const label = document.createElement('label');
+        label.textContent = month + ':';
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.pdf';
+        input.id = `month_${monthKeys[idx]}`;
+        input.setAttribute('data-month-key', monthKeys[idx]);
+        div.appendChild(label);
+        div.appendChild(input);
+        monthlyFilesContainer.appendChild(div);
+      });
+    }
+    buildMonthlyInputs();
+
+    async function openCreateModal() {
+      editingItemId = null;
+      modalTitle.innerText = '➕ Novo Item';
+      itemNameInput.value = '';
+      itemCodeInput.value = '';
+      memorialFileInput.value = '';
+      monthKeys.forEach(key => {
+        const inp = document.getElementById(`month_${key}`);
+        if (inp) inp.value = '';
+      });
+      editItemIdField.value = '';
+      modal.style.display = 'flex';
+    }
+
+    async function openEditModal(itemId) {
+      const items = await getAllItemsWithFiles();
+      const item = items.find(i => i.id === itemId);
+      if (!item) return;
+      editingItemId = itemId;
+      modalTitle.innerText = '✏️ Editar Item';
+      itemNameInput.value = item.name;
+      itemCodeInput.value = item.code;
+      editItemIdField.value = itemId;
+      // Limpar inputs de arquivo (não podemos pré-carregar)
+      memorialFileInput.value = '';
+      monthKeys.forEach(key => {
+        const inp = document.getElementById(`month_${key}`);
+        if (inp) inp.value = '';
+      });
+      modal.style.display = 'flex';
+    }
+
+    saveItemBtn.addEventListener('click', async () => {
+      const name = itemNameInput.value.trim();
+      const code = itemCodeInput.value.trim();
+      if (!name || !code) {
+        alert('Preencha Nome e Código do item');
         return;
       }
-      const request = indexedDB.open(DB_NAME, DB_VERSION);
-      request.onerror = () => reject(request.error);
-      request.onsuccess = () => {
-        db = request.result;
-        resolve(db);
-      };
-      request.onupgradeneeded = (e) => {
-        const dbUp = e.target.result;
-        if (!dbUp.objectStoreNames.contains(STORE_ITEMS)) {
-          dbUp.createObjectStore(STORE_ITEMS, { keyPath: 'id', autoIncrement: true });
-        }
-        if (!dbUp.objectStoreNames.contains(STORE_FILES)) {
-          const fileStore = dbUp.createObjectStore(STORE_FILES, { keyPath: 'id', autoIncrement: true });
-          fileStore.createIndex('by_item_cat', ['itemId', 'category'], { unique: true });
-        }
-      };
-    });
-  }
-
-  // Helper: ler arquivo como ArrayBuffer
-  function readFileAsBuffer(file) {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = (e) => resolve(e.target.result);
-      reader.onerror = (e) => reject(e);
-      reader.readAsArrayBuffer(file);
-    });
-  }
-
-  // Salvar ou atualizar um arquivo para um item e categoria específica
-  async function saveFileForItem(itemId, category, file) {
-    if (!file) return null;
-    const dbConn = await openDB();
-    const tx = dbConn.transaction(STORE_FILES, 'readwrite');
-    const store = tx.objectStore(STORE_FILES);
-    const index = store.index('by_item_cat');
-    const existing = await new Promise((resolve) => {
-      const request = index.get([itemId, category]);
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => resolve(null);
-    });
-    const fileBuffer = await readFileAsBuffer(file);
-    const fileRecord = {
-      itemId: itemId,
-      category: category,
-      fileName: file.name,
-      fileType: file.type,
-      fileSize: file.size,
-      blob: fileBuffer,
-      updatedAt: new Date().toISOString()
-    };
-    if (existing) {
-      fileRecord.id = existing.id;
-    }
-    return new Promise((resolve, reject) => {
-      const request = store.put(fileRecord);
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
-    });
-  }
-
-  // Obter todos os arquivos de um item, agrupados por categoria
-  async function getFilesForItem(itemId) {
-    const dbConn = await openDB();
-    const tx = dbConn.transaction(STORE_FILES, 'readonly');
-    const store = tx.objectStore(STORE_FILES);
-    const index = store.index('by_item_cat');
-    const range = IDBKeyRange.bound([itemId, ''], [itemId, '\uffff']);
-    return new Promise((resolve) => {
-      const files = [];
-      const request = index.openCursor(range);
-      request.onsuccess = (e) => {
-        const cursor = e.target.result;
-        if (cursor) {
-          files.push(cursor.value);
-          cursor.continue();
-        } else {
-          resolve(files);
-        }
-      };
-      request.onerror = () => resolve([]);
-    });
-  }
-
-  // Salvar item principal (nome e código)
-  async function saveItem(itemId, name, code) {
-    const dbConn = await openDB();
-    const tx = dbConn.transaction(STORE_ITEMS, 'readwrite');
-    const store = tx.objectStore(STORE_ITEMS);
-    const item = { name: name.trim(), code: code.trim() };
-    if (itemId) {
-      item.id = parseInt(itemId);
-    }
-    return new Promise((resolve, reject) => {
-      const request = store.put(item);
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
-    });
-  }
-
-  // Excluir item e todos os seus arquivos
-  async function deleteItemAndFiles(itemId) {
-    const dbConn = await openDB();
-    const files = await getFilesForItem(itemId);
-    const tx = dbConn.transaction([STORE_ITEMS, STORE_FILES], 'readwrite');
-    const itemStore = tx.objectStore(STORE_ITEMS);
-    const fileStore = tx.objectStore(STORE_FILES);
-    itemStore.delete(itemId);
-    for (const file of files) {
-      fileStore.delete(file.id);
-    }
-    return new Promise((resolve, reject) => {
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error);
-    });
-  }
-
-  // Remover arquivo específico por ID
-  async function deleteFileById(fileId) {
-    const dbConn = await openDB();
-    const tx = dbConn.transaction(STORE_FILES, 'readwrite');
-    const store = tx.objectStore(STORE_FILES);
-    return new Promise((resolve, reject) => {
-      const req = store.delete(fileId);
-      req.onsuccess = () => resolve();
-      req.onerror = () => reject(req.error);
-    });
-  }
-
-  // Carregar todos os itens com seus arquivos
-  async function getAllItemsWithFiles() {
-    const dbConn = await openDB();
-    const items = await new Promise((resolve) => {
-      const tx = dbConn.transaction(STORE_ITEMS, 'readonly');
-      const store = tx.objectStore(STORE_ITEMS);
-      const req = store.getAll();
-      req.onsuccess = () => resolve(req.result);
-      req.onerror = () => resolve([]);
-    });
-    const filesMap = new Map();
-    for (const item of items) {
-      const files = await getFilesForItem(item.id);
-      filesMap.set(item.id, files);
-    }
-    return items.map(item => ({
-      ...item,
-      files: filesMap.get(item.id) || []
-    }));
-  }
-
-  // Renderizar dashboard
-  async function renderDashboard() {
-    const items = await getAllItemsWithFiles();
-    const container = document.getElementById('itemsContainer');
-    if (items.length === 0) {
-      container.innerHTML = `<div class="empty-state">✨ Nenhum item cadastrado. Clique no botão + para adicionar.</div>`;
-      return;
-    }
-    container.innerHTML = items.map(item => {
-      const files = item.files;
-      const memorialFile = files.find(f => f.category === 'memorial');
-      const monthlyFiles = monthKeys.map((key, idx) => files.find(f => f.category === key));
-      return `
-        <div class="item-card" data-item-id="${item.id}">
-          <div class="item-header">
-            <div class="item-info">
-              <h3>📌 ${escapeHtml(item.name)}</h3>
-              <p>ID: ${escapeHtml(item.code)}</p>
-            </div>
-            <button class="delete-item" data-id="${item.id}" title="Excluir item">🗑️</button>
-          </div>
-          <div class="attachments-area">
-            <div class="attachments-title">📄 Memorial de Cálculo</div>
-            ${renderPdfRow('memorial', 'Memorial', memorialFile, item.id)}
-            
-            <div class="attachments-title" style="margin-top: 1rem;">📅 Documentos Mensais</div>
-            ${monthNames.map((month, idx) => {
-              const key = monthKeys[idx];
-              const file = monthlyFiles[idx];
-              return renderPdfRow(key, month, file, item.id);
-            }).join('')}
-          </div>
-        </div>
-      `;
-    }).join('');
-
-    // Eventos de exclusão de item
-    document.querySelectorAll('.delete-item').forEach(btn => {
-      btn.addEventListener('click', async (e) => {
-        const id = Number(btn.dataset.id);
-        if (confirm('Excluir este item e todos os PDFs associados?')) {
-          await deleteItemAndFiles(id);
-          renderDashboard();
-        }
-      });
-    });
-    // Eventos de abrir PDF
-    document.querySelectorAll('.pdf-file-info a').forEach(link => {
-      link.addEventListener('click', async (e) => {
-        e.preventDefault();
-        const fileId = Number(link.dataset.fileid);
-        const dbConn = await openDB();
-        const tx = dbConn.transaction(STORE_FILES, 'readonly');
-        const store = tx.objectStore(STORE_FILES);
-        const getReq = store.get(fileId);
-        getReq.onsuccess = () => {
-          const fileRecord = getReq.result;
-          if (fileRecord && fileRecord.blob) {
-            const blob = new Blob([fileRecord.blob], { type: 'application/pdf' });
-            const url = URL.createObjectURL(blob);
-            window.open(url, '_blank');
-            setTimeout(() => URL.revokeObjectURL(url), 1000);
-          } else {
-            alert('Arquivo não encontrado');
-          }
-        };
-        getReq.onerror = () => alert('Erro ao carregar PDF');
-      });
-    });
-    // Eventos de upload/substituição de PDF
-    document.querySelectorAll('.upload-pdf-btn').forEach(btn => {
-      btn.addEventListener('click', async (e) => {
-        const itemId = Number(btn.dataset.itemid);
-        const category = btn.dataset.category;
-        const label = btn.dataset.label;
-        // Criar input file oculto
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = '.pdf';
-        input.onchange = async (ev) => {
-          const file = ev.target.files[0];
-          if (file && file.type === 'application/pdf') {
-            await saveFileForItem(itemId, category, file);
-            renderDashboard();
-          } else if (file) {
-            alert('Por favor, selecione um arquivo PDF.');
-          }
-        };
-        input.click();
-      });
-    });
-    // Eventos de remover PDF
-    document.querySelectorAll('.remove-pdf-btn').forEach(btn => {
-      btn.addEventListener('click', async (e) => {
-        e.stopPropagation();
-        const fileId = Number(btn.dataset.fileid);
-        if (confirm('Remover este PDF?')) {
-          await deleteFileById(fileId);
-          renderDashboard();
-        }
-      });
-    });
-  }
-
-  function renderPdfRow(category, label, file, itemId) {
-    if (file) {
-      return `
-        <div class="pdf-row">
-          <span class="pdf-label">${label}</span>
-          <div class="pdf-file-info">
-            <a href="#" data-fileid="${file.id}">📄 ${escapeHtml(file.fileName)}</a>
-          </div>
-          <div class="pdf-actions">
-            <button class="upload-pdf-btn" data-itemid="${itemId}" data-category="${category}" data-label="${label}" title="Substituir PDF">🔄</button>
-            <button class="remove-pdf-btn" data-fileid="${file.id}" title="Remover">✖</button>
-          </div>
-        </div>
-      `;
-    } else {
-      return `
-        <div class="pdf-row">
-          <span class="pdf-label">${label}</span>
-          <div class="pdf-file-info">— Nenhum PDF anexado —</div>
-          <div class="pdf-actions">
-            <button class="upload-pdf-btn" data-itemid="${itemId}" data-category="${category}" data-label="${label}" title="Adicionar PDF">➕</button>
-          </div>
-        </div>
-      `;
-    }
-  }
-
-  // Modal de criação/edição de item (permite adicionar todos os PDFs de uma vez)
-  let editingItemId = null;
-  const modal = document.getElementById('itemModal');
-  const modalTitle = document.getElementById('modalTitle');
-  const itemNameInput = document.getElementById('itemName');
-  const itemCodeInput = document.getElementById('itemCode');
-  const memorialFileInput = document.getElementById('memorialFile');
-  const monthlyFilesContainer = document.getElementById('monthlyFilesContainer');
-  const saveItemBtn = document.getElementById('saveItemBtn');
-  const closeModalBtn = document.getElementById('closeModalBtn');
-  const editItemIdField = document.getElementById('editItemId');
-
-  // Preencher os inputs de meses no modal dinamicamente
-  function buildMonthlyInputs() {
-    monthlyFilesContainer.innerHTML = '';
-    monthNames.forEach((month, idx) => {
-      const div = document.createElement('div');
-      div.className = 'month-group';
-      const label = document.createElement('label');
-      label.textContent = month + ':';
-      const input = document.createElement('input');
-      input.type = 'file';
-      input.accept = '.pdf';
-      input.id = `month_${monthKeys[idx]}`;
-      input.setAttribute('data-month-key', monthKeys[idx]);
-      div.appendChild(label);
-      div.appendChild(input);
-      monthlyFilesContainer.appendChild(div);
-    });
-  }
-  buildMonthlyInputs();
-
-  async function openCreateModal() {
-    editingItemId = null;
-    modalTitle.innerText = '➕ Novo Item';
-    itemNameInput.value = '';
-    itemCodeInput.value = '';
-    memorialFileInput.value = '';
-    // limpar todos os inputs de meses
-    monthKeys.forEach(key => {
-      const inp = document.getElementById(`month_${key}`);
-      if (inp) inp.value = '';
-    });
-    editItemIdField.value = '';
-    modal.style.display = 'flex';
-  }
-
-  async function openEditModal(itemId) {
-    const items = await getAllItemsWithFiles();
-    const item = items.find(i => i.id === itemId);
-    if (!item) return;
-    editingItemId = itemId;
-    modalTitle.innerText = '✏️ Editar Item';
-    itemNameInput.value = item.name;
-    itemCodeInput.value = item.code;
-    editItemIdField.value = itemId;
-    // Preencher os inputs de arquivos não é trivial (não podemos pré-carregar arquivos)
-    // Mas o usuário pode substituir individualmente. Vamos apenas limpar os inputs.
-    memorialFileInput.value = '';
-    monthKeys.forEach(key => {
-      const inp = document.getElementById(`month_${key}`);
-      if (inp) inp.value = '';
-    });
-    modal.style.display = 'flex';
-  }
-
-  saveItemBtn.addEventListener('click', async () => {
-    const name = itemNameInput.value.trim();
-    const code = itemCodeInput.value.trim();
-    if (!name || !code) {
-      alert('Preencha Nome e Código do item');
-      return;
-    }
-    let itemId = editingItemId;
-    try {
-      // Salvar ou atualizar item
-      const savedId = await saveItem(itemId, name, code);
-      itemId = savedId;
-      // Processar memorial se houver
-      if (memorialFileInput.files.length > 0) {
-        const file = memorialFileInput.files[0];
-        if (file.type === 'application/pdf') {
-          await saveFileForItem(itemId, 'memorial', file);
-        } else {
-          alert('O arquivo do memorial deve ser PDF.');
-        }
-      }
-      // Processar cada mês
-      for (let i = 0; i < monthKeys.length; i++) {
-        const key = monthKeys[i];
-        const input = document.getElementById(`month_${key}`);
-        if (input && input.files.length > 0) {
-          const file = input.files[0];
+      try {
+        let itemId = editingItemId;
+        // Salvar ou atualizar item
+        const savedId = await saveItem(itemId, name, code);
+        itemId = savedId;
+        // Processar memorial
+        if (memorialFileInput.files.length > 0) {
+          const file = memorialFileInput.files[0];
           if (file.type === 'application/pdf') {
-            await saveFileForItem(itemId, key, file);
+            await saveFileForItem(itemId, 'memorial', file);
           } else {
-            alert(`Arquivo de ${monthNames[i]} deve ser PDF. Ignorado.`);
+            alert('O arquivo do memorial deve ser PDF.');
           }
         }
+        // Processar meses
+        for (let i = 0; i < monthKeys.length; i++) {
+          const key = monthKeys[i];
+          const input = document.getElementById(`month_${key}`);
+          if (input && input.files.length > 0) {
+            const file = input.files[0];
+            if (file.type === 'application/pdf') {
+              await saveFileForItem(itemId, key, file);
+            } else {
+              alert(`Arquivo de ${monthNames[i]} deve ser PDF. Ignorado.`);
+            }
+          }
+        }
+        modal.style.display = 'none';
+        renderDashboard();
+      } catch (err) {
+        console.error('Erro ao salvar item:', err);
+        alert(`Erro ao salvar item: ${err.message || 'Verifique o console para mais detalhes.'}`);
       }
+    });
+
+    closeModalBtn.addEventListener('click', () => {
       modal.style.display = 'none';
-      renderDashboard();
-    } catch (err) {
-      console.error(err);
-      alert('Erro ao salvar item. Verifique o console.');
-    }
-  });
-
-  closeModalBtn.addEventListener('click', () => {
-    modal.style.display = 'none';
-  });
-
-  document.getElementById('addItemBtn').addEventListener('click', openCreateModal);
-
-  document.getElementById('logoutBtn').addEventListener('click', () => {
-    window.location.href = 'index.html';
-  });
-
-  // Inicialização
-  window.addEventListener('DOMContentLoaded', async () => {
-    await openDB();
-    renderDashboard();
-    // Adicionar evento para edição via clique no cabeçalho do item (opcional)
-    // Podemos permitir edição do nome/ID através do modal também. Vamos adicionar um botão de edição?
-    // Para simplificar, podemos incluir um ícone de lápis no card. Vamos adicionar.
-    // Modificaremos a renderização para incluir um botão de edição.
-    // Mas a pedido do usuário, manteremos simples: para editar, ele poderá criar novo item e excluir o antigo.
-    // Porém, incluirei um ícone de edição no cabeçalho para facilitar.
-  });
-
-  // Ajustar renderização para incluir botão de edição
-  // Precisamos modificar a função renderDashboard para adicionar um botão de edição.
-  // Vamos sobrescrever a função anterior com uma versão que inclui o botão de edição.
-  // Já que a função está acima, vou redefini-la após o carregamento? Melhor substituir a definição original.
-  // Para não duplicar, vou reescrever a função renderDashboard com o botão de edição.
-  // Vou substituir a função após declaração. Mas como já foi declarada, vou reatribuir.
-  const originalRender = renderDashboard;
-  window.renderDashboard = async function() {
-    const items = await getAllItemsWithFiles();
-    const container = document.getElementById('itemsContainer');
-    if (items.length === 0) {
-      container.innerHTML = `<div class="empty-state">✨ Nenhum item cadastrado. Clique no botão + para adicionar.</div>`;
-      return;
-    }
-    container.innerHTML = items.map(item => {
-      const files = item.files;
-      const memorialFile = files.find(f => f.category === 'memorial');
-      const monthlyFiles = monthKeys.map((key, idx) => files.find(f => f.category === key));
-      return `
-        <div class="item-card" data-item-id="${item.id}">
-          <div class="item-header">
-            <div class="item-info">
-              <h3>📌 ${escapeHtml(item.name)}</h3>
-              <p>ID: ${escapeHtml(item.code)}</p>
-            </div>
-            <div>
-              <button class="edit-item" data-id="${item.id}" title="Editar item" style="background:none; border:none; font-size:1.2rem; cursor:pointer; margin-right:0.5rem;">✏️</button>
-              <button class="delete-item" data-id="${item.id}" title="Excluir item">🗑️</button>
-            </div>
-          </div>
-          <div class="attachments-area">
-            <div class="attachments-title">📄 Memorial de Cálculo</div>
-            ${renderPdfRow('memorial', 'Memorial', memorialFile, item.id)}
-            
-            <div class="attachments-title" style="margin-top: 1rem;">📅 Documentos Mensais</div>
-            ${monthNames.map((month, idx) => {
-              const key = monthKeys[idx];
-              const file = monthlyFiles[idx];
-              return renderPdfRow(key, month, file, item.id);
-            }).join('')}
-          </div>
-        </div>
-      `;
-    }).join('');
-
-    // Eventos
-    document.querySelectorAll('.delete-item').forEach(btn => {
-      btn.addEventListener('click', async (e) => {
-        const id = Number(btn.dataset.id);
-        if (confirm('Excluir este item e todos os PDFs?')) {
-          await deleteItemAndFiles(id);
-          renderDashboard();
-        }
-      });
     });
-    document.querySelectorAll('.edit-item').forEach(btn => {
-      btn.addEventListener('click', async (e) => {
-        const id = Number(btn.dataset.id);
-        await openEditModal(id);
-      });
-    });
-    document.querySelectorAll('.pdf-file-info a').forEach(link => {
-      link.addEventListener('click', async (e) => {
-        e.preventDefault();
-        const fileId = Number(link.dataset.fileid);
-        const dbConn = await openDB();
-        const tx = dbConn.transaction(STORE_FILES, 'readonly');
-        const store = tx.objectStore(STORE_FILES);
-        const getReq = store.get(fileId);
-        getReq.onsuccess = () => {
-          const fileRecord = getReq.result;
-          if (fileRecord && fileRecord.blob) {
-            const blob = new Blob([fileRecord.blob], { type: 'application/pdf' });
-            const url = URL.createObjectURL(blob);
-            window.open(url, '_blank');
-            setTimeout(() => URL.revokeObjectURL(url), 1000);
-          } else {
-            alert('Arquivo não encontrado');
-          }
-        };
-        getReq.onerror = () => alert('Erro ao carregar PDF');
-      });
-    });
-    document.querySelectorAll('.upload-pdf-btn').forEach(btn => {
-      btn.addEventListener('click', async (e) => {
-        const itemId = Number(btn.dataset.itemid);
-        const category = btn.dataset.category;
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = '.pdf';
-        input.onchange = async (ev) => {
-          const file = ev.target.files[0];
-          if (file && file.type === 'application/pdf') {
-            await saveFileForItem(itemId, category, file);
-            renderDashboard();
-          } else if (file) alert('Selecione um PDF.');
-        };
-        input.click();
-      });
-    });
-    document.querySelectorAll('.remove-pdf-btn').forEach(btn => {
-      btn.addEventListener('click', async (e) => {
-        e.stopPropagation();
-        const fileId = Number(btn.dataset.fileid);
-        if (confirm('Remover este PDF?')) {
-          await deleteFileById(fileId);
-          renderDashboard();
-        }
-      });
-    });
-  };
-  // substituir referência global
-  window.renderDashboard = window.renderDashboard;
-  renderDashboard = window.renderDashboard;
 
-  // Reexecutar renderização inicial com a nova versão
-  window.addEventListener('DOMContentLoaded', async () => {
-    await openDB();
-    renderDashboard();
-  });
+    document.getElementById('addItemBtn').addEventListener('click', openCreateModal);
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+      window.location.href = 'index.html';
+    });
+
+    // Inicialização
+    window.addEventListener('DOMContentLoaded', async () => {
+      try {
+        await openDB();
+        await renderDashboard();
+      } catch (err) {
+        console.error('Falha na inicialização:', err);
+        alert('Erro ao inicializar o banco de dados. Consulte o console.');
+      }
+    });
+  })();
 </script>
 </body>
 </html>
