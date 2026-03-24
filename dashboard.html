@@ -51,6 +51,7 @@
     .btn-save { background: #1e4a76; color: white; padding: 0.5rem 1.2rem; border-radius: 2rem; border: none; cursor: pointer; }
     .btn-cancel { background: #e2e8f0; color: #1e293b; padding: 0.5rem 1.2rem; border-radius: 2rem; border: none; cursor: pointer; }
     .notice { font-size: 0.7rem; color: #5b6e8c; margin-top: 0.8rem; text-align: center; }
+    .error-text { color: #dc2626; font-size: 0.75rem; margin-top: 0.25rem; }
   </style>
 </head>
 <body>
@@ -75,6 +76,7 @@
     <div class="form-group">
       <label>Código / ID *</label>
       <input type="text" id="itemCode" placeholder="Ex: P-001">
+      <div id="codeError" class="error-text"></div>
     </div>
     <div class="attachments-title">📄 Memorial de Cálculo e Projeto</div>
     <div class="month-group">
@@ -87,7 +89,7 @@
       <button class="btn-cancel" id="closeModalBtn">Cancelar</button>
       <button class="btn-save" id="saveItemBtn">Salvar</button>
     </div>
-    <div class="notice">* Deixe os campos de arquivo em branco para manter os existentes (na edição).</div>
+    <div class="notice">* Código deve ser único. Deixe os campos de arquivo em branco para manter os existentes (na edição).</div>
   </div>
 </div>
 
@@ -95,7 +97,7 @@
   (function() {
     // ---------- CONSTANTES ----------
     const DB_NAME = 'ItemPDFMemorialDB';
-    const DB_VERSION = 4; // incrementado para forçar upgrade
+    const DB_VERSION = 6; // incrementado para garantir upgrade
     const STORE_ITEMS = 'items';
     const STORE_FILES = 'files';
     const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
@@ -116,13 +118,15 @@
         };
         request.onupgradeneeded = (e) => {
           const dbUp = e.target.result;
-          if (!dbUp.objectStoreNames.contains(STORE_ITEMS)) {
-            dbUp.createObjectStore(STORE_ITEMS, { keyPath: 'id', autoIncrement: true });
-          }
-          if (!dbUp.objectStoreNames.contains(STORE_FILES)) {
-            const fileStore = dbUp.createObjectStore(STORE_FILES, { keyPath: 'id', autoIncrement: true });
-            fileStore.createIndex('by_item_cat', ['itemId', 'category'], { unique: true });
-          }
+          // Apaga stores antigas para garantir estrutura limpa
+          if (dbUp.objectStoreNames.contains(STORE_ITEMS)) dbUp.deleteObjectStore(STORE_ITEMS);
+          if (dbUp.objectStoreNames.contains(STORE_FILES)) dbUp.deleteObjectStore(STORE_FILES);
+          const itemStore = dbUp.createObjectStore(STORE_ITEMS, { keyPath: 'id', autoIncrement: true });
+          // Criar índice único no campo 'code' para evitar duplicatas (opcional, mas usaremos validação manual)
+          // Apenas criamos o índice para consultas eficientes.
+          itemStore.createIndex('by_code', 'code', { unique: true });
+          const fileStore = dbUp.createObjectStore(STORE_FILES, { keyPath: 'id', autoIncrement: true });
+          fileStore.createIndex('by_item_cat', ['itemId', 'category'], { unique: true });
         };
       });
     }
@@ -137,108 +141,158 @@
       });
     }
 
-    async function saveFileForItem(itemId, category, file) {
-      if (!file) return null;
+    // Verificar se um código já existe (excluindo o próprio item em edição)
+    async function isCodeDuplicate(code, excludeId = null) {
       const dbConn = await openDB();
-      const tx = dbConn.transaction(STORE_FILES, 'readwrite');
-      const store = tx.objectStore(STORE_FILES);
-      const index = store.index('by_item_cat');
-      // Verificar se já existe um arquivo para essa categoria
-      const existing = await new Promise((resolve) => {
-        const request = index.get([itemId, category]);
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => resolve(null);
-      });
-      const fileBuffer = await readFileAsBuffer(file);
-      const fileRecord = {
-        itemId: itemId,
-        category: category,
-        fileName: file.name,
-        fileType: file.type,
-        fileSize: file.size,
-        blob: fileBuffer,
-        updatedAt: new Date().toISOString()
-      };
-      if (existing) {
-        fileRecord.id = existing.id; // manter o mesmo id para substituição
-      }
       return new Promise((resolve, reject) => {
-        const request = store.put(fileRecord);
-        request.onsuccess = () => resolve(request.result);
+        const tx = dbConn.transaction(STORE_ITEMS, 'readonly');
+        const store = tx.objectStore(STORE_ITEMS);
+        const index = store.index('by_code');
+        const request = index.get(code);
+        request.onsuccess = () => {
+          const existing = request.result;
+          if (existing && existing.id !== excludeId) {
+            resolve(true);
+          } else {
+            resolve(false);
+          }
+        };
         request.onerror = () => reject(request.error);
       });
     }
 
+    // Salvar item (nome e código) com verificação de unicidade
+    async function saveItem(itemId, name, code) {
+      // Verificar duplicidade
+      const isDuplicate = await isCodeDuplicate(code, itemId);
+      if (isDuplicate) {
+        throw new Error(`O código "${code}" já está em uso. Escolha um código único.`);
+      }
+      const dbConn = await openDB();
+      return new Promise((resolve, reject) => {
+        const tx = dbConn.transaction(STORE_ITEMS, 'readwrite');
+        const store = tx.objectStore(STORE_ITEMS);
+        const item = { name: name.trim(), code: code.trim() };
+        if (itemId) item.id = parseInt(itemId);
+        const request = store.put(item);
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+        tx.onerror = () => reject(tx.error);
+      });
+    }
+
+    // Salvar um arquivo para um item e categoria (substitui se já existir)
+    async function saveFileForItem(itemId, category, file) {
+      if (!file) return null;
+      const dbConn = await openDB();
+      // Primeiro, buscar se já existe um arquivo com esta categoria
+      const existingFileId = await new Promise((resolve, reject) => {
+        const tx = dbConn.transaction(STORE_FILES, 'readonly');
+        const store = tx.objectStore(STORE_FILES);
+        const index = store.index('by_item_cat');
+        const request = index.get([itemId, category]);
+        request.onsuccess = () => resolve(request.result ? request.result.id : null);
+        request.onerror = () => reject(request.error);
+      });
+      
+      // Agora, em uma nova transação, excluir o antigo (se houver) e adicionar o novo
+      return new Promise(async (resolve, reject) => {
+        const tx = dbConn.transaction(STORE_FILES, 'readwrite');
+        const store = tx.objectStore(STORE_FILES);
+        
+        // Função para executar após exclusão (se necessário)
+        const afterDelete = () => {
+          const fileBuffer = readFileAsBuffer(file).then(buffer => {
+            const newFile = {
+              itemId: itemId,
+              category: category,
+              fileName: file.name,
+              fileType: file.type,
+              fileSize: file.size,
+              blob: buffer,
+              updatedAt: new Date().toISOString()
+            };
+            const addRequest = store.add(newFile);
+            addRequest.onsuccess = () => resolve(addRequest.result);
+            addRequest.onerror = () => reject(addRequest.error);
+          }).catch(reject);
+        };
+        
+        if (existingFileId) {
+          const deleteRequest = store.delete(existingFileId);
+          deleteRequest.onsuccess = afterDelete;
+          deleteRequest.onerror = () => reject(deleteRequest.error);
+        } else {
+          afterDelete();
+        }
+        tx.onerror = () => reject(tx.error);
+      });
+    }
+
+    // Obter todos os arquivos de um item
     async function getFilesForItem(itemId) {
       const dbConn = await openDB();
-      const tx = dbConn.transaction(STORE_FILES, 'readonly');
-      const store = tx.objectStore(STORE_FILES);
-      const index = store.index('by_item_cat');
-      const range = IDBKeyRange.bound([itemId, ''], [itemId, '\uffff']);
-      const files = [];
-      return new Promise((resolve) => {
-        const request = index.openCursor(range);
-        request.onsuccess = (e) => {
-          const cursor = e.target.result;
-          if (cursor) {
-            files.push(cursor.value);
-            cursor.continue();
+      return new Promise((resolve, reject) => {
+        const tx = dbConn.transaction(STORE_FILES, 'readonly');
+        const store = tx.objectStore(STORE_FILES);
+        const index = store.index('by_item_cat');
+        const range = IDBKeyRange.bound([itemId, ''], [itemId, '\uffff']);
+        const files = [];
+        const cursor = index.openCursor(range);
+        cursor.onsuccess = (e) => {
+          const c = e.target.result;
+          if (c) {
+            files.push(c.value);
+            c.continue();
           } else {
             resolve(files);
           }
         };
-        request.onerror = () => resolve([]);
+        cursor.onerror = () => reject(cursor.error);
       });
     }
 
-    async function saveItem(itemId, name, code) {
-      const dbConn = await openDB();
-      const tx = dbConn.transaction(STORE_ITEMS, 'readwrite');
-      const store = tx.objectStore(STORE_ITEMS);
-      const item = { name: name.trim(), code: code.trim() };
-      if (itemId) item.id = parseInt(itemId);
-      return new Promise((resolve, reject) => {
-        const request = store.put(item);
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(request.error);
-      });
-    }
-
+    // Excluir item e todos os seus arquivos
     async function deleteItemAndFiles(itemId) {
       const dbConn = await openDB();
+      // Buscar todos os IDs de arquivos do item
       const files = await getFilesForItem(itemId);
+      const fileIds = files.map(f => f.id);
+      
       const tx = dbConn.transaction([STORE_ITEMS, STORE_FILES], 'readwrite');
       const itemStore = tx.objectStore(STORE_ITEMS);
       const fileStore = tx.objectStore(STORE_FILES);
+      
       itemStore.delete(itemId);
-      for (const file of files) {
-        fileStore.delete(file.id);
-      }
+      fileIds.forEach(id => fileStore.delete(id));
+      
       return new Promise((resolve, reject) => {
         tx.oncomplete = () => resolve();
         tx.onerror = () => reject(tx.error);
       });
     }
 
+    // Excluir um único arquivo pelo ID
     async function deleteFileById(fileId) {
       const dbConn = await openDB();
       const tx = dbConn.transaction(STORE_FILES, 'readwrite');
       const store = tx.objectStore(STORE_FILES);
       return new Promise((resolve, reject) => {
-        const req = store.delete(fileId);
-        req.onsuccess = () => resolve();
-        req.onerror = () => reject(req.error);
+        const request = store.delete(fileId);
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(request.error);
       });
     }
 
+    // Carregar todos os itens com seus arquivos
     async function getAllItemsWithFiles() {
       const dbConn = await openDB();
-      const items = await new Promise((resolve) => {
+      const items = await new Promise((resolve, reject) => {
         const tx = dbConn.transaction(STORE_ITEMS, 'readonly');
         const store = tx.objectStore(STORE_ITEMS);
-        const req = store.getAll();
-        req.onsuccess = () => resolve(req.result);
-        req.onerror = () => resolve([]);
+        const request = store.getAll();
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
       });
       const itemsWithFiles = [];
       for (const item of items) {
@@ -398,6 +452,7 @@
     const modalTitle = document.getElementById('modalTitle');
     const itemNameInput = document.getElementById('itemName');
     const itemCodeInput = document.getElementById('itemCode');
+    const codeErrorDiv = document.getElementById('codeError');
     const memorialFileInput = document.getElementById('memorialFile');
     const monthlyFilesContainer = document.getElementById('monthlyFilesContainer');
     const saveItemBtn = document.getElementById('saveItemBtn');
@@ -428,6 +483,7 @@
       modalTitle.innerText = '➕ Novo Item';
       itemNameInput.value = '';
       itemCodeInput.value = '';
+      codeErrorDiv.innerText = '';
       memorialFileInput.value = '';
       monthKeys.forEach(key => {
         const inp = document.getElementById(`month_${key}`);
@@ -445,6 +501,7 @@
       modalTitle.innerText = '✏️ Editar Item';
       itemNameInput.value = item.name;
       itemCodeInput.value = item.code;
+      codeErrorDiv.innerText = '';
       editItemIdField.value = itemId;
       // Limpar inputs de arquivo (não podemos pré-carregar)
       memorialFileInput.value = '';
@@ -462,11 +519,14 @@
         alert('Preencha Nome e Código do item');
         return;
       }
+      // Limpar mensagem de erro anterior
+      codeErrorDiv.innerText = '';
       try {
         let itemId = editingItemId;
-        // Salvar ou atualizar item
+        // Salvar ou atualizar item (a função saveItem já verifica duplicidade)
         const savedId = await saveItem(itemId, name, code);
         itemId = savedId;
+        
         // Processar memorial
         if (memorialFileInput.files.length > 0) {
           const file = memorialFileInput.files[0];
@@ -493,7 +553,11 @@
         renderDashboard();
       } catch (err) {
         console.error('Erro ao salvar item:', err);
-        alert(`Erro ao salvar item: ${err.message || 'Verifique o console para mais detalhes.'}`);
+        if (err.message.includes('código')) {
+          codeErrorDiv.innerText = err.message;
+        } else {
+          alert(`Erro ao salvar item: ${err.message || 'Verifique o console para mais detalhes.'}`);
+        }
       }
     });
 
