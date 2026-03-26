@@ -3,63 +3,415 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard | Cadastro Compartilhado</title>
+  <title>Dashboard | Itens Compartilhados</title>
   <style>
-    * { margin:0; padding:0; box-sizing: border-box; font-family: system-ui, 'Segoe UI', 'Inter', sans-serif; }
-    body { background: #f3f6fc; padding: 2rem 1.5rem; }
-    .dashboard-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem; padding-bottom: 0.75rem; border-bottom: 2px solid #cbd5e1; }
-    .dashboard-header h1 { font-size: 1.8rem; background: linear-gradient(135deg, #0f2b3d, #1e4a76); background-clip: text; -webkit-background-clip: text; color: transparent; }
-    .search-area { display: flex; gap: 0.5rem; align-items: center; background: white; padding: 0.3rem 0.8rem; border-radius: 2rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-    .search-area input { border: none; padding: 0.5rem; font-size: 0.9rem; outline: none; width: 200px; }
-    .search-area button { background: none; border: none; cursor: pointer; font-size: 1.2rem; }
-    .logout-btn { background: #ef4444; color: white; border: none; padding: 0.5rem 1.2rem; border-radius: 2rem; font-weight: 600; cursor: pointer; }
-    .logout-btn:hover { background: #dc2626; }
-    .items-grid { display: flex; flex-direction: column; gap: 1rem; margin-top: 1rem; }
-    .item-card { background: white; border-radius: 1rem; box-shadow: 0 2px 8px rgba(0,0,0,0.05); overflow: hidden; border: 1px solid #e2edff; transition: 0.2s; }
-    .item-header { background: #f8fafc; padding: 1rem 1.2rem; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none; }
-    .item-header:hover { background: #f1f5f9; }
-    .item-info h3 { font-size: 1.2rem; color: #0f172a; }
-    .item-info p { font-size: 0.8rem; color: #4b5563; margin-top: 0.2rem; }
-    .item-actions { display: flex; gap: 0.5rem; }
-    .delete-item, .edit-item { background: none; border: none; font-size: 1.3rem; cursor: pointer; padding: 0.3rem; border-radius: 50%; }
-    .delete-item { color: #94a3b8; }
-    .delete-item:hover { color: #dc2626; background: #fee2e2; }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: system-ui, 'Segoe UI', 'Inter', sans-serif;
+    }
+
+    body {
+      background: #f3f6fc;
+      padding: 2rem 1.5rem;
+    }
+
+    /* cabeçalho */
+    .dashboard-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+      margin-bottom: 2rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 2px solid #cbd5e1;
+    }
+
+    .dashboard-header h1 {
+      font-size: 1.8rem;
+      background: linear-gradient(135deg, #0f2b3d, #1e4a76);
+      background-clip: text;
+      -webkit-background-clip: text;
+      color: transparent;
+    }
+
+    .logout-btn {
+      background: #ef4444;
+      color: white;
+      border: none;
+      padding: 0.5rem 1.2rem;
+      border-radius: 2rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .logout-btn:hover {
+      background: #dc2626;
+    }
+
+    /* barra de pesquisa */
+    .search-bar {
+      margin-bottom: 2rem;
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+      background: white;
+      padding: 0.5rem 1rem;
+      border-radius: 3rem;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+      border: 1px solid #e2e8f0;
+    }
+
+    .search-icon {
+      font-size: 1.2rem;
+      color: #5b6e8c;
+    }
+
+    .search-input {
+      flex: 1;
+      border: none;
+      outline: none;
+      font-size: 1rem;
+      padding: 0.5rem 0;
+      background: transparent;
+    }
+
+    .search-input::placeholder {
+      color: #94a3b8;
+    }
+
+    .clear-search {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 1rem;
+      color: #94a3b8;
+      padding: 0 0.3rem;
+    }
+
+    .clear-search:hover {
+      color: #ef4444;
+    }
+
+    /* grid de cards (itens resumidos) */
+    .items-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1.5rem;
+      margin-top: 1rem;
+    }
+
+    /* card resumido */
+    .item-card-summary {
+      background: white;
+      border-radius: 1.5rem;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+      padding: 1.2rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      border: 1px solid #e2edff;
+      text-align: center;
+    }
+
+    .item-card-summary:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+      border-color: #3b82f6;
+    }
+
+    .item-card-summary h3 {
+      font-size: 1.2rem;
+      color: #0f172a;
+      margin-bottom: 0.5rem;
+    }
+
+    .item-card-summary p {
+      font-size: 0.85rem;
+      color: #4b5563;
+    }
+
+    /* card expandido (detalhes do item) */
+    .item-card-expanded {
+      background: white;
+      border-radius: 1.5rem;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+      margin-top: 1rem;
+      margin-bottom: 1.5rem;
+      border: 1px solid #e2edff;
+      overflow: hidden;
+    }
+
+    .item-header {
+      background: #f8fafc;
+      padding: 1rem 1.2rem;
+      border-bottom: 1px solid #e2e8f0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+    }
+
+    .item-info h3 {
+      font-size: 1.2rem;
+      color: #0f172a;
+    }
+
+    .item-info p {
+      font-size: 0.8rem;
+      color: #4b5563;
+      margin-top: 0.2rem;
+    }
+
+    .item-actions {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .edit-item, .delete-item {
+      background: none;
+      border: none;
+      font-size: 1.2rem;
+      cursor: pointer;
+      padding: 0.3rem;
+      border-radius: 50%;
+    }
+
     .edit-item { color: #3b82f6; }
     .edit-item:hover { background: #e0f2fe; }
-    .attachments-area { padding: 1rem 1.2rem; display: none; border-top: 1px solid #eef2ff; }
-    .attachments-area.expanded { display: block; }
-    .attachments-title { font-size: 0.8rem; font-weight: 600; color: #334155; margin-bottom: 0.8rem; border-left: 3px solid #3b82f6; padding-left: 0.6rem; }
-    .pdf-row { display: flex; align-items: center; justify-content: space-between; background: #f9fafb; margin-bottom: 0.6rem; padding: 0.4rem 0.8rem; border-radius: 2rem; border: 1px solid #eef2ff; }
-    .pdf-label { font-weight: 600; font-size: 0.75rem; background: #e2e8f0; padding: 0.2rem 0.6rem; border-radius: 2rem; min-width: 85px; text-align: center; color: #1e293b; }
-    .pdf-file-info { flex: 1; margin: 0 0.8rem; font-size: 0.75rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .pdf-file-info a { text-decoration: none; color: #1e4a76; }
-    .pdf-file-info a:hover { text-decoration: underline; }
-    .pdf-actions { display: flex; gap: 0.4rem; }
-    .upload-pdf-btn, .remove-pdf-btn { background: none; border: none; cursor: pointer; font-size: 1rem; width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; }
-    .upload-pdf-btn { color: #2c6e9e; }
-    .upload-pdf-btn:hover { background: #e0f2fe; }
-    .remove-pdf-btn { color: #9ca3af; }
-    .remove-pdf-btn:hover { background: #fee2e2; color: #dc2626; }
-    .empty-state { text-align: center; color: #6c86a3; margin-top: 4rem; }
-    .fab { position: fixed; bottom: 2rem; right: 2rem; background: linear-gradient(135deg, #0f2b3d, #1e4a76); color: white; width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; box-shadow: 0 8px 16px rgba(0,0,0,0.2); cursor: pointer; border: none; z-index: 10; }
-    .fab:hover { transform: scale(1.05); }
-    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; z-index: 1000; }
-    .modal-content { background: white; max-width: 550px; width: 90%; border-radius: 1.5rem; padding: 1.5rem; max-height: 85vh; overflow-y: auto; }
-    .modal-content h2 { margin-bottom: 1rem; }
-    .form-group { margin-bottom: 1rem; }
-    .form-group label { display: block; font-weight: 600; margin-bottom: 0.3rem; font-size: 0.85rem; }
-    .form-group input[type="text"] { width: 100%; padding: 0.6rem; border: 1px solid #cbd5e1; border-radius: 1rem; }
-    .month-group { margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
-    .month-group label { font-weight: 600; width: 110px; font-size: 0.8rem; }
-    .month-group input[type="file"] { flex: 1; }
-    .modal-buttons { display: flex; justify-content: flex-end; gap: 0.8rem; margin-top: 1.2rem; }
-    .btn-save { background: #1e4a76; color: white; padding: 0.5rem 1.2rem; border-radius: 2rem; border: none; cursor: pointer; }
-    .btn-cancel { background: #e2e8f0; color: #1e293b; padding: 0.5rem 1.2rem; border-radius: 2rem; border: none; cursor: pointer; }
-    .notice { font-size: 0.7rem; color: #5b6e8c; margin-top: 0.8rem; text-align: center; }
-    .error-text { color: #dc2626; font-size: 0.75rem; margin-top: 0.25rem; }
-    .loading { text-align: center; padding: 2rem; color: #1e4a76; }
-    .expand-icon { font-size: 1.2rem; transition: transform 0.2s; }
-    .expanded .expand-icon { transform: rotate(90deg); }
+    .delete-item { color: #94a3b8; }
+    .delete-item:hover { color: #dc2626; background: #fee2e2; }
+
+    .attachments-area {
+      padding: 1rem 1.2rem;
+    }
+
+    .attachments-title {
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #334155;
+      margin-bottom: 0.8rem;
+      border-left: 3px solid #3b82f6;
+      padding-left: 0.6rem;
+    }
+
+    .pdf-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #f9fafb;
+      margin-bottom: 0.6rem;
+      padding: 0.4rem 0.8rem;
+      border-radius: 2rem;
+      border: 1px solid #eef2ff;
+    }
+
+    .pdf-label {
+      font-weight: 600;
+      font-size: 0.75rem;
+      background: #e2e8f0;
+      padding: 0.2rem 0.6rem;
+      border-radius: 2rem;
+      min-width: 85px;
+      text-align: center;
+      color: #1e293b;
+    }
+
+    .pdf-file-info {
+      flex: 1;
+      margin: 0 0.8rem;
+      font-size: 0.75rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .pdf-file-info a {
+      text-decoration: none;
+      color: #1e4a76;
+    }
+
+    .pdf-file-info a:hover {
+      text-decoration: underline;
+    }
+
+    .pdf-actions {
+      display: flex;
+      gap: 0.4rem;
+    }
+
+    .upload-pdf-btn, .remove-pdf-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 1rem;
+      width: 28px;
+      height: 28px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+    }
+
+    .upload-pdf-btn {
+      color: #2c6e9e;
+    }
+
+    .upload-pdf-btn:hover {
+      background: #e0f2fe;
+    }
+
+    .remove-pdf-btn {
+      color: #9ca3af;
+    }
+
+    .remove-pdf-btn:hover {
+      background: #fee2e2;
+      color: #dc2626;
+    }
+
+    .empty-state {
+      text-align: center;
+      color: #6c86a3;
+      margin-top: 4rem;
+    }
+
+    .fab {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      background: linear-gradient(135deg, #0f2b3d, #1e4a76);
+      color: white;
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+      cursor: pointer;
+      border: none;
+      z-index: 10;
+    }
+
+    .fab:hover {
+      transform: scale(1.05);
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    .modal-content {
+      background: white;
+      max-width: 550px;
+      width: 90%;
+      border-radius: 1.5rem;
+      padding: 1.5rem;
+      max-height: 85vh;
+      overflow-y: auto;
+    }
+
+    .modal-content h2 {
+      margin-bottom: 1rem;
+    }
+
+    .form-group {
+      margin-bottom: 1rem;
+    }
+
+    .form-group label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 0.3rem;
+      font-size: 0.85rem;
+    }
+
+    .form-group input[type="text"] {
+      width: 100%;
+      padding: 0.6rem;
+      border: 1px solid #cbd5e1;
+      border-radius: 1rem;
+    }
+
+    .month-group {
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .month-group label {
+      font-weight: 600;
+      width: 110px;
+      font-size: 0.8rem;
+    }
+
+    .month-group input[type="file"] {
+      flex: 1;
+    }
+
+    .modal-buttons {
+      display: flex;
+      justify-content: flex-end;
+      gap: 0.8rem;
+      margin-top: 1.2rem;
+    }
+
+    .btn-save {
+      background: #1e4a76;
+      color: white;
+      padding: 0.5rem 1.2rem;
+      border-radius: 2rem;
+      border: none;
+      cursor: pointer;
+    }
+
+    .btn-cancel {
+      background: #e2e8f0;
+      color: #1e293b;
+      padding: 0.5rem 1.2rem;
+      border-radius: 2rem;
+      border: none;
+      cursor: pointer;
+    }
+
+    .notice {
+      font-size: 0.7rem;
+      color: #5b6e8c;
+      margin-top: 0.8rem;
+      text-align: center;
+    }
+
+    .error-text {
+      color: #dc2626;
+      font-size: 0.75rem;
+      margin-top: 0.25rem;
+    }
+
+    .loading {
+      text-align: center;
+      padding: 2rem;
+      color: #1e4a76;
+    }
+
+    .expand-icon {
+      font-size: 1rem;
+      margin-left: 0.5rem;
+      color: #3b82f6;
+    }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -67,13 +419,14 @@
 
 <div class="dashboard-header">
   <h1>📁 Itens Compartilhados</h1>
-  <div style="display: flex; gap: 1rem; align-items: center;">
-    <div class="search-area">
-      <input type="text" id="searchInput" placeholder="Buscar por ID..." autocomplete="off">
-      <button id="searchBtn">🔍</button>
-    </div>
-    <button class="logout-btn" id="logoutBtn">Sair</button>
-  </div>
+  <button class="logout-btn" id="logoutBtn">Sair</button>
+</div>
+
+<!-- Barra de pesquisa -->
+<div class="search-bar">
+  <span class="search-icon">🔍</span>
+  <input type="text" id="searchInput" class="search-input" placeholder="Pesquisar por ID ou nome...">
+  <button id="clearSearch" class="clear-search" title="Limpar busca">✖</button>
 </div>
 
 <div id="itemsContainer" class="items-grid"></div>
@@ -121,7 +474,8 @@
     const monthKeys = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 
     let editingItemId = null;
-    let allItems = []; // guarda todos os itens para filtro
+    let allItems = []; // guarda todos os itens com seus arquivos
+    let expandedItemId = null; // id do item expandido
 
     // ==================== FUNÇÕES SUPABASE ====================
     async function getAllItemsWithFiles() {
@@ -281,9 +635,10 @@
     async function deleteItemAndFiles(itemId) {
       const { error } = await supabase.from('items').delete().eq('id', itemId);
       if (error) throw error;
+      if (expandedItemId === itemId) expandedItemId = null;
     }
 
-    // ==================== RENDERIZAÇÃO COM FILTRO ====================
+    // ==================== RENDERIZAÇÃO ====================
     function escapeHtml(str) {
       if (!str) return '';
       return str.replace(/[&<>]/g, function(m) {
@@ -294,6 +649,7 @@
       });
     }
 
+    // Renderiza os PDFs de um item expandido
     function renderPdfRow(category, label, file, itemId) {
       if (file) {
         return `
@@ -321,14 +677,14 @@
       }
     }
 
-    function renderItemCard(item, expandedId) {
+    // Renderiza o card expandido de um item específico
+    function renderExpandedItem(item) {
       const files = item.files;
       const memorialFile = files.find(f => f.category === 'memorial');
       const monthlyFiles = monthKeys.map(key => files.find(f => f.category === key));
-      const isExpanded = (expandedId === item.id);
       return `
-        <div class="item-card" data-item-id="${item.id}">
-          <div class="item-header" data-id="${item.id}">
+        <div class="item-card-expanded" data-item-id="${item.id}">
+          <div class="item-header" data-toggle-expand="${item.id}">
             <div class="item-info">
               <h3>📌 ${escapeHtml(item.name)}</h3>
               <p>ID: ${escapeHtml(item.code)}</p>
@@ -336,10 +692,10 @@
             <div class="item-actions">
               <button class="edit-item" data-id="${item.id}" title="Editar item">✏️</button>
               <button class="delete-item" data-id="${item.id}" title="Excluir item">🗑️</button>
-              <span class="expand-icon">▶</span>
+              <span class="expand-icon">▼</span>
             </div>
           </div>
-          <div class="attachments-area ${isExpanded ? 'expanded' : ''}" data-attachments="${item.id}">
+          <div class="attachments-area">
             <div class="attachments-title">📄 Memorial de Cálculo</div>
             ${renderPdfRow('memorial', 'Memorial', memorialFile, item.id)}
             <div class="attachments-title" style="margin-top: 1rem;">📅 Documentos Mensais</div>
@@ -349,78 +705,85 @@
       `;
     }
 
-    // Guardar qual item está expandido
-    let expandedItemId = null;
+    // Renderiza o card resumido (apenas nome e código)
+    function renderSummaryCard(item) {
+      return `
+        <div class="item-card-summary" data-toggle-expand="${item.id}">
+          <h3>${escapeHtml(item.name)}</h3>
+          <p>ID: ${escapeHtml(item.code)}</p>
+        </div>
+      `;
+    }
 
-    async function renderDashboard(filterText = '') {
+    // Função principal de renderização com filtro
+    async function renderDashboard() {
       const container = document.getElementById('itemsContainer');
       container.innerHTML = '<div class="loading">Carregando dados...</div>';
       try {
+        // Recarrega os dados do Supabase
         allItems = await getAllItemsWithFiles();
+        const searchTerm = document.getElementById('searchInput').value.trim().toLowerCase();
+        
+        // Filtrar itens pelo código ou nome
         let filteredItems = allItems;
-        if (filterText.trim() !== '') {
-          const searchLower = filterText.trim().toLowerCase();
-          filteredItems = allItems.filter(item => item.code.toLowerCase().includes(searchLower));
+        if (searchTerm) {
+          filteredItems = allItems.filter(item => 
+            item.code.toLowerCase().includes(searchTerm) || 
+            item.name.toLowerCase().includes(searchTerm)
+          );
         }
+
         if (filteredItems.length === 0) {
           container.innerHTML = `<div class="empty-state">✨ Nenhum item encontrado.</div>`;
           return;
         }
+
+        // Se houver um item expandido, mostrar ele em formato expandido, e os demais em resumo
+        // Porém, a abordagem mais simples: mostrar todos em resumo, exceto o expandido
         let html = '';
         for (const item of filteredItems) {
-          html += renderItemCard(item, expandedItemId);
+          if (expandedItemId === item.id) {
+            html += renderExpandedItem(item);
+          } else {
+            html += renderSummaryCard(item);
+          }
         }
         container.innerHTML = html;
 
-        // Eventos de expansão
-        document.querySelectorAll('.item-header').forEach(header => {
-          header.addEventListener('click', (e) => {
-            // Evitar que o clique nos botões de ação dispare a expansão
-            if (e.target.classList.contains('edit-item') || e.target.classList.contains('delete-item')) {
+        // Anexar eventos de toggle (expandir/recolher)
+        document.querySelectorAll('[data-toggle-expand]').forEach(el => {
+          el.addEventListener('click', (e) => {
+            // Evitar que o clique em botões internos dispare o toggle
+            if (e.target.closest('.edit-item') || e.target.closest('.delete-item') || e.target.closest('.upload-pdf-btn') || e.target.closest('.remove-pdf-btn')) {
               return;
             }
-            const itemId = Number(header.dataset.id);
-            const attachmentsDiv = document.querySelector(`.attachments-area[data-attachments="${itemId}"]`);
-            if (attachmentsDiv) {
-              const isCurrentlyExpanded = attachmentsDiv.classList.contains('expanded');
-              // Fechar todos antes de abrir o atual (ou pode alternar individual)
-              document.querySelectorAll('.attachments-area').forEach(div => div.classList.remove('expanded'));
-              if (!isCurrentlyExpanded) {
-                attachmentsDiv.classList.add('expanded');
-                expandedItemId = itemId;
-              } else {
-                expandedItemId = null;
-              }
-              // Atualizar ícone (opcional)
-              document.querySelectorAll('.expand-icon').forEach(icon => icon.textContent = '▶');
-              if (attachmentsDiv.classList.contains('expanded')) {
-                const icon = header.querySelector('.expand-icon');
-                if (icon) icon.textContent = '▼';
-              } else {
-                const icon = header.querySelector('.expand-icon');
-                if (icon) icon.textContent = '▶';
-              }
+            const itemId = Number(el.dataset.toggleExpand);
+            if (expandedItemId === itemId) {
+              expandedItemId = null; // recolhe
+            } else {
+              expandedItemId = itemId; // expande outro
             }
+            renderDashboard(); // re-renderiza com novo estado
           });
         });
 
-        // Eventos de botões
+        // Eventos de editar/excluir (os botões foram gerados dentro do expanded, se houver)
+        document.querySelectorAll('.edit-item').forEach(btn => {
+          btn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const id = Number(btn.dataset.id);
+            await openEditModal(id);
+          });
+        });
         document.querySelectorAll('.delete-item').forEach(btn => {
           btn.addEventListener('click', async (e) => {
             e.stopPropagation();
             const id = Number(btn.dataset.id);
             if (confirm('Excluir este item e todos os PDFs?')) {
               await deleteItemAndFiles(id);
-              if (expandedItemId === id) expandedItemId = null;
-              renderDashboard(document.getElementById('searchInput').value);
+              expandedItemId = null;
+              renderDashboard();
             }
-          });
-        });
-        document.querySelectorAll('.edit-item').forEach(btn => {
-          btn.addEventListener('click', async (e) => {
-            e.stopPropagation();
-            const id = Number(btn.dataset.id);
-            await openEditModal(id);
           });
         });
         document.querySelectorAll('.upload-pdf-btn').forEach(btn => {
@@ -436,7 +799,7 @@
               if (file && file.type === 'application/pdf') {
                 try {
                   await addFileToItem(itemId, category, file);
-                  renderDashboard(document.getElementById('searchInput').value);
+                  renderDashboard();
                 } catch (err) {
                   alert('Erro ao adicionar PDF: ' + err.message);
                 }
@@ -451,7 +814,7 @@
             const fileId = Number(btn.dataset.fileid);
             if (confirm('Remover este PDF?')) {
               await deleteFileById(fileId);
-              renderDashboard(document.getElementById('searchInput').value);
+              renderDashboard();
             }
           });
         });
@@ -461,7 +824,7 @@
       }
     }
 
-    // ==================== MODAL (igual) ====================
+    // ==================== MODAL ====================
     const modal = document.getElementById('itemModal');
     const modalTitle = document.getElementById('modalTitle');
     const itemNameInput = document.getElementById('itemName');
@@ -508,7 +871,8 @@
     }
 
     async function openEditModal(itemId) {
-      const items = allItems.length ? allItems : await getAllItemsWithFiles();
+      // Buscar dados atualizados
+      const items = await getAllItemsWithFiles();
       const item = items.find(i => i.id === itemId);
       if (!item) return;
       editingItemId = itemId;
@@ -553,8 +917,9 @@
       try {
         await saveItemComplete(editingItemId, name, code, filesToProcess);
         modal.style.display = 'none';
-        const searchValue = document.getElementById('searchInput').value;
-        renderDashboard(searchValue);
+        // após salvar, limpa expansão para não deixar estado inconsistente
+        expandedItemId = null;
+        renderDashboard();
       } catch (err) {
         console.error(err);
         if (err.message.includes('código')) {
@@ -574,19 +939,23 @@
       window.location.href = 'index.html';
     });
 
-    // Busca
+    // Barra de pesquisa
     const searchInput = document.getElementById('searchInput');
-    const searchBtn = document.getElementById('searchBtn');
-    function handleSearch() {
-      renderDashboard(searchInput.value);
-    }
-    searchBtn.addEventListener('click', handleSearch);
-    searchInput.addEventListener('keyup', (e) => {
-      if (e.key === 'Enter') handleSearch();
+    const clearSearchBtn = document.getElementById('clearSearch');
+
+    searchInput.addEventListener('input', () => {
+      expandedItemId = null; // recolhe qualquer item expandido ao filtrar
+      renderDashboard();
+    });
+    clearSearchBtn.addEventListener('click', () => {
+      searchInput.value = '';
+      expandedItemId = null;
+      renderDashboard();
     });
 
+    // Inicialização
     window.addEventListener('DOMContentLoaded', () => {
-      renderDashboard('');
+      renderDashboard();
     });
   })();
 </script>
