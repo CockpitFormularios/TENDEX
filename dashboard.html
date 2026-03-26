@@ -27,7 +27,6 @@
     .empty-state { text-align: center; color: #6c86a3; margin-top: 3rem; }
     .fab { position: fixed; bottom: 2rem; right: 2rem; background: linear-gradient(135deg, #0f2b3d, #1e4a76); color: white; width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; box-shadow: 0 8px 16px rgba(0,0,0,0.2); cursor: pointer; border: none; z-index: 10; }
     .fab:hover { transform: scale(1.05); }
-    /* Modal de detalhes do item */
     .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; z-index: 1000; }
     .modal-content { background: white; max-width: 600px; width: 90%; border-radius: 1.5rem; padding: 1.5rem; max-height: 85vh; overflow-y: auto; }
     .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
@@ -49,6 +48,17 @@
     .delete-item-btn:hover { background: #dc2626; }
     .notice { font-size: 0.7rem; color: #5b6e8c; margin-top: 1rem; text-align: center; }
     .loading { text-align: center; padding: 2rem; color: #1e4a76; }
+    .error-text { color: #dc2626; font-size: 0.75rem; margin-top: 0.25rem; }
+    .form-group { margin-bottom: 1rem; }
+    .form-group label { display: block; font-weight: 600; margin-bottom: 0.3rem; font-size: 0.85rem; }
+    .form-group input[type="text"] { width: 100%; padding: 0.6rem; border: 1px solid #cbd5e1; border-radius: 1rem; }
+    .month-group { margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+    .month-group label { font-weight: 600; width: 110px; font-size: 0.8rem; }
+    .month-group input[type="file"] { flex: 1; }
+    .attachments-title { font-size: 0.8rem; font-weight: 600; color: #334155; margin-bottom: 0.8rem; border-left: 3px solid #3b82f6; padding-left: 0.6rem; margin-top: 1rem; }
+    .modal-buttons { display: flex; justify-content: flex-end; gap: 0.8rem; margin-top: 1.2rem; }
+    .btn-save { background: #1e4a76; color: white; padding: 0.5rem 1.2rem; border-radius: 2rem; border: none; cursor: pointer; }
+    .btn-cancel { background: #e2e8f0; color: #1e293b; padding: 0.5rem 1.2rem; border-radius: 2rem; border: none; cursor: pointer; }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
@@ -73,7 +83,7 @@
 <div id="itemsContainer" class="items-grid"></div>
 <button class="fab" id="addItemBtn">+</button>
 
-<!-- Modal para criação de novo item (mantido) -->
+<!-- Modal para criação de novo item -->
 <div id="createItemModal" class="modal">
   <div class="modal-content">
     <div class="modal-header">
@@ -87,7 +97,7 @@
     <div class="form-group">
       <label>Código / ID *</label>
       <input type="text" id="newItemCode" placeholder="Ex: P-001">
-      <div id="createCodeError" class="error-text" style="color:#dc2626; font-size:0.75rem;"></div>
+      <div id="createCodeError" class="error-text"></div>
     </div>
     <div class="attachments-title">📄 Memorial de Cálculo e Projeto</div>
     <div class="month-group">
@@ -96,14 +106,14 @@
     </div>
     <div class="attachments-title" style="margin-top: 1rem;">📅 Documentos Mensais</div>
     <div id="newMonthlyFilesContainer"></div>
-    <div class="modal-buttons" style="margin-top:1rem; display:flex; justify-content:flex-end; gap:0.5rem;">
+    <div class="modal-buttons">
       <button class="btn-cancel" id="cancelCreateBtn">Cancelar</button>
       <button class="btn-save" id="confirmCreateBtn">Salvar</button>
     </div>
   </div>
 </div>
 
-<!-- Modal de detalhes do item (visualização/edição/exclusão) -->
+<!-- Modal de detalhes do item -->
 <div id="detailModal" class="modal">
   <div class="modal-content">
     <div class="modal-header">
@@ -263,13 +273,18 @@
     // ==================== DOWNLOAD AGREGADO POR MÊS ====================
     async function downloadMonthPDFs(category, monthName) {
       try {
+        if (!window.PDFLib) {
+          alert("Biblioteca PDF-lib não carregada. Recarregue a página.");
+          return;
+        }
+        const { PDFDocument } = window.PDFLib;
         const items = await getAllItemsWithFiles();
         const filesToMerge = [];
         for (const item of items) {
           const file = item.files.find(f => f.category === category);
           if (file && file.file_url) {
-            // Baixar o PDF como blob
             const response = await fetch(file.file_url);
+            if (!response.ok) continue;
             const blob = await response.blob();
             filesToMerge.push({ name: `${item.name} - ${item.code}.pdf`, blob });
           }
@@ -279,8 +294,6 @@
           return;
         }
 
-        // Usar pdf-lib para mesclar
-        const { PDFDocument } = window.pdfLib;
         const mergedPdf = await PDFDocument.create();
         for (const file of filesToMerge) {
           const arrayBuffer = await file.blob.arrayBuffer();
@@ -325,7 +338,6 @@
         </div>
       `).join('');
 
-      // Adicionar evento de clique para abrir modal de detalhes
       document.querySelectorAll('.item-card').forEach(card => {
         card.addEventListener('click', () => openDetailModal(parseInt(card.dataset.id)));
       });
@@ -358,11 +370,9 @@
       detailContent.innerHTML = '<div class="loading">Carregando...</div>';
       detailModal.style.display = 'flex';
 
-      // Recarregar dados frescos para garantir
       const freshItems = await getAllItemsWithFiles();
       const freshItem = freshItems.find(i => i.id === itemId);
       if (!freshItem) return;
-
       renderItemDetailModal(freshItem);
     }
 
@@ -388,7 +398,6 @@
       `;
       detailContent.innerHTML = html;
 
-      // Eventos de upload e remoção
       document.querySelectorAll('.upload-pdf-btn').forEach(btn => {
         btn.addEventListener('click', async (e) => {
           const itemId = Number(btn.dataset.itemid);
@@ -402,7 +411,7 @@
               try {
                 await addFileToItem(itemId, category, file);
                 refreshData();
-                openDetailModal(itemId); // recarrega o modal
+                openDetailModal(itemId);
               } catch (err) {
                 alert('Erro ao adicionar PDF: ' + err.message);
               }
@@ -467,7 +476,7 @@
       detailModal.style.display = 'none';
     });
 
-    // ==================== MODAL DE CRIAÇÃO DE ITEM ====================
+    // ==================== MODAL DE CRIAÇÃO ====================
     const createModal = document.getElementById('createItemModal');
     const closeCreateBtn = document.getElementById('closeCreateModalBtn');
     const cancelCreateBtn = document.getElementById('cancelCreateBtn');
@@ -556,13 +565,11 @@
       window.location.href = 'index.html';
     });
 
-    // Filtro
     const searchInput = document.getElementById('searchInput');
     searchInput.addEventListener('input', (e) => {
       renderCards(e.target.value);
     });
 
-    // Botões de download por mês
     const monthContainer = document.getElementById('monthButtonsContainer');
     monthNames.forEach((month, idx) => {
       const btn = document.createElement('button');
