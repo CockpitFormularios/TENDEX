@@ -23,7 +23,7 @@
     .item-card { background: white; border-radius: 1rem; padding: 1rem; cursor: pointer; transition: 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid #e2edff; }
     .item-card:hover { transform: translateY(-2px); box-shadow: 0 8px 16px rgba(0,0,0,0.08); background: #fafcff; }
     .item-card h3 { font-size: 1.1rem; color: #0f172a; margin-bottom: 0.3rem; }
-    .item-card p { font-size: 0.8rem; color: #5b6e8c; }
+    .item-card p { font-size: 0.8rem; color: #5b6e8c; margin: 0.2rem 0; }
     .empty-state { text-align: center; color: #6c86a3; margin-top: 3rem; }
     .fab { position: fixed; bottom: 2rem; right: 2rem; background: linear-gradient(135deg, #0f2b3d, #1e4a76); color: white; width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; box-shadow: 0 8px 16px rgba(0,0,0,0.2); cursor: pointer; border: none; z-index: 10; }
     .fab:hover { transform: scale(1.05); }
@@ -51,7 +51,7 @@
     .error-text { color: #dc2626; font-size: 0.75rem; margin-top: 0.25rem; }
     .form-group { margin-bottom: 1rem; }
     .form-group label { display: block; font-weight: 600; margin-bottom: 0.3rem; font-size: 0.85rem; }
-    .form-group input[type="text"] { width: 100%; padding: 0.6rem; border: 1px solid #cbd5e1; border-radius: 1rem; }
+    .form-group input[type="text"], .form-group input[type="text"] { width: 100%; padding: 0.6rem; border: 1px solid #cbd5e1; border-radius: 1rem; }
     .month-group { margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
     .month-group label { font-weight: 600; width: 110px; font-size: 0.8rem; }
     .month-group input[type="file"] { flex: 1; }
@@ -66,13 +66,13 @@
 <body>
 
 <div class="dashboard-header">
-  <h1>TENDEX</h1>
+  <h1>TENDEX Site para inspeção de tendas</h1>
   <button class="logout-btn" id="logoutBtn">Sair</button>
 </div>
 
 <div class="search-area">
   <span class="search-icon">🔍</span>
-  <input type="text" id="searchInput" class="search-input" placeholder="Filtrar por ID ou nome...">
+  <input type="text" id="searchInput" class="search-input" placeholder="Filtrar por nome, ID, localização ou tamanho...">
 </div>
 
 <div class="download-section">
@@ -92,11 +92,19 @@
     </div>
     <div class="form-group">
       <label>Nome do Item *</label>
-      <input type="text" id="newItemName" placeholder="Ex: Projeto Ponte">
+      <input type="text" id="newItemName" placeholder="Ex: Tenda 5x5">
+    </div>
+    <div class="form-group">
+      <label>Sub. Localização</label>
+      <input type="text" id="newSubLocalizacao" placeholder="Ex: Área Central">
+    </div>
+    <div class="form-group">
+      <label>Tamanho</label>
+      <input type="text" id="newTamanho" placeholder="Ex: 5x5m, 10x20m">
     </div>
     <div class="form-group">
       <label>Código / ID *</label>
-      <input type="text" id="newItemCode" placeholder="Ex: P-001">
+      <input type="text" id="newItemCode" placeholder="Ex: T-001">
       <div id="createCodeError" class="error-text"></div>
     </div>
     <div class="attachments-title">📄 Memorial de Cálculo e Projeto</div>
@@ -153,6 +161,8 @@
       return items.map(item => ({
         id: item.id,
         name: item.name,
+        sub_localizacao: item.sub_localizacao || '',
+        tamanho: item.tamanho || '',
         code: item.code,
         files: filesByItem[item.id] || []
       }));
@@ -200,7 +210,7 @@
       if (error) throw error;
     }
 
-    async function saveItemComplete(itemId, name, code, filesToProcess) {
+    async function saveItemComplete(itemId, name, sub_localizacao, tamanho, code, filesToProcess) {
       // Verificar duplicidade
       const { data: existing, error: dupError } = await supabase
         .from('items')
@@ -235,16 +245,17 @@
       }
 
       let itemIdFinal = itemId;
+      const itemData = { name, sub_localizacao, tamanho, code };
       if (itemId) {
         const { error: updateError } = await supabase
           .from('items')
-          .update({ name, code })
+          .update(itemData)
           .eq('id', itemId);
         if (updateError) throw updateError;
       } else {
         const { data: newItem, error: insertError } = await supabase
           .from('items')
-          .insert({ name, code })
+          .insert(itemData)
           .select()
           .single();
         if (insertError) throw insertError;
@@ -324,8 +335,10 @@
       const container = document.getElementById('itemsContainer');
       const lowerFilter = filterText.toLowerCase();
       const filtered = currentItems.filter(item => 
-        item.code.toLowerCase().includes(lowerFilter) || 
-        item.name.toLowerCase().includes(lowerFilter)
+        item.name.toLowerCase().includes(lowerFilter) ||
+        item.code.toLowerCase().includes(lowerFilter) ||
+        (item.sub_localizacao && item.sub_localizacao.toLowerCase().includes(lowerFilter)) ||
+        (item.tamanho && item.tamanho.toLowerCase().includes(lowerFilter))
       );
       if (filtered.length === 0) {
         container.innerHTML = `<div class="empty-state">✨ Nenhum item encontrado.</div>`;
@@ -335,6 +348,8 @@
         <div class="item-card" data-id="${item.id}">
           <h3>📌 ${escapeHtml(item.name)}</h3>
           <p>ID: ${escapeHtml(item.code)}</p>
+          ${item.sub_localizacao ? `<p>📍 ${escapeHtml(item.sub_localizacao)}</p>` : ''}
+          ${item.tamanho ? `<p>📏 ${escapeHtml(item.tamanho)}</p>` : ''}
         </div>
       `).join('');
 
@@ -383,7 +398,10 @@
 
       let html = `
         <div class="item-detail-title">
-          <strong>${escapeHtml(item.name)}</strong> (ID: ${escapeHtml(item.code)})
+          <strong>${escapeHtml(item.name)}</strong><br>
+          ${item.sub_localizacao ? `📍 Sub. Localização: ${escapeHtml(item.sub_localizacao)}<br>` : ''}
+          ${item.tamanho ? `📏 Tamanho: ${escapeHtml(item.tamanho)}<br>` : ''}
+          ID: ${escapeHtml(item.code)}
         </div>
         <div class="pdf-group">
           <div class="pdf-group-title">📄 Memorial de Cálculo</div>
@@ -482,6 +500,8 @@
     const cancelCreateBtn = document.getElementById('cancelCreateBtn');
     const confirmCreateBtn = document.getElementById('confirmCreateBtn');
     const newItemName = document.getElementById('newItemName');
+    const newSubLocalizacao = document.getElementById('newSubLocalizacao');
+    const newTamanho = document.getElementById('newTamanho');
     const newItemCode = document.getElementById('newItemCode');
     const newMemorialFile = document.getElementById('newMemorialFile');
     const newMonthlyContainer = document.getElementById('newMonthlyFilesContainer');
@@ -507,6 +527,8 @@
 
     function openCreateModal() {
       newItemName.value = '';
+      newSubLocalizacao.value = '';
+      newTamanho.value = '';
       newItemCode.value = '';
       newMemorialFile.value = '';
       monthKeys.forEach(key => {
@@ -522,6 +544,8 @@
 
     confirmCreateBtn.addEventListener('click', async () => {
       const name = newItemName.value.trim();
+      const sub_localizacao = newSubLocalizacao.value.trim();
+      const tamanho = newTamanho.value.trim();
       const code = newItemCode.value.trim();
       if (!name || !code) {
         createCodeError.innerText = 'Preencha nome e código.';
@@ -546,7 +570,7 @@
       }
 
       try {
-        await saveItemComplete(null, name, code, filesToProcess);
+        await saveItemComplete(null, name, sub_localizacao, tamanho, code, filesToProcess);
         createModal.style.display = 'none';
         refreshData();
       } catch (err) {
