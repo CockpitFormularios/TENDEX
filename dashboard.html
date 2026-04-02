@@ -338,7 +338,7 @@
       return itemIdFinal;
     }
 
-    // ==================== GERAR PDF COM LAYOUT PADRÃO (VERSÃO CORRIGIDA) ====================
+    // ==================== GERAR PDF COM LAYOUT PADRÃO (VERSÃO DEFINITIVA) ====================
     async function generateAndAttachPdf(itemId, category, monthName, formData) {
       try {
         if (!window.PDFLib) throw new Error("PDF-lib não carregado.");
@@ -355,13 +355,11 @@
         const lineHeight = 16;
         const colX = { num: margin, pergunta: margin + 35, resposta: margin + 420, observacao: margin + 480 };
 
-        // Função para garantir y válido e quebrar página se necessário
-        function ensureY() {
+        function checkY() {
           if (isNaN(y)) y = pageHeight - 50;
           if (y < 50) {
             page = pdfDoc.addPage([pageWidth, pageHeight]);
             y = pageHeight - 50;
-            // Redesenhar cabeçalho da tabela
             page.drawText("Nº", { x: colX.num, y: y, size: 10, font: boldFont });
             page.drawText("Pergunta", { x: colX.pergunta, y: y, size: 10, font: boldFont });
             page.drawText("Resposta", { x: colX.resposta, y: y, size: 10, font: boldFont });
@@ -372,7 +370,7 @@
           }
         }
 
-        // Cabeçalho do formulário
+        // Cabeçalho
         page.drawText("Formulário Padrão", { x: margin, y: y, size: 14, font: boldFont });
         y -= 20;
         page.drawText("VALE", { x: margin, y: y, size: 12, font: boldFont, color: rgb(0,0.4,0.6) });
@@ -396,12 +394,12 @@
           `Entrevistados: ${formData.entrevistados || ''}`
         ];
         for (const campo of campos) {
-          ensureY();
+          checkY();
           page.drawText(campo, { x: margin, y: y, size: 9, font: font });
           y -= 14;
         }
         y -= 10;
-        ensureY();
+        checkY();
 
         // Cabeçalho da tabela
         page.drawText("Nº", { x: colX.num, y: y, size: 10, font: boldFont });
@@ -412,13 +410,11 @@
         page.drawLine({ start: { x: margin, y: y+2 }, end: { x: pageWidth - margin, y: y+2 }, thickness: 1, color: rgb(0,0,0) });
         y -= 12;
 
-        // Loop das perguntas
         for (let i = 0; i < checklistPerguntas.length; i++) {
-          ensureY();
+          checkY();
           const pergunta = checklistPerguntas[i];
           const resposta = formData[`resp_${i}`] || "Não respondido";
           const obs = formData[`obs_${i}`] || "";
-
           page.drawText(`${i+1}`, { x: colX.num, y: y, size: 9, font: font });
           let perguntaStr = pergunta.length > 70 ? pergunta.substring(0, 67) + "..." : pergunta;
           page.drawText(perguntaStr, { x: colX.pergunta, y: y, size: 8, font: font });
@@ -432,7 +428,6 @@
           y -= lineHeight;
         }
 
-        // Rodapé com números de página
         const pages = pdfDoc.getPages();
         pages.forEach((pg, idx) => {
           pg.drawText(`Página ${idx+1} de ${pages.length}`, { x: margin, y: 30, size: 8, font: font, color: rgb(0.5,0.5,0.5) });
@@ -700,9 +695,7 @@
         inspetor_cpf: document.getElementById('inspetor_cpf')?.value || '',
         inspetor_sap: document.getElementById('inspetor_sap')?.value || '',
         inspetor_nome2: document.getElementById('inspetor_nome2')?.value || '',
-        entrevistados: document.getElementById('entrevistados')?.value || '',
-        itemName: currentItems.find(i => i.id === currentFormItemId)?.name || '',
-        itemCode: currentItems.find(i => i.id === currentFormItemId)?.code || ''
+        entrevistados: document.getElementById('entrevistados')?.value || ''
       };
       for (let i = 0; i < checklistPerguntas.length; i++) {
         const radio = document.querySelector(`input[name="resp_${i}"]:checked`);
