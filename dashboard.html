@@ -347,29 +347,32 @@
         const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
         const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
-        let page = pdfDoc.addPage([595, 842]);
-        const { width, height } = page;
-        let y = height - 50;
+        const pageWidth = 595;
+        const pageHeight = 842;
+        let page = pdfDoc.addPage([pageWidth, pageHeight]);
+        let y = pageHeight - 50;
         const margin = 50;
         const lineHeight = 16;
         const colX = { num: margin, pergunta: margin + 35, resposta: margin + 420, observacao: margin + 480 };
 
-        function ensureValidY() {
-          if (isNaN(y)) y = height - 50;
+        // Função para garantir y válido e quebrar página se necessário
+        function ensureY() {
+          if (isNaN(y)) y = pageHeight - 50;
           if (y < 50) {
-            page = pdfDoc.addPage([595, 842]);
-            y = height - 50;
+            page = pdfDoc.addPage([pageWidth, pageHeight]);
+            y = pageHeight - 50;
+            // Redesenhar cabeçalho da tabela
             page.drawText("Nº", { x: colX.num, y: y, size: 10, font: boldFont });
             page.drawText("Pergunta", { x: colX.pergunta, y: y, size: 10, font: boldFont });
             page.drawText("Resposta", { x: colX.resposta, y: y, size: 10, font: boldFont });
             page.drawText("Observação", { x: colX.observacao, y: y, size: 10, font: boldFont });
             y -= 5;
-            page.drawLine({ start: { x: margin, y: y+2 }, end: { x: width - margin, y: y+2 }, thickness: 1, color: rgb(0,0,0) });
+            page.drawLine({ start: { x: margin, y: y+2 }, end: { x: pageWidth - margin, y: y+2 }, thickness: 1, color: rgb(0,0,0) });
             y -= 12;
           }
         }
 
-        // ========= CABEÇALHO =========
+        // Cabeçalho do formulário
         page.drawText("Formulário Padrão", { x: margin, y: y, size: 14, font: boldFont });
         y -= 20;
         page.drawText("VALE", { x: margin, y: y, size: 12, font: boldFont, color: rgb(0,0.4,0.6) });
@@ -393,12 +396,12 @@
           `Entrevistados: ${formData.entrevistados || ''}`
         ];
         for (const campo of campos) {
-          ensureValidY();
+          ensureY();
           page.drawText(campo, { x: margin, y: y, size: 9, font: font });
           y -= 14;
         }
         y -= 10;
-        ensureValidY();
+        ensureY();
 
         // Cabeçalho da tabela
         page.drawText("Nº", { x: colX.num, y: y, size: 10, font: boldFont });
@@ -406,14 +409,16 @@
         page.drawText("Resposta", { x: colX.resposta, y: y, size: 10, font: boldFont });
         page.drawText("Observação", { x: colX.observacao, y: y, size: 10, font: boldFont });
         y -= 5;
-        page.drawLine({ start: { x: margin, y: y+2 }, end: { x: width - margin, y: y+2 }, thickness: 1, color: rgb(0,0,0) });
+        page.drawLine({ start: { x: margin, y: y+2 }, end: { x: pageWidth - margin, y: y+2 }, thickness: 1, color: rgb(0,0,0) });
         y -= 12;
 
+        // Loop das perguntas
         for (let i = 0; i < checklistPerguntas.length; i++) {
-          ensureValidY();
+          ensureY();
           const pergunta = checklistPerguntas[i];
           const resposta = formData[`resp_${i}`] || "Não respondido";
           const obs = formData[`obs_${i}`] || "";
+
           page.drawText(`${i+1}`, { x: colX.num, y: y, size: 9, font: font });
           let perguntaStr = pergunta.length > 70 ? pergunta.substring(0, 67) + "..." : pergunta;
           page.drawText(perguntaStr, { x: colX.pergunta, y: y, size: 8, font: font });
@@ -427,6 +432,7 @@
           y -= lineHeight;
         }
 
+        // Rodapé com números de página
         const pages = pdfDoc.getPages();
         pages.forEach((pg, idx) => {
           pg.drawText(`Página ${idx+1} de ${pages.length}`, { x: margin, y: 30, size: 8, font: font, color: rgb(0.5,0.5,0.5) });
