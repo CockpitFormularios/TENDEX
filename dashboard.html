@@ -143,7 +143,7 @@
   </div>
 </div>
 
-<!-- Modal do formulário completo para preencher e gerar PDF -->
+<!-- Modal do formulário para preencher e gerar PDF -->
 <div id="formModal" class="modal">
   <div class="modal-content">
     <div class="modal-header">
@@ -338,8 +338,8 @@
       return itemIdFinal;
     }
 
-    // ==================== GERAR PDF USANDO O MODELO (COM DIAGNÓSTICO) ====================
-    const MODELO_PDF_URL = "https://jklcvyuxwxgsfczrfaco.supabase.co/storage/v1/object/public/pdfs/modelo_checklist.pdf";
+    // ==================== GERAR PDF USANDO O MODELO ====================
+    const MODELO_PDF_URL = "https://jklcvyuxwxgsfczrfaco.supabase.co/storage/v1/object/public/pdfs/modelo_checklist_com_campos%20(3).pdf";
 
     async function generateAndAttachPdf(itemId, category, monthName, formData) {
       try {
@@ -351,56 +351,37 @@
         const pdfDoc = await PDFDocument.load(modelBytes);
         const form = pdfDoc.getForm();
 
-        // 2. Listar campos disponíveis (diagnóstico)
-        const allFields = form.getFields().map(f => f.getName());
-        console.log("🔍 Campos encontrados no PDF:", allFields);
-
-        // 3. Função auxiliar para tentar preencher um campo com vários nomes possíveis
-        function trySetTextField(possibleNames, value) {
-          for (const name of possibleNames) {
-            try {
-              const field = form.getTextField(name);
-              field.setText(value);
-              console.log(`✅ Campo "${name}" preenchido com: ${value}`);
-              return true;
-            } catch (e) { /* ignora */ }
-          }
-          console.warn(`⚠️ Nenhum campo encontrado para: ${possibleNames.join(", ")}`);
-          return false;
-        }
-
-        // 4. Mapeamento dos campos do cabeçalho (várias variações)
+        // 2. Preencher campos do cabeçalho
         const camposCabecalho = [
-          { possiveisNomes: ["localidade", "Localidade", "LOCALIDADE", "Nome da Localidade"], valor: formData.localidade },
-          { possiveisNomes: ["latitude", "Latitude", "LATITUDE"], valor: formData.latitude || "0,00000000000" },
-          { possiveisNomes: ["longitude", "Longitude", "LONGITUDE"], valor: formData.longitude || "0,00000000000" },
-          { possiveisNomes: ["resp_nome", "RespNome", "RESP_NOME", "Responsável Nome"], valor: formData.resp_nome },
-          { possiveisNomes: ["resp_matricula", "RespMatricula", "RESP_MATRICULA", "Responsável Matrícula"], valor: formData.resp_matricula },
-          { possiveisNomes: ["data_inspecao", "DataInspecao", "DATA_INSPECAO", "Data da Inspeção"], valor: formData.data_inspecao },
-          { possiveisNomes: ["empresa", "Empresa", "EMPRESA"], valor: formData.empresa },
-          { possiveisNomes: ["inspetor_nome", "InspetorNome", "INSPETOR_NOME", "Inspetor/Auditor"], valor: formData.inspetor_nome },
-          { possiveisNomes: ["inspetor_matricula", "InspetorMatricula", "INSPETOR_MATRICULA", "Matrícula"], valor: formData.inspetor_matricula },
-          { possiveisNomes: ["inspetor_cpf", "InspetorCPF", "INSPETOR_CPF", "CPF"], valor: formData.inspetor_cpf },
-          { possiveisNomes: ["inspetor_sap", "InspetorSAP", "INSPETOR_SAP", "SAP ID"], valor: formData.inspetor_sap },
-          { possiveisNomes: ["inspetor_nome2", "InspetorNome2", "INSPETOR_NOME2", "Nome"], valor: formData.inspetor_nome2 },
-          { possiveisNomes: ["entrevistados", "Entrevistados", "ENTREVISTADOS"], valor: formData.entrevistados }
+          { nome: "unidade", valor: formData.unidade || "" },
+          { nome: "localidade", valor: formData.localidade || "" },
+          { nome: "nome", valor: formData.resp_nome || "" },
+          { nome: "matrcula", valor: formData.resp_matricula || "" },
+          { nome: "data", valor: formData.data_inspecao || "" },
+          { nome: "empresa", valor: formData.empresa || "" }
         ];
 
-        for (const item of camposCabecalho) {
-          trySetTextField(item.possiveisNomes, item.valor);
+        for (const campo of camposCabecalho) {
+          try {
+            const field = form.getTextField(campo.nome);
+            field.setText(campo.valor);
+          } catch (e) {
+            console.warn(`Campo "${campo.nome}" não encontrado.`);
+          }
         }
 
-        // 5. Preencher respostas das perguntas (tenta resp1, resp2, ..., resp25 e variações)
-        for (let i = 0; i < checklistPerguntas.length; i++) {
-          const resposta = formData[`resp_${i}`] || "Não respondido";
-          const possiveis = [
-            `resp${i+1}`, `Resp${i+1}`, `RESP${i+1}`, `resposta${i+1}`, `Resposta${i+1}`,
-            `pergunta${i+1}`, `Pergunta${i+1}`, `item${i+1}`, `Item${i+1}`
-          ];
-          trySetTextField(possiveis, resposta);
+        // 3. Preencher respostas das perguntas (campos numerados de 1 a 25)
+        for (let i = 1; i <= 25; i++) {
+          const resposta = formData[`resp_${i-1}`] || "Não respondido";
+          try {
+            const field = form.getTextField(`${i}`);
+            field.setText(resposta);
+          } catch (e) {
+            console.warn(`Campo "${i}" não encontrado.`);
+          }
         }
 
-        // 6. Salvar o PDF preenchido
+        // 4. Salvar o PDF preenchido
         const pdfBytes = await pdfDoc.save();
         const blob = new Blob([pdfBytes], { type: 'application/pdf' });
         const file = new File([blob], `checklist_${monthName}_${Date.now()}.pdf`, { type: 'application/pdf' });
@@ -409,7 +390,7 @@
         await refreshData();
         await openDetailModal(itemId);
       } catch (err) {
-        console.error("Erro na geração do PDF:", err);
+        console.error(err);
         alert("Erro ao gerar PDF: " + err.message);
       }
     }
@@ -603,9 +584,8 @@
       
       let html = `
         <div class="form-row">
+          <div class="form-group"><label>Unidade</label><input type="text" id="unidade" placeholder="Ex: Matriz"></div>
           <div class="form-group"><label>Nome da Localidade</label><input type="text" id="localidade"></div>
-          <div class="form-group"><label>Latitude (GD)</label><input type="text" id="latitude" value="0,00000000000"></div>
-          <div class="form-group"><label>Longitude (GD)</label><input type="text" id="longitude" value="0,00000000000"></div>
         </div>
         <div class="form-row">
           <div class="form-group"><label>Responsável - Nome</label><input type="text" id="resp_nome"></div>
@@ -615,16 +595,6 @@
           <div class="form-group"><label>Data da Inspeção</label><input type="date" id="data_inspecao"></div>
           <div class="form-group"><label>Empresa</label><input type="text" id="empresa"></div>
         </div>
-        <div class="form-row">
-          <div class="form-group"><label>Inspetor/Auditor</label><input type="text" id="inspetor_nome"></div>
-          <div class="form-group"><label>Matrícula</label><input type="text" id="inspetor_matricula"></div>
-        </div>
-        <div class="form-row">
-          <div class="form-group"><label>CPF</label><input type="text" id="inspetor_cpf"></div>
-          <div class="form-group"><label>SAP ID</label><input type="text" id="inspetor_sap"></div>
-          <div class="form-group"><label>Nome</label><input type="text" id="inspetor_nome2"></div>
-        </div>
-        <div class="form-group"><label>Entrevistados</label><textarea id="entrevistados" rows="2"></textarea></div>
         <hr style="margin: 1rem 0;">
         <h3>Checklist de Inspeção</h3>
       `;
@@ -651,19 +621,12 @@
 
     generatePdfBtn.addEventListener('click', async () => {
       const formData = {
+        unidade: document.getElementById('unidade')?.value || '',
         localidade: document.getElementById('localidade')?.value || '',
-        latitude: document.getElementById('latitude')?.value || '0,00000000000',
-        longitude: document.getElementById('longitude')?.value || '0,00000000000',
         resp_nome: document.getElementById('resp_nome')?.value || '',
         resp_matricula: document.getElementById('resp_matricula')?.value || '',
         data_inspecao: document.getElementById('data_inspecao')?.value || '',
-        empresa: document.getElementById('empresa')?.value || '',
-        inspetor_nome: document.getElementById('inspetor_nome')?.value || '',
-        inspetor_matricula: document.getElementById('inspetor_matricula')?.value || '',
-        inspetor_cpf: document.getElementById('inspetor_cpf')?.value || '',
-        inspetor_sap: document.getElementById('inspetor_sap')?.value || '',
-        inspetor_nome2: document.getElementById('inspetor_nome2')?.value || '',
-        entrevistados: document.getElementById('entrevistados')?.value || ''
+        empresa: document.getElementById('empresa')?.value || ''
       };
       for (let i = 0; i < checklistPerguntas.length; i++) {
         const radio = document.querySelector(`input[name="resp_${i}"]:checked`);
