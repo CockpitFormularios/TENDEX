@@ -1,4 +1,3 @@
-usuario:senha:email
-felipe:123:felip32pppp@gmail.com
-admin:123:admin@empresa.com
-felipe:123:felipe@tendex.com
+email:senha:usuario
+felipe@tendex.com:123:felipe
+admin@tendex.com:123:admin
