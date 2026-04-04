@@ -9,9 +9,11 @@
     body { background: #f3f6fc; padding: 2rem 1.5rem; }
     .dashboard-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem; padding-bottom: 0.75rem; border-bottom: 2px solid #cbd5e1; }
     .dashboard-header h1 { font-size: 1.8rem; background: linear-gradient(135deg, #0f2b3d, #1e4a76); background-clip: text; -webkit-background-clip: text; color: transparent; }
+    .logo { height: 50px; width: auto; object-fit: contain; }
     .user-info { background: #1e293b; padding: 0.3rem 1rem; border-radius: 2rem; font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem; }
     .logout-btn { background: #ef4444; color: white; border: none; padding: 0.5rem 1.2rem; border-radius: 2rem; font-weight: 600; cursor: pointer; }
     .logout-btn:hover { background: #dc2626; }
+    .header-left { display: flex; align-items: center; gap: 1rem; }
     .search-area { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 1.5rem; background: white; padding: 0.5rem 1rem; border-radius: 2rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
     .search-icon { font-size: 1.2rem; color: #64748b; }
     .search-input { flex: 1; border: none; outline: none; font-size: 1rem; padding: 0.4rem 0; background: transparent; }
@@ -79,7 +81,15 @@
 <body>
 
 <div class="dashboard-header">
-  <h1>TENDEX</h1>
+  <div class="header-left">
+    <img 
+      src="https://jklcvyuxwxgsfczrfaco.supabase.co/storage/v1/object/public/assinaturas/Tenda_logo2.png" 
+      alt="Logo TENDEX" 
+      class="logo"
+      onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2240%22 height=%2240%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%233b82f6%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Cpath d=%22M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z%22%3E%3C/path%3E%3Cpolyline points=%229 22 9 12 15 12 15 22%22%3E%3C/polyline%3E%3C/svg%3E';"
+    >
+    <h1></h1>
+  </div>
   <div style="display: flex; gap: 1rem; align-items: center;">
     <div class="user-info" id="userInfoDisplay">👤 Carregando...</div>
     <button class="logout-btn" id="logoutBtn">Sair</button>
@@ -103,10 +113,10 @@
 <div id="createItemModal" class="modal">
   <div class="modal-content">
     <div class="modal-header"><h2>➕ Novo Item</h2><button class="close-modal" id="closeCreateModalBtn">&times;</button></div>
-    <div class="form-group"><label>Nome do Local</label><input type="text" id="newItemName" placeholder="Ex: Tenda 5x5"></div>
+    <div class="form-group"><label>Nome do Item *</label><input type="text" id="newItemName" placeholder="Ex: Tenda 5x5"></div>
     <div class="form-group"><label>Sub. Localização</label><input type="text" id="newSubLocalizacao" placeholder="Ex: Área Central"></div>
     <div class="form-group"><label>Tamanho</label><input type="text" id="newTamanho" placeholder="Ex: 5x5m, 10x20m"></div>
-    <div class="form-group"><label>ID / TAG</label><input type="text" id="newItemCode" placeholder="Ex: T-001"><div id="createCodeError" class="error-text"></div></div>
+    <div class="form-group"><label>Código / ID *</label><input type="text" id="newItemCode" placeholder="Ex: T-001"><div id="createCodeError" class="error-text"></div></div>
     <div class="attachments-title">📄 Memorial de Cálculo e Projeto</div>
     <div class="month-group"><label>Memorial:</label><input type="file" id="newMemorialFile" accept=".pdf"></div>
     <div class="attachments-title" style="margin-top: 1rem;">📅 Documentos Mensais</div>
@@ -150,8 +160,7 @@
     
     const userInfoDisplay = document.getElementById('userInfoDisplay');
     if (currentUser && currentUser.username) {
-      // Mostrar apenas o nome do usuário (sem o email)
-      userInfoDisplay.innerHTML = ` ${currentUser.username} `;
+      userInfoDisplay.innerHTML = `👤 ${currentUser.username} ✍️`;
     } else {
       userInfoDisplay.innerHTML = `👤 Não logado`;
       window.location.href = 'index.html';
@@ -264,21 +273,15 @@
         const posX = width - 210;
         let posY = 130;
         
-        // 1. ID / TAG
         pagina.drawText(`ID / TAG: ${itemCode}`, { x: posX, y: posY, size: 10, font: boldFont, color: rgb(0, 0, 0) });
         posY -= 18;
         
-        // 2. TAMANHO
         pagina.drawText(`TAMANHO: ${itemTamanho || 'Não informado'}`, { x: posX, y: posY, size: 10, font: boldFont, color: rgb(0, 0, 0) });
         posY -= 25;
         
-        // 3. Linha separadora
         pagina.drawLine({ start: { x: posX - 10, y: posY + 8 }, end: { x: width - 30, y: posY + 8 }, thickness: 1, color: rgb(0.5, 0.5, 0.5) });
-        
-        // 4. Texto "Assinatura do Responsável"
         pagina.drawText("Assinatura do Responsável", { x: posX - 10, y: posY - 5, size: 8, font: font, color: rgb(0.5, 0.5, 0.5) });
         
-        // 5. ASSINATURA (busca pelo nome do usuário logado)
         if (currentUser && currentUser.username) {
           const nomeUsuario = currentUser.username.toLowerCase();
           const assinaturaUrl = `https://jklcvyuxwxgsfczrfaco.supabase.co/storage/v1/object/public/assinaturas/${nomeUsuario}.png`;
@@ -312,7 +315,6 @@
         const pdfDoc = await PDFDocument.load(modelBytes);
         const form = pdfDoc.getForm();
 
-        // Preencher campos do cabeçalho
         const camposCabecalho = [
           { nome: "unidade", valor: formData.unidade || "" },
           { nome: "localidade", valor: formData.localidade || "" },
@@ -325,13 +327,11 @@
           try { form.getTextField(campo.nome).setText(campo.valor); } catch(e) {}
         }
         
-        // Preencher respostas
         for (let i = 1; i <= 25; i++) {
           const resposta = formData[`resp_${i-1}`] || "Não respondido";
           try { form.getTextField(`${i}`).setText(resposta); } catch(e) {}
         }
         
-        // Adicionar ID/TAG, TAMANHO e ASSINATURA na primeira página
         await adicionarInfoItemEAssinatura(pdfDoc, itemInfo.code, itemInfo.tamanho);
         
         const pdfBytes = await pdfDoc.save();
