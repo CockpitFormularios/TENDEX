@@ -29,8 +29,8 @@
   </div>
   <form id="loginForm">
     <div class="input-group">
-      <label>👤 Usuário</label>
-      <input type="text" id="username" placeholder="Digite seu usuário" required>
+      <label>📧 E-mail</label>
+      <input type="email" id="email" placeholder="seu@email.com" required>
     </div>
     <div class="input-group">
       <label>🔒 Senha</label>
@@ -42,7 +42,7 @@
 </div>
 <script>
   const form = document.getElementById('loginForm');
-  const usernameInput = document.getElementById('username');
+  const emailInput = document.getElementById('email');
   const passwordInput = document.getElementById('password');
   const messageDiv = document.getElementById('messageContainer');
 
@@ -57,11 +57,11 @@
         const trimmed = line.trim();
         if (trimmed === '' || trimmed.startsWith('#')) continue;
         const parts = trimmed.split(':');
-        if (parts.length >= 2) {
+        if (parts.length >= 3) {
           credentials.push({
-            username: parts[0].trim(),
+            email: parts[0].trim().toLowerCase(),
             password: parts[1].trim(),
-            email: parts[2] ? parts[2].trim() : parts[0].trim() + '@tendex.com'
+            username: parts[2].trim()
           });
         }
       }
@@ -74,28 +74,29 @@
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const username = usernameInput.value.trim();
+    const email = emailInput.value.trim().toLowerCase();
     const password = passwordInput.value;
-    if (!username || !password) {
-      messageDiv.innerHTML = '<div class="error-message">❌ Preencha usuário e senha</div>';
+    if (!email || !password) {
+      messageDiv.innerHTML = '<div class="error-message">❌ Preencha e-mail e senha</div>';
       return;
     }
     messageDiv.innerHTML = '<div class="info-message">⏳ Verificando...</div>';
     const credentials = await loadCredentials();
-    const user = credentials.find(c => c.username === username && c.password === password);
+    const user = credentials.find(c => c.email === email && c.password === password);
     if (user) {
       localStorage.setItem('tendex_current_user', JSON.stringify({
+        email: user.email,
         username: user.username,
-        email: user.email
+        password: user.password
       }));
       messageDiv.innerHTML = '<div class="info-message">✅ Login bem-sucedido! Redirecionando...</div>';
       setTimeout(() => { window.location.href = 'dashboard.html'; }, 800);
     } else {
-      messageDiv.innerHTML = '<div class="error-message">❌ Usuário ou senha incorretos</div>';
+      messageDiv.innerHTML = '<div class="error-message">❌ E-mail ou senha incorretos</div>';
       passwordInput.value = '';
     }
   });
-  usernameInput.focus();
+  emailInput.focus();
 </script>
 </body>
 </html>
