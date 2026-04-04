@@ -1,4 +1,4 @@
-LAYLA:123
-admin:123456
-# este é um comentário
-usuario_teste:teste
+usuario:senha:email
+MOVO:123:movo@empresa.com
+admin:123:admin@empresa.com
+felipe:123:felipe@tendex.com
