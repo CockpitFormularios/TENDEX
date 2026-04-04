@@ -1,4 +1,4 @@
 usuario:senha:email
-MOVO:123:movo@empresa.com
+felipe:123:felip32pppp@gmail.com
 admin:123:admin@empresa.com
 felipe:123:felipe@tendex.com
