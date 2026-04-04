@@ -153,7 +153,6 @@
       userInfoDisplay.innerHTML = `👤 ${currentUser.username} (${currentUser.email}) ✍️`;
     } else {
       userInfoDisplay.innerHTML = `👤 Não logado`;
-      // Redirecionar para login se não estiver logado
       window.location.href = 'index.html';
     }
 
@@ -249,67 +248,55 @@
       return itemIdFinal;
     }
 
-    // ==================== FUNÇÃO PARA ADICIONAR ASSINATURA (BUSCA POR NOME DE USUÁRIO) ====================
-    async function adicionarAssinaturaNoPDF(pdfDoc) {
+    // ==================== FUNÇÃO PARA ADICIONAR INFORMAÇÕES E ASSINATURA NA PRIMEIRA PÁGINA ====================
+    async function adicionarInfoItemEAssinatura(pdfDoc, itemCode, itemTamanho) {
       try {
-        if (!currentUser || !currentUser.username) {
-          console.warn("Usuário não identificado, assinatura não adicionada.");
-          return pdfDoc;
-        }
+        const pages = pdfDoc.getPages();
+        if (pages.length === 0) return pdfDoc;
         
-        const nomeUsuario = currentUser.username.toLowerCase();
-        const assinaturaUrl = `https://jklcvyuxwxgsfczrfaco.supabase.co/storage/v1/object/public/assinaturas/${nomeUsuario}.png`;
+        const pagina = pages[0];
+        const { width, height } = pagina.getSize();
+        const { StandardFonts, rgb } = window.PDFLib;
+        const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+        const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
         
-        console.log(`Buscando assinatura para o usuário: ${nomeUsuario}`);
+        const posX = width - 210;
+        let posY = 130;
         
-        try {
-          const response = await fetch(assinaturaUrl);
-          if (!response.ok) {
-            console.warn(`Assinatura não encontrada para o usuário ${nomeUsuario}`);
-            return pdfDoc;
-          }
+        // 1. ID / TAG
+        pagina.drawText(`ID / TAG: ${itemCode}`, { x: posX, y: posY, size: 10, font: boldFont, color: rgb(0, 0, 0) });
+        posY -= 18;
+        
+        // 2. TAMANHO
+        pagina.drawText(`TAMANHO: ${itemTamanho || 'Não informado'}`, { x: posX, y: posY, size: 10, font: boldFont, color: rgb(0, 0, 0) });
+        posY -= 25;
+        
+        // 3. Linha separadora
+        pagina.drawLine({ start: { x: posX - 10, y: posY + 8 }, end: { x: width - 30, y: posY + 8 }, thickness: 1, color: rgb(0.5, 0.5, 0.5) });
+        
+        // 4. Texto "Assinatura do Responsável"
+        pagina.drawText("Assinatura do Responsável", { x: posX - 10, y: posY - 5, size: 8, font: font, color: rgb(0.5, 0.5, 0.5) });
+        
+        // 5. ASSINATURA (busca pelo nome do usuário logado)
+        if (currentUser && currentUser.username) {
+          const nomeUsuario = currentUser.username.toLowerCase();
+          const assinaturaUrl = `https://jklcvyuxwxgsfczrfaco.supabase.co/storage/v1/object/public/assinaturas/${nomeUsuario}.png`;
           
-          const imageBytes = await response.arrayBuffer();
-          let imagem;
           try {
-            imagem = await pdfDoc.embedPng(imageBytes);
-          } catch(e) {
-            try {
-              imagem = await pdfDoc.embedJpg(imageBytes);
-            } catch(e2) {
-              console.warn("Formato de imagem não suportado");
-              return pdfDoc;
+            const response = await fetch(assinaturaUrl);
+            if (response.ok) {
+              const imageBytes = await response.arrayBuffer();
+              let imagem;
+              try { imagem = await pdfDoc.embedPng(imageBytes); } catch(e) { try { imagem = await pdfDoc.embedJpg(imageBytes); } catch(e2) {} }
+              if (imagem) {
+                const imgWidth = 120, imgHeight = 50, imgX = width - imgWidth - 30, imgY = posY - imgHeight - 10;
+                pagina.drawImage(imagem, { x: imgX, y: imgY, width: imgWidth, height: imgHeight });
+              }
             }
-          }
-          
-          if (imagem) {
-            const pages = pdfDoc.getPages();
-            const ultimaPagina = pages[pages.length - 1];
-            const { width, height } = ultimaPagina.getSize();
-            const imgWidth = 120;
-            const imgHeight = 50;
-            const x = width - imgWidth - 30;
-            const y = 40;
-            ultimaPagina.drawImage(imagem, { x, y, width: imgWidth, height: imgHeight });
-            
-            const { StandardFonts, rgb } = window.PDFLib;
-            const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-            ultimaPagina.drawText(`Assinado por: ${currentUser.username} (${currentUser.email})`, {
-              x,
-              y: y + imgHeight + 5,
-              size: 8,
-              font,
-              color: rgb(0.5, 0.5, 0.5)
-            });
-            console.log(`✅ Assinatura adicionada para o usuário: ${currentUser.username}`);
-          }
-        } catch (err) {
-          console.warn("Erro ao carregar assinatura:", err.message);
+          } catch (err) {}
         }
-      } catch (err) {
-        console.warn("Erro ao adicionar assinatura:", err.message);
-      }
-      return pdfDoc;
+        return pdfDoc;
+      } catch (err) { return pdfDoc; }
     }
 
     // ==================== GERAR PDF USANDO O MODELO ====================
@@ -318,14 +305,13 @@
     async function generateAndAttachPdf(itemId, category, monthName, formData, itemInfo) {
       try {
         if (!window.PDFLib) throw new Error("PDF-lib não carregado.");
-        const { PDFDocument, StandardFonts, rgb } = window.PDFLib;
+        const { PDFDocument } = window.PDFLib;
         
-        console.log("Baixando PDF modelo...");
         const modelBytes = await fetch(MODELO_PDF_URL).then(res => res.arrayBuffer());
         const pdfDoc = await PDFDocument.load(modelBytes);
         const form = pdfDoc.getForm();
 
-        console.log("Preenchendo campos do formulário...");
+        // Preencher campos do cabeçalho
         const camposCabecalho = [
           { nome: "unidade", valor: formData.unidade || "" },
           { nome: "localidade", valor: formData.localidade || "" },
@@ -335,36 +321,28 @@
           { nome: "empresa", valor: formData.empresa || "" }
         ];
         for (const campo of camposCabecalho) {
-          try { 
-            const field = form.getTextField(campo.nome);
-            field.setText(campo.valor);
-            console.log(`Campo ${campo.nome} preenchido: ${campo.valor}`);
-          } catch(e) { console.warn(`Campo ${campo.nome} não encontrado`); }
+          try { form.getTextField(campo.nome).setText(campo.valor); } catch(e) {}
         }
         
+        // Preencher respostas
         for (let i = 1; i <= 25; i++) {
           const resposta = formData[`resp_${i-1}`] || "Não respondido";
-          try { 
-            const field = form.getTextField(`${i}`);
-            field.setText(resposta);
-          } catch(e) { console.warn(`Campo ${i} não encontrado`); }
+          try { form.getTextField(`${i}`).setText(resposta); } catch(e) {}
         }
         
-        console.log("Adicionando assinatura do usuário...");
-        await adicionarAssinaturaNoPDF(pdfDoc);
+        // Adicionar ID/TAG, TAMANHO e ASSINATURA na primeira página
+        await adicionarInfoItemEAssinatura(pdfDoc, itemInfo.code, itemInfo.tamanho);
         
         const pdfBytes = await pdfDoc.save();
         const blob = new Blob([pdfBytes], { type: 'application/pdf' });
         const file = new File([blob], `checklist_${monthName}_${Date.now()}.pdf`, { type: 'application/pdf' });
-        
-        console.log("Salvando PDF no Supabase...");
         await addFileToItem(itemId, category, file);
         
-        alert(`✅ PDF gerado e anexado ao mês ${monthName}!\nID: ${itemInfo.code} | Tamanho: ${itemInfo.tamanho || 'N/I'}\nAssinatura de ${currentUser?.username || 'usuário'} adicionada.`);
+        alert(`✅ PDF gerado!\nID: ${itemInfo.code} | Tamanho: ${itemInfo.tamanho || 'N/I'}\nAssinatura: ${currentUser?.username || 'usuário'}`);
         await refreshData();
         await openDetailModal(itemId);
       } catch (err) {
-        console.error("Erro detalhado:", err);
+        console.error(err);
         alert("Erro ao gerar PDF: " + err.message);
       }
     }
@@ -430,7 +408,6 @@
       currentFormItemId = itemId; 
       currentFormCategory = category; 
       currentFormMonthName = monthName;
-      
       const itemAtual = currentItems.find(i => i.id === itemId);
       currentItemInfo = itemAtual || { name: '', code: '', tamanho: '' };
       
