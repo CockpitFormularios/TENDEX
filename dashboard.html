@@ -31,7 +31,8 @@
     .modal-content { background: white; max-width: 800px; width: 90%; border-radius: 1.5rem; padding: 1.5rem; max-height: 85vh; overflow-y: auto; }
     .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
     .modal-header h2 { font-size: 1.3rem; }
-    .close-modal { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #64748b; }
+    .close-modal { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #64748b; padding: 0 0.5rem; }
+    .close-modal:hover { color: #ef4444; }
     .item-detail-title { background: #f1f5f9; padding: 0.8rem; border-radius: 1rem; margin-bottom: 1.2rem; }
     .pdf-group { margin-bottom: 1.2rem; }
     .pdf-group-title { font-weight: 600; font-size: 0.9rem; border-left: 3px solid #3b82f6; padding-left: 0.6rem; margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center; }
@@ -346,12 +347,11 @@
         if (!window.PDFLib) throw new Error("PDF-lib não carregado.");
         const { PDFDocument } = window.PDFLib;
 
-        // 1. Baixar o modelo PDF
         const modelBytes = await fetch(MODELO_PDF_URL).then(res => res.arrayBuffer());
         const pdfDoc = await PDFDocument.load(modelBytes);
         const form = pdfDoc.getForm();
 
-        // 2. Preencher campos do cabeçalho
+        // Preencher campos do cabeçalho
         const camposCabecalho = [
           { nome: "unidade", valor: formData.unidade || "" },
           { nome: "localidade", valor: formData.localidade || "" },
@@ -370,7 +370,7 @@
           }
         }
 
-        // 3. Preencher respostas das perguntas (campos numerados de 1 a 25)
+        // Preencher respostas das perguntas (campos numerados de 1 a 25)
         for (let i = 1; i <= 25; i++) {
           const resposta = formData[`resp_${i-1}`] || "Não respondido";
           try {
@@ -381,7 +381,6 @@
           }
         }
 
-        // 4. Salvar o PDF preenchido
         const pdfBytes = await pdfDoc.save();
         const blob = new Blob([pdfBytes], { type: 'application/pdf' });
         const file = new File([blob], `checklist_${monthName}_${Date.now()}.pdf`, { type: 'application/pdf' });
@@ -444,7 +443,7 @@
     // ==================== MODAL DE DETALHES ====================
     const detailModal = document.getElementById('detailModal');
     const detailContent = document.getElementById('detailContent');
-    const closeDetailBtn = document.getElementById('closeDetailModalBtn');
+    const closeDetailModalBtn = document.getElementById('closeDetailModalBtn');
 
     async function openDetailModal(itemId) {
       const item = currentItems.find(i => i.id === itemId);
@@ -646,6 +645,34 @@
       }
     });
 
+    // ==================== FECHAR MODAL DE DETALHES ====================
+    // Garantir que o botão de fechar funcione corretamente
+    if (closeDetailModalBtn) {
+      closeDetailModalBtn.addEventListener('click', () => {
+        detailModal.style.display = 'none';
+      });
+    }
+    
+    // Fechar modal ao clicar fora do conteúdo (backdrop)
+    detailModal.addEventListener('click', (e) => {
+      if (e.target === detailModal) {
+        detailModal.style.display = 'none';
+      }
+    });
+    
+    // Fechar modal ao pressionar ESC
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && detailModal.style.display === 'flex') {
+        detailModal.style.display = 'none';
+      }
+      if (e.key === 'Escape' && formModal.style.display === 'flex') {
+        formModal.style.display = 'none';
+      }
+      if (e.key === 'Escape' && createModal.style.display === 'flex') {
+        createModal.style.display = 'none';
+      }
+    });
+
     // ==================== MODAL DE CRIAÇÃO ====================
     const createModal = document.getElementById('createItemModal');
     const closeCreateBtn = document.getElementById('closeCreateModalBtn');
@@ -693,6 +720,13 @@
 
     closeCreateBtn.addEventListener('click', () => { createModal.style.display = 'none'; });
     cancelCreateBtn.addEventListener('click', () => { createModal.style.display = 'none'; });
+    
+    // Fechar modal de criação ao clicar no backdrop
+    createModal.addEventListener('click', (e) => {
+      if (e.target === createModal) {
+        createModal.style.display = 'none';
+      }
+    });
 
     confirmCreateBtn.addEventListener('click', async () => {
       const name = newItemName.value.trim();
