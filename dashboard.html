@@ -10,7 +10,8 @@
     .dashboard-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem; padding-bottom: 0.75rem; border-bottom: 2px solid #cbd5e1; }
     .dashboard-header h1 { font-size: 1.8rem; background: linear-gradient(135deg, #0f2b3d, #1e4a76); background-clip: text; -webkit-background-clip: text; color: transparent; }
     .logo { height: 50px; width: auto; object-fit: contain; }
-    .user-info { background: #1e293b; padding: 0.3rem 1rem; border-radius: 2rem; font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem; }
+    .user-info { background: #1e293b; padding: 0.3rem 1rem; border-radius: 2rem; font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem; cursor: pointer; transition: 0.2s; }
+    .user-info:hover { background: #0f172a; transform: scale(0.98); }
     .logout-btn { background: #ef4444; color: white; border: none; padding: 0.5rem 1.2rem; border-radius: 2rem; font-weight: 600; cursor: pointer; }
     .logout-btn:hover { background: #dc2626; }
     .header-left { display: flex; align-items: center; gap: 1rem; }
@@ -36,6 +37,14 @@
     .modal-header h2 { font-size: 1.3rem; }
     .close-modal { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #64748b; padding: 0 0.5rem; }
     .close-modal:hover { color: #ef4444; }
+    /* Modal de logout */
+    .logout-modal-content { max-width: 400px; text-align: center; }
+    .logout-modal-content p { margin: 1rem 0; font-size: 1.1rem; }
+    .logout-buttons { display: flex; gap: 1rem; justify-content: center; margin-top: 1rem; }
+    .btn-confirm { background: #ef4444; color: white; border: none; padding: 0.5rem 1.5rem; border-radius: 2rem; cursor: pointer; font-weight: 600; }
+    .btn-confirm:hover { background: #dc2626; }
+    .btn-cancel-logout { background: #64748b; color: white; border: none; padding: 0.5rem 1.5rem; border-radius: 2rem; cursor: pointer; font-weight: 600; }
+    .btn-cancel-logout:hover { background: #475569; }
     .item-detail-title { background: #f1f5f9; padding: 0.8rem; border-radius: 1rem; margin-bottom: 1.2rem; }
     .pdf-group { margin-bottom: 1.2rem; }
     .pdf-group-title { font-weight: 600; font-size: 0.9rem; border-left: 3px solid #3b82f6; padding-left: 0.6rem; margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center; }
@@ -88,11 +97,25 @@
       class="logo"
       onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2240%22 height=%2240%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%233b82f6%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Cpath d=%22M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z%22%3E%3C/path%3E%3Cpolyline points=%229 22 9 12 15 12 15 22%22%3E%3C/polyline%3E%3C/svg%3E';"
     >
-    <h1></h1>
+    <h1>TENDEX Site para inspeção de tendas</h1>
   </div>
   <div style="display: flex; gap: 1rem; align-items: center;">
     <div class="user-info" id="userInfoDisplay">👤 Carregando...</div>
-    <button class="logout-btn" id="logoutBtn">Sair</button>
+  </div>
+</div>
+
+<!-- Modal de confirmação de logout -->
+<div id="logoutModal" class="modal">
+  <div class="modal-content logout-modal-content">
+    <div class="modal-header">
+      <h2>🔓 Sair do Sistema</h2>
+      <button class="close-modal" id="closeLogoutModalBtn">&times;</button>
+    </div>
+    <p>Tem certeza que deseja sair?</p>
+    <div class="logout-buttons">
+      <button class="btn-cancel-logout" id="cancelLogoutBtn">Cancelar</button>
+      <button class="btn-confirm" id="confirmLogoutBtn">Sair</button>
+    </div>
   </div>
 </div>
 
@@ -165,6 +188,45 @@
       userInfoDisplay.innerHTML = `👤 Não logado`;
       window.location.href = 'index.html';
     }
+
+    // ==================== MODAL DE LOGOUT ====================
+    const logoutModal = document.getElementById('logoutModal');
+    const closeLogoutModalBtn = document.getElementById('closeLogoutModalBtn');
+    const cancelLogoutBtn = document.getElementById('cancelLogoutBtn');
+    const confirmLogoutBtn = document.getElementById('confirmLogoutBtn');
+
+    // Abrir modal ao clicar no usuário
+    userInfoDisplay.addEventListener('click', () => {
+      logoutModal.style.display = 'flex';
+    });
+
+    // Fechar modal
+    function closeLogoutModal() {
+      logoutModal.style.display = 'none';
+    }
+
+    closeLogoutModalBtn.addEventListener('click', closeLogoutModal);
+    cancelLogoutBtn.addEventListener('click', closeLogoutModal);
+
+    // Confirmar logout
+    confirmLogoutBtn.addEventListener('click', () => {
+      localStorage.removeItem('tendex_current_user');
+      window.location.href = 'index.html';
+    });
+
+    // Fechar ao clicar fora do modal
+    logoutModal.addEventListener('click', (e) => {
+      if (e.target === logoutModal) {
+        closeLogoutModal();
+      }
+    });
+
+    // Fechar com tecla ESC
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && logoutModal.style.display === 'flex') {
+        closeLogoutModal();
+      }
+    });
 
     const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
     const monthKeys = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
@@ -489,7 +551,6 @@
 
     // ==================== INICIALIZAÇÃO ====================
     document.getElementById('addItemBtn').addEventListener('click', openCreateModal);
-    document.getElementById('logoutBtn').addEventListener('click', () => window.location.href = 'index.html');
     document.getElementById('searchInput').addEventListener('input', (e) => renderCards(e.target.value));
     const monthContainer = document.getElementById('monthButtonsContainer');
     monthNames.forEach((month, idx) => { const btn = document.createElement('button'); btn.className = 'month-btn'; btn.textContent = month; btn.addEventListener('click', () => downloadMonthPDFs(monthKeys[idx], month)); monthContainer.appendChild(btn); });
