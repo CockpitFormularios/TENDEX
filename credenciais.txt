@@ -1,3 +1,4 @@
 email:senha:usuario
 felipe@tendex.com:123:felipe
 admin@tendex.com:123:admin
+waldei@tendex.com:123:waldei
