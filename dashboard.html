@@ -78,48 +78,54 @@
     .modal-buttons { display: flex; justify-content: flex-end; gap: 0.8rem; margin-top: 1.2rem; }
     .btn-save { background: #1e4a76; color: white; padding: 0.5rem 1.2rem; border-radius: 2rem; border: none; cursor: pointer; }
     .btn-cancel { background: #e2e8f0; color: #1e293b; padding: 0.5rem 1.2rem; border-radius: 2rem; border: none; cursor: pointer; }
-
-    /* ===== SPINNER / OVERLAY DE CARREGAMENTO ===== */
-    .loading-overlay {
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(255, 255, 255, 0.9);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      border-radius: 1.5rem;
-      z-index: 10;
-      backdrop-filter: blur(2px);
-    }
-    .spinner {
-      width: 48px;
-      height: 48px;
-      border: 5px solid #e2e8f0;
-      border-top-color: #1e4a76;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-    }
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-    .loading-text {
-      margin-top: 1rem;
-      font-size: 0.9rem;
-      color: #1e4a76;
-      font-weight: 600;
-    }
-    /* Ajuste para o modal de formulário relativo */
-    #formModal .modal-content {
-      position: relative;
-    }
     .attachments-title { font-size: 0.8rem; font-weight: 600; color: #334155; margin-bottom: 0.8rem; border-left: 3px solid #3b82f6; padding-left: 0.6rem; margin-top: 1rem; }
     .month-group { margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
     .month-group label { font-weight: 600; width: 110px; font-size: 0.8rem; }
     .month-group input[type="file"] { flex: 1; }
+
+    /* LOADING OVERLAY EM TELA CHEIA */
+    .fullscreen-loader {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(4px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      visibility: hidden;
+      opacity: 0;
+      transition: visibility 0s, opacity 0.3s;
+    }
+    .fullscreen-loader.active {
+      visibility: visible;
+      opacity: 1;
+    }
+    .loader-spinner {
+      width: 70px;
+      height: 70px;
+      border: 8px solid rgba(255,255,255,0.3);
+      border-top-color: #3b82f6;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    .loader-text {
+      margin-top: 1.5rem;
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: white;
+      background: rgba(0,0,0,0.6);
+      padding: 0.5rem 1.2rem;
+      border-radius: 2rem;
+      letter-spacing: 1px;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
@@ -200,6 +206,12 @@
     <div id="formFieldsContainer"></div>
     <div class="modal-buttons"><button class="btn-cancel" id="cancelFormBtn">Cancelar</button><button class="btn-save" id="generatePdfBtn">Gerar PDF e Anexar</button></div>
   </div>
+</div>
+
+<!-- FULLSCREEN LOADER -->
+<div id="fullscreenLoader" class="fullscreen-loader">
+  <div class="loader-spinner"></div>
+  <div class="loader-text">🔃 Gerando PDF, aguarde...</div>
 </div>
 
 <script>
@@ -367,8 +379,8 @@
               let imagem;
               try { imagem = await pdfDoc.embedPng(imageBytes); } catch(e) { try { imagem = await pdfDoc.embedJpg(imageBytes); } catch(e2) {} }
               if (imagem) {
-                const areaMaxWidth = 180;
-                const areaMaxHeight = 80;
+                const areaMaxWidth = 190;
+                const areaMaxHeight = 90;
                 const originalWidth = imagem.width;
                 const originalHeight = imagem.height;
                 const scale = Math.min(areaMaxWidth / originalWidth, areaMaxHeight / originalHeight);
@@ -480,12 +492,13 @@
       else return `<div class="pdf-row"><span class="pdf-label">${escapeHtml(label)}</span><div class="pdf-file-info">— Nenhum PDF anexado —</div><div class="pdf-actions"><button class="upload-pdf-btn" data-itemid="${itemId}" data-category="${category}" title="Adicionar PDF">➕</button>${showFormButton ? `<button class="fill-form-btn" data-itemid="${itemId}" data-category="${category}" data-monthname="${label}" title="Preencher formulário">📝</button>` : ''}</div></div>`;
     }
 
-    // ==================== FORMULÁRIO COM LOADING ====================
+    // ==================== FORMULÁRIO COM LOADING FULLSCREEN ====================
     const formModal = document.getElementById('formModal');
     const formFieldsContainer = document.getElementById('formFieldsContainer');
     const closeFormModalBtn = document.getElementById('closeFormModalBtn');
     const cancelFormBtn = document.getElementById('cancelFormBtn');
     const generatePdfBtn = document.getElementById('generatePdfBtn');
+    const fullscreenLoader = document.getElementById('fullscreenLoader');
 
     function openFormModal(itemId, category, monthName) {
       currentFormItemId = itemId; 
@@ -501,31 +514,7 @@
       formModal.style.display = 'flex';
     }
 
-    // Função para criar overlay de carregamento
-    function showLoadingOverlay(modalContent) {
-      // Remove overlay existente se houver
-      const existing = modalContent.querySelector('.loading-overlay');
-      if (existing) existing.remove();
-      const overlay = document.createElement('div');
-      overlay.className = 'loading-overlay';
-      overlay.innerHTML = `<div class="spinner"></div><div class="loading-text">Gerando PDF, aguarde...</div>`;
-      modalContent.style.position = 'relative';
-      modalContent.appendChild(overlay);
-      // Desabilita todos os inputs, selects, textareas e botões do modal
-      const allInputs = modalContent.querySelectorAll('input, select, textarea, button');
-      allInputs.forEach(el => el.disabled = true);
-    }
-
-    function hideLoadingOverlay(modalContent) {
-      const overlay = modalContent.querySelector('.loading-overlay');
-      if (overlay) overlay.remove();
-      const allInputs = modalContent.querySelectorAll('input, select, textarea, button');
-      allInputs.forEach(el => el.disabled = false);
-      modalContent.style.position = '';
-    }
-
     generatePdfBtn.addEventListener('click', async () => {
-      const modalContent = document.querySelector('#formModal .modal-content');
       const formData = {
         unidade: document.getElementById('unidade')?.value || '',
         localidade: document.getElementById('localidade')?.value || '',
@@ -540,8 +529,8 @@
       }
       if (!formData.data_inspecao || !formData.resp_nome) { alert("Preencha Data e Responsável."); return; }
       
-      // Mostra overlay e desabilita tudo
-      showLoadingOverlay(modalContent);
+      // Mostra loader fullscreen
+      fullscreenLoader.classList.add('active');
       
       try { 
         await generateAndAttachPdf(currentFormItemId, currentFormCategory, currentFormMonthName, formData, currentItemInfo); 
@@ -549,7 +538,7 @@
       } catch (err) { 
         alert("Erro: " + err.message); 
       } finally {
-        hideLoadingOverlay(modalContent);
+        fullscreenLoader.classList.remove('active');
       }
     });
 
