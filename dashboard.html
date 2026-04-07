@@ -361,7 +361,7 @@
             const page = pdfDoc.getPages()[0];
             const { width, height } = page.getSize();
             // Ajuste as coordenadas abaixo conforme o local desejado
-            const fotoX = width - finalW - 30;   // alinhado à direita
+            const fotoX = width - finalW - 0;   // alinhado à direita
             const fotoY = 50;                   // posição vertical (ajuste)
             page.drawImage(fotoImage, { x: fotoX, y: fotoY, width: finalW, height: finalH });
           }
