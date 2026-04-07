@@ -12,8 +12,6 @@
     .logo { height: 50px; width: auto; object-fit: contain; }
     .user-info { background: #1e293b; padding: 0.3rem 1rem; border-radius: 2rem; font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem; cursor: pointer; transition: 0.2s; }
     .user-info:hover { background: #0f172a; transform: scale(0.98); }
-    .logout-btn { background: #ef4444; color: white; border: none; padding: 0.5rem 1.2rem; border-radius: 2rem; font-weight: 600; cursor: pointer; }
-    .logout-btn:hover { background: #dc2626; }
     .header-left { display: flex; align-items: center; gap: 1rem; }
     .search-area { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 1.5rem; background: white; padding: 0.5rem 1rem; border-radius: 2rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
     .search-icon { font-size: 1.2rem; color: #64748b; }
@@ -156,8 +154,8 @@
     <div class="modal-header"><h2 id="formModalTitle">Formulário de Inspeção</h2><button class="close-modal" id="closeFormModalBtn">&times;</button></div>
     <div id="formFieldsContainer"></div>
     <div class="form-group">
-      <label>Foto da Inspeção (Obrigatorio)</label>
-      <input type="file" id="fotoInspecao" accept="image/png, image/jpeg">
+      <label>📸 Foto da Inspeção (obrigatória)</label>
+      <input type="file" id="fotoInspecao" accept="image/png, image/jpeg" required>
       <div id="fotoPreview" style="margin-top: 0.5rem;"></div>
     </div>
     <div class="modal-buttons"><button class="btn-cancel" id="cancelFormBtn">Cancelar</button><button class="btn-save" id="generatePdfBtn">Gerar PDF e Anexar</button></div>
@@ -166,7 +164,7 @@
 
 <div id="fullscreenLoader" class="fullscreen-loader">
   <div class="loader-spinner"></div>
-  <div class="loader-text"> Gerando PDF, aguarde...</div>
+  <div class="loader-text">🔃 Gerando PDF, aguarde...</div>
 </div>
 
 <script>
@@ -351,21 +349,21 @@
         }
         await adicionarInfoItemEAssinatura(pdfDoc, itemInfo.code, itemInfo.tamanho);
         if (fotoFile) {
-  const fotoBytes = await fotoFile.arrayBuffer();
-  let fotoImage;
-  try { fotoImage = await pdfDoc.embedPng(fotoBytes); } catch { fotoImage = await pdfDoc.embedJpg(fotoBytes); }
-  if (fotoImage) {
-    const fotoMaxWidth = 300, fotoMaxHeight = 200;
-    const scale = Math.min(fotoMaxWidth / fotoImage.width, fotoMaxHeight / fotoImage.height);
-    const finalW = fotoImage.width * scale, finalH = fotoImage.height * scale;
-    const page = pdfDoc.getPages()[0];
-    const { width, height } = page.getSize();
-    // Posiciona no canto esquerdo superior
-    const fotoX = 30;   // distância da borda esquerda
-    const fotoY = 100;   // distância do topo
-    page.drawImage(fotoImage, { x: fotoX, y: fotoY, width: finalW, height: finalH });
-  }
-}
+          const fotoBytes = await fotoFile.arrayBuffer();
+          let fotoImage;
+          try { fotoImage = await pdfDoc.embedPng(fotoBytes); } catch { fotoImage = await pdfDoc.embedJpg(fotoBytes); }
+          if (fotoImage) {
+            const fotoMaxWidth = 300, fotoMaxHeight = 200;
+            const scale = Math.min(fotoMaxWidth / fotoImage.width, fotoMaxHeight / fotoImage.height);
+            const finalW = fotoImage.width * scale, finalH = fotoImage.height * scale;
+            const page = pdfDoc.getPages()[0];
+            const { width, height } = page.getSize();
+            // Posiciona no canto superior esquerdo
+            const fotoX = 30;
+            const fotoY = 30;
+            page.drawImage(fotoImage, { x: fotoX, y: fotoY, width: finalW, height: finalH });
+          }
+        }
         const pdfBytes = await pdfDoc.save();
         const blob = new Blob([pdfBytes], { type: 'application/pdf' });
         const file = new File([blob], `checklist_${monthName}_${Date.now()}.pdf`, { type: 'application/pdf' });
@@ -449,6 +447,19 @@
       let html = `<div class="form-row"><div class="form-group"><label>Unidade</label><input type="text" id="unidade" placeholder="Ex: Matriz"></div><div class="form-group"><label>Nome da Localidade</label><input type="text" id="localidade"></div></div><div class="form-row"><div class="form-group"><label>Responsável - Nome</label><input type="text" id="resp_nome"></div><div class="form-group"><label>Responsável - Matrícula</label><input type="text" id="resp_matricula"></div></div><div class="form-row"><div class="form-group"><label>Data da Inspeção</label><input type="date" id="data_inspecao"></div><div class="form-group"><label>Empresa</label><input type="text" id="empresa"></div></div><hr style="margin: 1rem 0;"><h3>Checklist de Inspeção</h3>`;
       for (let i=0; i<checklistPerguntas.length; i++) html += `<div class="question-group"><div class="question-text">${i+1}. ${escapeHtml(checklistPerguntas[i])}</div><div class="question-options"><label><input type="radio" name="resp_${i}" value="Conforme"> Conforme</label><label><input type="radio" name="resp_${i}" value="Não conforme"> Não conforme</label><label><input type="radio" name="resp_${i}" value="Não se aplica"> Não se aplica</label></div><div class="question-obs"><input type="text" placeholder="Observação (opcional)" id="obs_${i}" style="width:100%;"></div></div>`;
       formFieldsContainer.innerHTML = html;
+      
+      // Pré‑preenchimento dos campos
+      const unidadeInput = document.getElementById('unidade');
+      if (unidadeInput) unidadeInput.value = 'SERRA NORTE';
+      
+      const localidadeInput = document.getElementById('localidade');
+      if (localidadeInput) {
+        const localizacao = itemAtual?.name || '';
+        const subLocal = itemAtual?.sub_localizacao || '';
+        const localidadeCompleta = subLocal ? `${localizacao} - ${subLocal}` : localizacao;
+        localidadeInput.value = localidadeCompleta;
+      }
+      
       if (fotoInput) fotoInput.value = '';
       if (fotoPreview) fotoPreview.innerHTML = '';
       formModal.style.display = 'flex';
@@ -469,6 +480,7 @@
       }
       if (!formData.data_inspecao || !formData.resp_nome) { alert("Preencha Data e Responsável."); return; }
       const fotoFile = document.getElementById('fotoInspecao')?.files[0] || null;
+      if (!fotoFile) { alert("Por favor, anexe uma foto da inspeção."); return; }
       fullscreenLoader.classList.add('active');
       try {
         await generateAndAttachPdf(currentFormItemId, currentFormCategory, currentFormMonthName, formData, currentItemInfo, fotoFile);
