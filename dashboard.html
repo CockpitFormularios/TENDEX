@@ -315,7 +315,6 @@
     let currentFormItemId = null, currentFormCategory = null, currentFormMonthName = null, currentItemInfo = null;
     let currentItems = [];
     let reactivatingItemId = null;
-    let detailModalRef = null;
     let currentDetailItem = null;
 
     function getStoragePathFromUrl(url) {
@@ -432,7 +431,9 @@
             await saveHistory(itemId, { name: item.name, sub_localizacao: item.sub_localizacao, tamanho: item.tamanho, code: item.code });
             await supabase.from('items').update({ status: 'inactive' }).eq('id', itemId);
             await refreshData();
-            if (detailModalRef && detailModalRef.style.display === 'flex') {
+            // Recarrega o modal de detalhes com o novo status
+            const detailModalElem = document.getElementById('detailModal');
+            if (detailModalElem && detailModalElem.style.display === 'flex') {
               await openDetailModal(itemId);
             }
           } finally {
@@ -471,7 +472,9 @@
           status: 'active'
         }).eq('id', reactivatingItemId);
         document.getElementById('reactivateModal').style.display = 'none';
-        if (detailModalRef && detailModalRef.style.display === 'flex') {
+        // Recarrega o modal de detalhes
+        const detailModalElem = document.getElementById('detailModal');
+        if (detailModalElem && detailModalElem.style.display === 'flex') {
           await openDetailModal(reactivatingItemId);
         }
         await refreshData();
@@ -622,10 +625,8 @@
         let inspecaoMsg = '';
         if (arquivoMesAtual) {
           if (arquivoMesAtual.inspecao_data) {
-            // Se tem data, exibe a data formatada
             inspecaoMsg = `<p style="color: #10b981; font-size: 0.7rem; margin-top: 0.3rem;">✅ Inspeção ${mesAtualNome}: ${formatarData(arquivoMesAtual.inspecao_data)}</p>`;
           } else {
-            // Se tem arquivo mas não tem data (upload antigo)
             inspecaoMsg = `<p style="color: #10b981; font-size: 0.7rem; margin-top: 0.3rem;">✅ Inspeção ${mesAtualNome}: realizada</p>`;
           }
         } else {
@@ -662,19 +663,19 @@
     function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;'); }
     async function refreshData() { currentItems = await getAllItemsWithFiles(); renderCards(document.getElementById('searchInput').value); }
 
-    const detailModalRefElem = document.getElementById('detailModal');
+    const detailModalElem = document.getElementById('detailModal');
     const detailContent = document.getElementById('detailContent');
     const closeDetailModalBtn = document.getElementById('closeDetailModalBtn');
-    if (closeDetailModalBtn) closeDetailModalBtn.addEventListener('click', () => detailModalRefElem.style.display = 'none');
-    detailModalRefElem.addEventListener('click', (e) => { if (e.target === detailModalRefElem) detailModalRefElem.style.display = 'none'; });
-    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && detailModalRefElem.style.display === 'flex') detailModalRefElem.style.display = 'none'; });
+    if (closeDetailModalBtn) closeDetailModalBtn.addEventListener('click', () => detailModalElem.style.display = 'none');
+    detailModalElem.addEventListener('click', (e) => { if (e.target === detailModalElem) detailModalElem.style.display = 'none'; });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && detailModalElem.style.display === 'flex') detailModalElem.style.display = 'none'; });
 
     async function openDetailModal(itemId) {
       const item = currentItems.find(i => i.id === itemId);
       if (!item) return;
       currentDetailItem = item;
       detailContent.innerHTML = '<div class="loading">Carregando...</div>';
-      detailModalRefElem.style.display = 'flex';
+      detailModalElem.style.display = 'flex';
       const freshItems = await getAllItemsWithFiles();
       const freshItem = freshItems.find(i => i.id === itemId);
       if (!freshItem) return;
@@ -772,7 +773,7 @@
           fullscreenLoader.classList.add('active');
           try {
             await deleteItemAndFiles(item.id);
-            detailModalRefElem.style.display = 'none';
+            detailModalElem.style.display = 'none';
             await refreshData();
           } finally {
             fullscreenLoader.classList.remove('active');
