@@ -187,7 +187,7 @@
 <!-- Modal de edição ao reativar (sobrepõe o modal de detalhes) -->
 <div id="reactivateModal" class="modal" style="z-index: 1001;">
   <div class="modal-content">
-    <div class="modal-header"><h2>✏️ Reativar Item - Editar dados</h2><button class="close-modal" id="closeReactivateModalBtn">&times;</button></div>
+    <div class="modal-header"><h2>Reativar TENDA</h2><button class="close-modal" id="closeReactivateModalBtn">&times;</button></div>
     <div class="form-group"><label>Localização *</label><input type="text" id="editItemName" placeholder="Ex: Tenda 5x5"></div>
     <div class="form-group"><label>Sub. Localização</label><input type="text" id="editSubLocalizacao" placeholder="Ex: Área Central"></div>
     <div class="form-group"><label>Tamanho</label><input type="text" id="editTamanho" placeholder="Ex: 5x5m, 10x20m"></div>
@@ -238,7 +238,7 @@
     <div class="modal-header"><h2 id="formModalTitle">Formulário de Inspeção</h2><button class="close-modal" id="closeFormModalBtn">&times;</button></div>
     <div id="formFieldsContainer"></div>
     <div class="form-group">
-      <label>📸 Foto da Inspeção (obrigatória)</label>
+      <label>Foto da Inspeção (obrigatória)</label>
       <input type="file" id="fotoInspecao" accept="image/png, image/jpeg" required>
       <div id="fotoPreview" style="margin-top: 0.5rem;"></div>
     </div>
@@ -248,7 +248,7 @@
 
 <div id="fullscreenLoader" class="fullscreen-loader">
   <div class="loader-spinner"></div>
-  <div class="loader-text">🔃 Processando, aguarde...</div>
+  <div class="loader-text">Processando, aguarde...</div>
 </div>
 
 <script>
@@ -637,10 +637,10 @@
         return `
           <div class="item-card" data-id="${item.id}">
             <div>
-              <h3>📌 ${escapeHtml(item.name)}</h3>
-              <p>ID: ${escapeHtml(item.code)}</p>
-              ${item.sub_localizacao ? `<p>📍 ${escapeHtml(item.sub_localizacao)}</p>` : ''}
-              ${item.tamanho ? `<p>📏 ${escapeHtml(item.tamanho)}</p>` : ''}
+              <h3> ${escapeHtml(item.name)}</h3>
+              <p>TAG: ${escapeHtml(item.code)}</p>
+              ${item.sub_localizacao ? `<p>${escapeHtml(item.sub_localizacao)}</p>` : ''}
+              ${item.tamanho ? `<p> ${escapeHtml(item.tamanho)}</p>` : ''}
               <div><span class="status-badge ${statusClass}">${statusText}</span></div>
               ${inspecaoMsg}
             </div>
@@ -700,8 +700,8 @@
         ${!isActive ? '<div class="inactive-message">⚠️ Item inativo. Não é possível anexar PDFs ou gerar formulários.</div>' : ''}
         <div class="item-detail-title">
           <strong>${escapeHtml(item.name)}</strong><br>
-          ${item.sub_localizacao ? `📍 Sub. Localização: ${escapeHtml(item.sub_localizacao)}<br>` : ''}
-          ${item.tamanho ? `📏 Tamanho: ${escapeHtml(item.tamanho)}<br>` : ''}
+          ${item.sub_localizacao ? `Sub. Localização: ${escapeHtml(item.sub_localizacao)}<br>` : ''}
+          ${item.tamanho ? `Tamanho: ${escapeHtml(item.tamanho)}<br>` : ''}
           ID: ${escapeHtml(item.code)}
         </div>
         <div class="pdf-group">
