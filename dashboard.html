@@ -2,21 +2,14 @@
 <html lang="pt">
 <head>
   <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TENDEX | Inspeção de Tendas</title>
-
-<!-- Manifest PWA -->
-<link rel="manifest" href="https://cockpitformularios.github.io/TENDEX/manifest.json">
-
-<!-- Favicon geral (aba do navegador) -->
-<link rel="icon" type="image/x-icon" href="https://jklcvyuxwxgsfczrfaco.supabase.co/storage/v1/object/public/assinaturas/favicon.ico">
-
-<!-- Android / Chrome (192x192) usando o mesmo ícone -->
-<link rel="icon" type="image/png" sizes="192x192" href="https://jklcvyuxwxgsfczrfaco.supabase.co/storage/v1/object/public/assinaturas/icon-180.png">
-
-<!-- iOS / iPadOS (apple-touch-icon) usando o mesmo ícone -->
-<link rel="apple-touch-icon" sizes="180x180" href="https://jklcvyuxwxgsfczrfaco.supabase.co/storage/v1/object/public/assinaturas/icon-180.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>TENDEX | Inspeção de Tendas</title>
+  <link rel="manifest" href="https://cockpitformularios.github.io/TENDEX/manifest.json">
+  <link rel="icon" type="image/x-icon" href="https://jklcvyuxwxgsfczrfaco.supabase.co/storage/v1/object/public/assinaturas/favicon.ico">
+  <link rel="icon" type="image/png" sizes="192x192" href="https://jklcvyuxwxgsfczrfaco.supabase.co/storage/v1/object/public/assinaturas/icon-180.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="https://jklcvyuxwxgsfczrfaco.supabase.co/storage/v1/object/public/assinaturas/icon-180.png">
   <style>
+    /* (todo o CSS existente permanece igual, adicione os estilos abaixo) */
     * { margin:0; padding:0; box-sizing: border-box; font-family: system-ui, 'Segoe UI', 'Inter', sans-serif; }
     body { background: #f3f6fc; padding: 2rem 1.5rem; }
     .dashboard-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem; padding-bottom: 0.75rem; border-bottom: 2px solid #cbd5e1; }
@@ -33,11 +26,16 @@
     .month-buttons { display: flex; flex-wrap: wrap; gap: 0.5rem; }
     .month-btn { background: #e2e8f0; border: none; padding: 0.4rem 0.9rem; border-radius: 2rem; font-size: 0.8rem; cursor: pointer; transition: 0.2s; }
     .month-btn:hover { background: #cbd5e1; transform: scale(0.96); }
-    .items-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1.2rem; margin-top: 1rem; }
-    .item-card { background: white; border-radius: 1rem; padding: 1rem; cursor: pointer; transition: 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid #e2edff; }
+    .items-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1.2rem; margin-top: 1rem; }
+    .item-card { background: white; border-radius: 1rem; padding: 1rem; cursor: pointer; transition: 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid #e2edff; position: relative; }
     .item-card:hover { transform: translateY(-2px); box-shadow: 0 8px 16px rgba(0,0,0,0.08); background: #fafcff; }
     .item-card h3 { font-size: 1.1rem; color: #0f172a; margin-bottom: 0.3rem; }
     .item-card p { font-size: 0.8rem; color: #5b6e8c; margin: 0.2rem 0; }
+    .status-badge { display: inline-block; padding: 0.2rem 0.5rem; border-radius: 2rem; font-size: 0.7rem; font-weight: 600; margin-top: 0.5rem; }
+    .status-active { background: #d1fae5; color: #065f46; }
+    .status-inactive { background: #fee2e2; color: #991b1b; }
+    .toggle-status-btn { background: none; border: none; font-size: 1.2rem; cursor: pointer; padding: 0.2rem 0.4rem; border-radius: 2rem; margin-top: 0.3rem; transition: 0.2s; }
+    .toggle-status-btn:hover { background: #e2e8f0; }
     .empty-state { text-align: center; color: #6c86a3; margin-top: 3rem; }
     .fab { position: fixed; bottom: 2rem; right: 2rem; background: linear-gradient(135deg, #0f2b3d, #1e4a76); color: white; width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; box-shadow: 0 8px 16px rgba(0,0,0,0.2); cursor: pointer; border: none; z-index: 10; }
     .fab:hover { transform: scale(1.05); }
@@ -120,6 +118,17 @@
     <div class="modal-header"><h2>🔓 Sair do Sistema</h2><button class="close-modal" id="closeLogoutModalBtn">&times;</button></div>
     <p>Tem certeza que deseja sair?</p>
     <div class="logout-buttons"><button class="btn-cancel-logout" id="cancelLogoutBtn">Cancelar</button><button class="btn-confirm" id="confirmLogoutBtn">Sair</button></div>
+  </div>
+</div>
+
+<!-- Modal de edição ao reativar -->
+<div id="reactivateModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header"><h2>✏️ Reativar Item - Editar dados</h2><button class="close-modal" id="closeReactivateModalBtn">&times;</button></div>
+    <div class="form-group"><label>Localização *</label><input type="text" id="editItemName" placeholder="Ex: Tenda 5x5"></div>
+    <div class="form-group"><label>Sub. Localização</label><input type="text" id="editSubLocalizacao" placeholder="Ex: Área Central"></div>
+    <div class="form-group"><label>Tamanho</label><input type="text" id="editTamanho" placeholder="Ex: 5x5m, 10x20m"></div>
+    <div class="modal-buttons"><button class="btn-cancel" id="cancelReactivateBtn">Cancelar</button><button class="btn-save" id="confirmReactivateBtn">Salvar e Reativar</button></div>
   </div>
 </div>
 
@@ -242,6 +251,7 @@
 
     let currentFormItemId = null, currentFormCategory = null, currentFormMonthName = null, currentItemInfo = null;
     let currentItems = [];
+    let reactivatingItemId = null;
 
     // Helper para extrair o caminho do arquivo dentro do bucket a partir da URL pública
     function getStoragePathFromUrl(url) {
@@ -266,66 +276,40 @@
       if (filesError) throw filesError;
       const filesByItem = {};
       files.forEach(file => { if (!filesByItem[file.item_id]) filesByItem[file.item_id] = []; filesByItem[file.item_id].push(file); });
-      return items.map(item => ({ id: item.id, name: item.name, sub_localizacao: item.sub_localizacao || '', tamanho: item.tamanho || '', code: item.code, files: filesByItem[item.id] || [] }));
+      return items.map(item => ({ id: item.id, name: item.name, sub_localizacao: item.sub_localizacao || '', tamanho: item.tamanho || '', code: item.code, status: item.status || 'active', files: filesByItem[item.id] || [] }));
     }
 
-    async function addFileToItem(itemId, category, file) {
-      // Verificar se já existe um arquivo para esta categoria
-      const { data: existing, error: findError } = await supabase
-        .from('files')
-        .select('id, file_url')
-        .eq('item_id', itemId)
-        .eq('category', category)
-        .maybeSingle();
+    async function addFileToItem(itemId, category, file, inspecaoData = null) {
+      const { data: existing, error: findError } = await supabase.from('files').select('id, file_url').eq('item_id', itemId).eq('category', category).maybeSingle();
       if (findError) throw findError;
-
-      // Se existir, deletar o arquivo antigo do storage
       if (existing && existing.file_url) {
         await deleteStorageFile(existing.file_url);
-        // Deletar o registro antigo do banco (será substituído)
         await supabase.from('files').delete().eq('id', existing.id);
       }
-
-      // Fazer upload do novo arquivo
       const fileExt = file.name.split('.').pop();
       const filePath = `itens/${itemId}/${category}_${Date.now()}.${fileExt}`;
       const { error: uploadError } = await supabase.storage.from(BUCKET).upload(filePath, file);
       if (uploadError) throw uploadError;
       const { data: publicUrlData } = supabase.storage.from(BUCKET).getPublicUrl(filePath);
       const fileUrl = publicUrlData.publicUrl;
-
-      // Inserir novo registro
-      const { error: insertError } = await supabase.from('files').insert({
-        item_id: itemId,
-        category,
-        file_name: file.name,
-        file_url: fileUrl
-      });
+      const insertData = { item_id: itemId, category, file_name: file.name, file_url: fileUrl };
+      if (inspecaoData) insertData.inspecao_data = inspecaoData;
+      const { error: insertError } = await supabase.from('files').insert(insertData);
       if (insertError) throw insertError;
     }
 
     async function deleteFileById(fileId) {
-      // Buscar o arquivo para obter a URL
       const { data: file, error: findError } = await supabase.from('files').select('file_url').eq('id', fileId).single();
       if (findError) throw findError;
-      if (file && file.file_url) {
-        await deleteStorageFile(file.file_url);
-      }
-      const { error } = await supabase.from('files').delete().eq('id', fileId);
-      if (error) throw error;
+      if (file && file.file_url) await deleteStorageFile(file.file_url);
+      await supabase.from('files').delete().eq('id', fileId);
     }
 
     async function deleteItemAndFiles(itemId) {
-      // Buscar todos os arquivos do item
       const { data: files, error: findError } = await supabase.from('files').select('file_url').eq('item_id', itemId);
       if (findError) throw findError;
-      // Deletar cada arquivo do storage
-      for (const file of files) {
-        if (file.file_url) await deleteStorageFile(file.file_url);
-      }
-      // Deletar o item (a foreign key ON DELETE CASCADE removerá os registros da tabela files)
-      const { error } = await supabase.from('items').delete().eq('id', itemId);
-      if (error) throw error;
+      for (const file of files) if (file.file_url) await deleteStorageFile(file.file_url);
+      await supabase.from('items').delete().eq('id', itemId);
     }
 
     async function saveItemComplete(itemId, name, sub_localizacao, tamanho, code, filesToProcess) {
@@ -333,7 +317,6 @@
       if (dupError) throw dupError;
       if (existing && existing.id !== itemId) throw new Error(`O código "${code}" já está em uso.`);
       
-      // Processar uploads dos novos arquivos (substituição já tratada em addFileToItem)
       const uploadedUrls = [];
       for (const item of filesToProcess) {
         if (item.file) {
@@ -343,21 +326,14 @@
           await supabase.storage.from(BUCKET).upload(filePath, item.file);
           const { data: publicUrlData } = supabase.storage.from(BUCKET).getPublicUrl(filePath);
           uploadedUrls.push({ category: item.category, url: publicUrlData.publicUrl, fileName: item.file.name });
-        } else {
-          uploadedUrls.push({ category: item.category, url: null });
-        }
+        } else uploadedUrls.push({ category: item.category, url: null });
       }
 
       let itemIdFinal = itemId;
-      const itemData = { name, sub_localizacao, tamanho, code };
-      if (itemId) {
-        await supabase.from('items').update(itemData).eq('id', itemId);
-      } else {
-        const { data: newItem } = await supabase.from('items').insert(itemData).select().single();
-        itemIdFinal = newItem.id;
-      }
+      const itemData = { name, sub_localizacao, tamanho, code, status: 'active' };
+      if (itemId) await supabase.from('items').update(itemData).eq('id', itemId);
+      else { const { data: newItem } = await supabase.from('items').insert(itemData).select().single(); itemIdFinal = newItem.id; }
 
-      // Para cada categoria, se houver novo arquivo, substituir (deletar antigo e inserir)
       for (const fileInfo of uploadedUrls) {
         if (fileInfo.url) {
           const { data: existingFile } = await supabase.from('files').select('id, file_url').eq('item_id', itemIdFinal).eq('category', fileInfo.category).maybeSingle();
@@ -365,17 +341,66 @@
             await deleteStorageFile(existingFile.file_url);
             await supabase.from('files').delete().eq('id', existingFile.id);
           }
-          await supabase.from('files').insert({
-            item_id: itemIdFinal,
-            category: fileInfo.category,
-            file_name: fileInfo.fileName,
-            file_url: fileInfo.url
-          });
+          await supabase.from('files').insert({ item_id: itemIdFinal, category: fileInfo.category, file_name: fileInfo.fileName, file_url: fileInfo.url });
         }
       }
       return itemIdFinal;
     }
 
+    // Função para salvar histórico
+    async function saveHistory(itemId, oldData) {
+      if (!oldData) return;
+      await supabase.from('items_history').insert({
+        item_id: itemId,
+        name: oldData.name,
+        sub_localizacao: oldData.sub_localizacao,
+        tamanho: oldData.tamanho,
+        code: oldData.code,
+        changed_by: currentUser?.username || 'sistema'
+      });
+    }
+
+    // Função para alternar status (inativar)
+    async function toggleStatus(itemId, currentStatus) {
+      const item = currentItems.find(i => i.id === itemId);
+      if (!item) return;
+      if (currentStatus === 'active') {
+        // Inativar: salvar histórico e marcar como inactive
+        await saveHistory(itemId, { name: item.name, sub_localizacao: item.sub_localizacao, tamanho: item.tamanho, code: item.code });
+        await supabase.from('items').update({ status: 'inactive' }).eq('id', itemId);
+        await refreshData();
+      } else {
+        // Reativar: abrir modal para edição
+        reactivatingItemId = itemId;
+        document.getElementById('editItemName').value = item.name;
+        document.getElementById('editSubLocalizacao').value = item.sub_localizacao;
+        document.getElementById('editTamanho').value = item.tamanho;
+        document.getElementById('reactivateModal').style.display = 'flex';
+      }
+    }
+
+    // Salvar edição e reativar
+    async function saveReactivate() {
+      const newName = document.getElementById('editItemName').value.trim();
+      const newSub = document.getElementById('editSubLocalizacao').value.trim();
+      const newTamanho = document.getElementById('editTamanho').value.trim();
+      if (!newName) { alert("Localização é obrigatória."); return; }
+      const item = currentItems.find(i => i.id === reactivatingItemId);
+      if (!item) return;
+      // Salvar estado antigo no histórico
+      await saveHistory(reactivatingItemId, { name: item.name, sub_localizacao: item.sub_localizacao, tamanho: item.tamanho, code: item.code });
+      // Atualizar item com novos dados e status ativo
+      await supabase.from('items').update({
+        name: newName,
+        sub_localizacao: newSub,
+        tamanho: newTamanho,
+        status: 'active'
+      }).eq('id', reactivatingItemId);
+      document.getElementById('reactivateModal').style.display = 'none';
+      await refreshData();
+    }
+
+    // Adicionar assinatura e info no PDF (já existente)
     async function adicionarInfoItemEAssinatura(pdfDoc, itemCode, itemTamanho) {
       try {
         const pages = pdfDoc.getPages();
@@ -458,13 +483,13 @@
         const blob = new Blob([pdfBytes], { type: 'application/pdf' });
         const file = new File([blob], `checklist_${monthName}_${Date.now()}.pdf`, { type: 'application/pdf' });
         
-        // Substituir o PDF antigo do mês (se existir)
+        // Substituir PDF antigo e salvar com data
         const { data: existingFile } = await supabase.from('files').select('id, file_url').eq('item_id', itemId).eq('category', category).maybeSingle();
         if (existingFile && existingFile.file_url) {
           await deleteStorageFile(existingFile.file_url);
           await supabase.from('files').delete().eq('id', existingFile.id);
         }
-        await addFileToItem(itemId, category, file);
+        await addFileToItem(itemId, category, file, formData.data_inspecao);
         
         alert(`✅ PDF gerado!\nID: ${itemInfo.code} | Tamanho: ${itemInfo.tamanho || 'N/I'}\nAssinatura: ${currentUser?.username || 'usuário'}`);
         await refreshData();
@@ -472,17 +497,72 @@
       } catch(err) { console.error(err); alert("Erro ao gerar PDF: " + err.message); }
     }
 
+    // Renderização dos cards com status e botão toggle
     function renderCards(filterText = "") {
       const container = document.getElementById('itemsContainer');
       const lowerFilter = filterText.toLowerCase();
       const filtered = currentItems.filter(item => item.name.toLowerCase().includes(lowerFilter) || item.code.toLowerCase().includes(lowerFilter) || (item.sub_localizacao && item.sub_localizacao.toLowerCase().includes(lowerFilter)) || (item.tamanho && item.tamanho.toLowerCase().includes(lowerFilter)));
       if (filtered.length === 0) { container.innerHTML = `<div class="empty-state">✨ Nenhum item encontrado.</div>`; return; }
-      container.innerHTML = filtered.map(item => `<div class="item-card" data-id="${item.id}"><h3>📌 ${escapeHtml(item.name)}</h3><p>ID: ${escapeHtml(item.code)}</p>${item.sub_localizacao ? `<p>📍 ${escapeHtml(item.sub_localizacao)}</p>` : ''}${item.tamanho ? `<p>📏 ${escapeHtml(item.tamanho)}</p>` : ''}</div>`).join('');
-      document.querySelectorAll('.item-card').forEach(card => card.addEventListener('click', () => openDetailModal(parseInt(card.dataset.id))));
+      
+      const dataAtual = new Date();
+      const mesAtualIndex = dataAtual.getMonth();
+      const mesAtualNome = monthNames[mesAtualIndex];
+      const mesAtualKey = monthKeys[mesAtualIndex];
+      
+      container.innerHTML = filtered.map(item => {
+        const arquivoMesAtual = item.files.find(f => f.category === mesAtualKey);
+        let inspecaoMsg = '';
+        if (arquivoMesAtual && arquivoMesAtual.inspecao_data) {
+          inspecaoMsg = `<p style="color: #10b981; font-size: 0.7rem; margin-top: 0.3rem;">✅ Inspeção ${mesAtualNome}: ${formatarData(arquivoMesAtual.inspecao_data)}</p>`;
+        } else {
+          inspecaoMsg = `<p style="color: #f59e0b; font-size: 0.7rem; margin-top: 0.3rem;">⚠️ Inspeção ${mesAtualNome}: pendente</p>`;
+        }
+        const statusClass = item.status === 'active' ? 'status-active' : 'status-inactive';
+        const statusText = item.status === 'active' ? 'Ativo' : 'Inativo';
+        return `
+          <div class="item-card" data-id="${item.id}">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+              <div>
+                <h3>📌 ${escapeHtml(item.name)}</h3>
+                <p>ID: ${escapeHtml(item.code)}</p>
+                ${item.sub_localizacao ? `<p>📍 ${escapeHtml(item.sub_localizacao)}</p>` : ''}
+                ${item.tamanho ? `<p>📏 ${escapeHtml(item.tamanho)}</p>` : ''}
+                <div><span class="status-badge ${statusClass}">${statusText}</span></div>
+                ${inspecaoMsg}
+              </div>
+              <button class="toggle-status-btn" data-id="${item.id}" data-status="${item.status}" title="Ativar/Inativar">🔘</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+      
+      document.querySelectorAll('.item-card').forEach(card => {
+        card.addEventListener('click', (e) => {
+          if (e.target.classList.contains('toggle-status-btn')) return;
+          openDetailModal(parseInt(card.dataset.id));
+        });
+      });
+      document.querySelectorAll('.toggle-status-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          const id = parseInt(btn.dataset.id);
+          const status = btn.dataset.status;
+          await toggleStatus(id, status);
+        });
+      });
     }
+    
+    function formatarData(dataString) {
+      if (!dataString) return '';
+      const partes = dataString.split('-');
+      if (partes.length === 3) return `${partes[2]}/${partes[1]}/${partes[0]}`;
+      return dataString;
+    }
+    
     function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;'); }
     async function refreshData() { currentItems = await getAllItemsWithFiles(); renderCards(document.getElementById('searchInput').value); }
 
+    // Modais de edição e detalhes (mantidos)
     const detailModal = document.getElementById('detailModal'), detailContent = document.getElementById('detailContent'), closeDetailModalBtn = document.getElementById('closeDetailModalBtn');
     if (closeDetailModalBtn) closeDetailModalBtn.addEventListener('click', () => detailModal.style.display = 'none');
     detailModal.addEventListener('click', (e) => { if (e.target === detailModal) detailModal.style.display = 'none'; });
@@ -517,6 +597,7 @@
       else return `<div class="pdf-row"><span class="pdf-label">${escapeHtml(label)}</span><div class="pdf-file-info">— Nenhum PDF anexado —</div><div class="pdf-actions"><button class="upload-pdf-btn" data-itemid="${itemId}" data-category="${category}" title="Adicionar PDF">➕</button>${showFormButton ? `<button class="fill-form-btn" data-itemid="${itemId}" data-category="${category}" data-monthname="${label}" title="Preencher formulário">📝</button>` : ''}</div></div>`;
     }
 
+    // Formulário de inspeção (igual ao original)
     const formModal = document.getElementById('formModal');
     const formFieldsContainer = document.getElementById('formFieldsContainer');
     const closeFormModalBtn = document.getElementById('closeFormModalBtn');
@@ -546,10 +627,8 @@
       for (let i=0; i<checklistPerguntas.length; i++) html += `<div class="question-group"><div class="question-text">${i+1}. ${escapeHtml(checklistPerguntas[i])}</div><div class="question-options"><label><input type="radio" name="resp_${i}" value="Conforme"> Conforme</label><label><input type="radio" name="resp_${i}" value="Não conforme"> Não conforme</label><label><input type="radio" name="resp_${i}" value="Não se aplica"> Não se aplica</label></div><div class="question-obs"><input type="text" placeholder="Observação (opcional)" id="obs_${i}" style="width:100%;"></div></div>`;
       formFieldsContainer.innerHTML = html;
       
-      // Pré‑preenchimento dos campos
       const unidadeInput = document.getElementById('unidade');
       if (unidadeInput) unidadeInput.value = 'SERRA NORTE';
-      
       const localidadeInput = document.getElementById('localidade');
       if (localidadeInput) {
         const localizacao = itemAtual?.name || '';
@@ -557,7 +636,6 @@
         const localidadeCompleta = subLocal ? `${localizacao} - ${subLocal}` : localizacao;
         localidadeInput.value = localidadeCompleta;
       }
-      
       if (fotoInput) fotoInput.value = '';
       if (fotoPreview) fotoPreview.innerHTML = '';
       formModal.style.display = 'flex';
@@ -589,6 +667,16 @@
     closeFormModalBtn.addEventListener('click', () => formModal.style.display = 'none');
     cancelFormBtn.addEventListener('click', () => formModal.style.display = 'none');
 
+    // Modal de reativação
+    const reactivateModal = document.getElementById('reactivateModal');
+    const closeReactivateModalBtn = document.getElementById('closeReactivateModalBtn');
+    const cancelReactivateBtn = document.getElementById('cancelReactivateBtn');
+    const confirmReactivateBtn = document.getElementById('confirmReactivateBtn');
+    closeReactivateModalBtn.addEventListener('click', () => reactivateModal.style.display = 'none');
+    cancelReactivateBtn.addEventListener('click', () => reactivateModal.style.display = 'none');
+    confirmReactivateBtn.addEventListener('click', saveReactivate);
+
+    // CRIAÇÃO DE ITEM
     const createModal = document.getElementById('createItemModal');
     const closeCreateBtn = document.getElementById('closeCreateModalBtn'), cancelCreateBtn = document.getElementById('cancelCreateBtn'), confirmCreateBtn = document.getElementById('confirmCreateBtn');
     const newItemName = document.getElementById('newItemName'), newSubLocalizacao = document.getElementById('newSubLocalizacao'), newTamanho = document.getElementById('newTamanho'), newItemCode = document.getElementById('newItemCode'), newMemorialFile = document.getElementById('newMemorialFile'), newMonthlyContainer = document.getElementById('newMonthlyFilesContainer'), createCodeError = document.getElementById('createCodeError');
