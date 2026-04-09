@@ -9,7 +9,7 @@
   <link rel="icon" type="image/png" sizes="192x192" href="https://jklcvyuxwxgsfczrfaco.supabase.co/storage/v1/object/public/assinaturas/icon-180.png">
   <link rel="apple-touch-icon" sizes="180x180" href="https://jklcvyuxwxgsfczrfaco.supabase.co/storage/v1/object/public/assinaturas/icon-180.png">
   <style>
-    /* (todo o CSS permanece igual ao da sua versão atual - omitido por brevidade, mas você deve manter o mesmo) */
+    /* (todo o estilo permanece igual ao do seu código atual) */
     * { margin:0; padding:0; box-sizing: border-box; font-family: system-ui, 'Segoe UI', 'Inter', sans-serif; }
     body { background: #f3f6fc; padding: 2rem 1.5rem; }
     .dashboard-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem; padding-bottom: 0.75rem; border-bottom: 2px solid #cbd5e1; }
@@ -212,7 +212,7 @@
   </div>
 </div>
 
-<!-- Modal de detalhes do item (agora com toggle switch) -->
+<!-- Modal de detalhes do item (com toggle switch) -->
 <div id="detailModal" class="modal">
   <div class="modal-content">
     <div class="modal-header"><h2 id="detailModalTitle">Detalhes do Item</h2><button class="close-modal" id="closeDetailModalBtn">&times;</button></div>
@@ -236,7 +236,7 @@
 
 <div id="fullscreenLoader" class="fullscreen-loader">
   <div class="loader-spinner"></div>
-  <div class="loader-text">🔃 Gerando PDF, aguarde...</div>
+  <div class="loader-text">🔃 Processando, aguarde...</div>
 </div>
 
 <script>
@@ -331,15 +331,8 @@
       return items.map(item => ({ id: item.id, name: item.name, sub_localizacao: item.sub_localizacao || '', tamanho: item.tamanho || '', code: item.code, status: item.status || 'active', files: filesByItem[item.id] || [] }));
     }
 
-    // Função modificada: ao adicionar arquivo manualmente, salva a data atual (ou data fornecida)
+    // Função para adicionar arquivo com data de inspeção (se fornecida)
     async function addFileToItem(itemId, category, file, inspecaoData = null) {
-      // Se inspecaoData não foi fornecida, usa a data atual (formato YYYY-MM-DD)
-      let dataInspecao = inspecaoData;
-      if (!dataInspecao) {
-        const now = new Date();
-        dataInspecao = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
-      }
-      // Verificar se já existe um arquivo para esta categoria
       const { data: existing, error: findError } = await supabase.from('files').select('id, file_url').eq('item_id', itemId).eq('category', category).maybeSingle();
       if (findError) throw findError;
       if (existing && existing.file_url) {
@@ -352,7 +345,8 @@
       if (uploadError) throw uploadError;
       const { data: publicUrlData } = supabase.storage.from(BUCKET).getPublicUrl(filePath);
       const fileUrl = publicUrlData.publicUrl;
-      const insertData = { item_id: itemId, category, file_name: file.name, file_url: fileUrl, inspecao_data: dataInspecao };
+      const insertData = { item_id: itemId, category, file_name: file.name, file_url: fileUrl };
+      if (inspecaoData) insertData.inspecao_data = inspecaoData;
       const { error: insertError } = await supabase.from('files').insert(insertData);
       if (insertError) throw insertError;
     }
@@ -400,10 +394,7 @@
             await deleteStorageFile(existingFile.file_url);
             await supabase.from('files').delete().eq('id', existingFile.id);
           }
-          // Para arquivos enviados na criação do item, usar data atual como data de inspeção (opcional)
-          const now = new Date();
-          const dataAtual = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`;
-          await supabase.from('files').insert({ item_id: itemIdFinal, category: fileInfo.category, file_name: fileInfo.fileName, file_url: fileInfo.url, inspecao_data: dataAtual });
+          await supabase.from('files').insert({ item_id: itemIdFinal, category: fileInfo.category, file_name: fileInfo.fileName, file_url: fileInfo.url });
         }
       }
       return itemIdFinal;
@@ -427,6 +418,7 @@
       const item = currentItems.find(i => i.id === itemId);
       if (!item) return;
       if (newStatus === 'inactive') {
+        // Inativar: salvar histórico
         if (confirm('Inativar este item? Os dados atuais serão salvos no histórico.')) {
           await saveHistory(itemId, { name: item.name, sub_localizacao: item.sub_localizacao, tamanho: item.tamanho, code: item.code });
           await supabase.from('items').update({ status: 'inactive' }).eq('id', itemId);
@@ -434,6 +426,7 @@
           if (detailModalRef && detailModalRef.style.display === 'flex') detailModalRef.style.display = 'none';
         }
       } else if (newStatus === 'active') {
+        // Reativar: abrir modal de edição sobre o modal de detalhes
         reactivatingItemId = itemId;
         document.getElementById('editItemName').value = item.name;
         document.getElementById('editSubLocalizacao').value = item.sub_localizacao;
@@ -442,6 +435,7 @@
       }
     }
 
+    // Salvar edição e reativar
     async function saveReactivate() {
       const newName = document.getElementById('editItemName').value.trim();
       const newSub = document.getElementById('editSubLocalizacao').value.trim();
@@ -543,7 +537,6 @@
         const blob = new Blob([pdfBytes], { type: 'application/pdf' });
         const file = new File([blob], `checklist_${monthName}_${Date.now()}.pdf`, { type: 'application/pdf' });
         
-        // Substituir PDF antigo e salvar com a data do formulário
         const { data: existingFile } = await supabase.from('files').select('id, file_url').eq('item_id', itemId).eq('category', category).maybeSingle();
         if (existingFile && existingFile.file_url) {
           await deleteStorageFile(existingFile.file_url);
@@ -557,7 +550,40 @@
       } catch(err) { console.error(err); alert("Erro ao gerar PDF: " + err.message); }
     }
 
-    // Renderização dos cards com a mensagem de inspeção (baseada na data do arquivo)
+    // Função para upload manual de PDF (botão + no modal)
+    async function uploadManualPdf(itemId, category, monthLabel) {
+      return new Promise((resolve, reject) => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.pdf';
+        input.onchange = async (ev) => {
+          const file = ev.target.files[0];
+          if (!file) { resolve(); return; }
+          if (file.type !== 'application/pdf') {
+            alert("Por favor, selecione um arquivo PDF.");
+            resolve();
+            return;
+          }
+          const loader = document.getElementById('fullscreenLoader');
+          loader.classList.add('active');
+          try {
+            const hoje = new Date().toISOString().slice(0,10); // YYYY-MM-DD
+            await addFileToItem(itemId, category, file, hoje);
+            await refreshData();
+            await openDetailModal(itemId);
+            alert(`✅ PDF anexado ao mês ${monthLabel} com data ${formatarData(hoje)}.`);
+          } catch (err) {
+            alert("Erro ao anexar PDF: " + err.message);
+          } finally {
+            loader.classList.remove('active');
+            resolve();
+          }
+        };
+        input.click();
+      });
+    }
+
+    // Renderização dos cards com exibição correta da inspeção
     function renderCards(filterText = "") {
       const container = document.getElementById('itemsContainer');
       const lowerFilter = filterText.toLowerCase();
@@ -572,13 +598,11 @@
       container.innerHTML = filtered.map(item => {
         const arquivoMesAtual = item.files.find(f => f.category === mesAtualKey);
         let inspecaoMsg = '';
-        if (arquivoMesAtual && arquivoMesAtual.inspecao_data) {
-          const dataInspecao = new Date(arquivoMesAtual.inspecao_data);
-          const mesInspecao = dataInspecao.getMonth();
-          if (mesInspecao === mesAtualIndex) {
+        if (arquivoMesAtual) {
+          if (arquivoMesAtual.inspecao_data) {
             inspecaoMsg = `<p style="color: #10b981; font-size: 0.7rem; margin-top: 0.3rem;">✅ Inspeção ${mesAtualNome}: ${formatarData(arquivoMesAtual.inspecao_data)}</p>`;
           } else {
-            inspecaoMsg = `<p style="color: #f59e0b; font-size: 0.7rem; margin-top: 0.3rem;">⚠️ Inspeção ${mesAtualNome}: pendente</p>`;
+            inspecaoMsg = `<p style="color: #10b981; font-size: 0.7rem; margin-top: 0.3rem;">✅ Inspeção ${mesAtualNome}: realizada</p>`;
           }
         } else {
           inspecaoMsg = `<p style="color: #f59e0b; font-size: 0.7rem; margin-top: 0.3rem;">⚠️ Inspeção ${mesAtualNome}: pendente</p>`;
@@ -614,7 +638,7 @@
     function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;'); }
     async function refreshData() { currentItems = await getAllItemsWithFiles(); renderCards(document.getElementById('searchInput').value); }
 
-    // MODAL DE DETALHES com toggle switch
+    // MODAL DE DETALHES com toggle switch e ações condicionais ao status
     const detailModalRefElem = document.getElementById('detailModal');
     const detailContent = document.getElementById('detailContent');
     const closeDetailModalBtn = document.getElementById('closeDetailModalBtn');
@@ -637,12 +661,15 @@
       const files = item.files;
       const memorialFile = files.find(f => f.category === 'memorial');
       const monthlyFiles = monthKeys.map(key => files.find(f => f.category === key));
+      const isActive = item.status === 'active';
+      // Botões desabilitados se inativo
+      const disabledAttr = isActive ? '' : 'disabled style="opacity:0.5; pointer-events:none;"';
       
       let html = `
         <div class="status-container">
           <span style="font-weight: 500;">Status:</span>
           <label class="toggle-switch">
-            <input type="checkbox" id="statusToggle" ${item.status === 'active' ? 'checked' : ''}>
+            <input type="checkbox" id="statusToggle" ${item.status === 'active' ? 'checked' : ''} ${!isActive ? 'disabled' : ''}>
             <span class="slider"></span>
           </label>
           <span class="status-text" id="statusText">${item.status === 'active' ? 'Ativo' : 'Inativo'}</span>
@@ -655,20 +682,21 @@
         </div>
         <div class="pdf-group">
           <div class="pdf-group-title">📄 Memorial de Cálculo</div>
-          ${renderDetailPdfRow('memorial', 'Memorial', memorialFile, item.id)}
+          ${renderDetailPdfRow('memorial', 'Memorial', memorialFile, item.id, false, isActive)}
         </div>
         <div class="pdf-group">
           <div class="pdf-group-title">📅 Documentos Mensais</div>
-          ${monthNames.map((month, idx) => renderDetailPdfRow(monthKeys[idx], month, monthlyFiles[idx], item.id, true)).join('')}
+          ${monthNames.map((month, idx) => renderDetailPdfRow(monthKeys[idx], month, monthlyFiles[idx], item.id, true, isActive)).join('')}
         </div>
         <button class="delete-item-btn" id="deleteItemFromDetailBtn">🗑️ Excluir este item</button>
         <div class="notice">* Clique nos botões + para anexar/substituir PDFs. Clique em 📝 para preencher formulário e gerar PDF.</div>
       `;
       detailContent.innerHTML = html;
       
+      // Evento do toggle switch (apenas se ativo)
       const toggle = document.getElementById('statusToggle');
       const statusTextSpan = document.getElementById('statusText');
-      if (toggle) {
+      if (toggle && isActive) {
         toggle.addEventListener('change', async (e) => {
           const newStatus = e.target.checked ? 'active' : 'inactive';
           statusTextSpan.innerText = newStatus === 'active' ? 'Ativo' : 'Inativo';
@@ -676,28 +704,84 @@
         });
       }
       
-      document.querySelectorAll('.upload-pdf-btn').forEach(btn => btn.addEventListener('click', async (e) => { 
-        const itemId = Number(btn.dataset.itemid), category = btn.dataset.category, input = document.createElement('input'); 
-        input.type = 'file'; input.accept = '.pdf'; 
-        input.onchange = async (ev) => { 
-          const file = ev.target.files[0]; 
-          if (file && file.type === 'application/pdf') { 
-            await addFileToItem(itemId, category, file); 
-            refreshData(); 
-            openDetailModal(itemId); 
-          } 
-        }; 
-        input.click(); 
-      }));
-      document.querySelectorAll('.remove-pdf-btn').forEach(btn => btn.addEventListener('click', async (e) => { if (confirm('Remover este PDF?')) { await deleteFileById(Number(btn.dataset.fileid)); refreshData(); openDetailModal(item.id); } }));
-      document.querySelectorAll('.fill-form-btn').forEach(btn => btn.addEventListener('click', () => openFormModal(Number(btn.dataset.itemid), btn.dataset.category, btn.dataset.monthname)));
+      // Configurar eventos dos botões com loader e verificação de status
+      document.querySelectorAll('.upload-pdf-btn').forEach(btn => {
+        if (isActive) {
+          btn.addEventListener('click', async (e) => {
+            const itemId = Number(btn.dataset.itemid);
+            const category = btn.dataset.category;
+            const monthLabel = btn.dataset.monthlabel || category;
+            await uploadManualPdf(itemId, category, monthLabel);
+          });
+        }
+      });
+      
+      document.querySelectorAll('.remove-pdf-btn').forEach(btn => {
+        if (isActive) {
+          btn.addEventListener('click', async (e) => {
+            if (confirm('Remover este PDF?')) {
+              const loader = document.getElementById('fullscreenLoader');
+              loader.classList.add('active');
+              try {
+                await deleteFileById(Number(btn.dataset.fileid));
+                await refreshData();
+                await openDetailModal(item.id);
+              } catch(err) { alert("Erro ao remover: " + err.message); }
+              finally { loader.classList.remove('active'); }
+            }
+          });
+        }
+      });
+      
+      document.querySelectorAll('.fill-form-btn').forEach(btn => {
+        if (isActive) {
+          btn.addEventListener('click', () => openFormModal(Number(btn.dataset.itemid), btn.dataset.category, btn.dataset.monthname));
+        }
+      });
+      
       const deleteBtn = document.getElementById('deleteItemFromDetailBtn');
-      if (deleteBtn) deleteBtn.addEventListener('click', async () => { if (confirm(`Excluir o item "${item.name}"?`)) { await deleteItemAndFiles(item.id); detailModalRefElem.style.display = 'none'; refreshData(); } });
+      if (deleteBtn) deleteBtn.addEventListener('click', async () => {
+        if (confirm(`Excluir o item "${item.name}"?`)) {
+          const loader = document.getElementById('fullscreenLoader');
+          loader.classList.add('active');
+          try {
+            await deleteItemAndFiles(item.id);
+            detailModalRefElem.style.display = 'none';
+            await refreshData();
+          } catch(err) { alert("Erro ao excluir: " + err.message); }
+          finally { loader.classList.remove('active'); }
+        }
+      });
     }
 
-    function renderDetailPdfRow(category, label, file, itemId, showFormButton = false) {
-      if (file) return `<div class="pdf-row"><span class="pdf-label">${escapeHtml(label)}</span><div class="pdf-file-info"><a href="${file.file_url}" target="_blank">📄 ${escapeHtml(file.file_name)}</a></div><div class="pdf-actions"><button class="upload-pdf-btn" data-itemid="${itemId}" data-category="${category}" title="Substituir PDF">🔄</button><button class="remove-pdf-btn" data-fileid="${file.id}" title="Remover">✖</button>${showFormButton ? `<button class="fill-form-btn" data-itemid="${itemId}" data-category="${category}" data-monthname="${label}" title="Preencher formulário">📝</button>` : ''}</div></div>`;
-      else return `<div class="pdf-row"><span class="pdf-label">${escapeHtml(label)}</span><div class="pdf-file-info">— Nenhum PDF anexado —</div><div class="pdf-actions"><button class="upload-pdf-btn" data-itemid="${itemId}" data-category="${category}" title="Adicionar PDF">➕</button>${showFormButton ? `<button class="fill-form-btn" data-itemid="${itemId}" data-category="${category}" data-monthname="${label}" title="Preencher formulário">📝</button>` : ''}</div></div>`;
+    function renderDetailPdfRow(category, label, file, itemId, showFormButton = false, isActive = true) {
+      const disabledAttr = isActive ? '' : 'disabled style="opacity:0.5; pointer-events:none;"';
+      if (file) {
+        return `
+          <div class="pdf-row">
+            <span class="pdf-label">${escapeHtml(label)}</span>
+            <div class="pdf-file-info">
+              <a href="${file.file_url}" target="_blank">📄 ${escapeHtml(file.file_name)}</a>
+            </div>
+            <div class="pdf-actions">
+              <button class="upload-pdf-btn" data-itemid="${itemId}" data-category="${category}" data-monthlabel="${label}" title="Substituir PDF" ${disabledAttr}>🔄</button>
+              <button class="remove-pdf-btn" data-fileid="${file.id}" title="Remover" ${disabledAttr}>✖</button>
+              ${showFormButton ? `<button class="fill-form-btn" data-itemid="${itemId}" data-category="${category}" data-monthname="${label}" title="Preencher formulário" ${disabledAttr}>📝</button>` : ''}
+            </div>
+          </div>
+        `;
+      } else {
+        return `
+          <div class="pdf-row">
+            <span class="pdf-label">${escapeHtml(label)}</span>
+            <div class="pdf-file-info">— Nenhum PDF anexado —</div>
+            <div class="pdf-actions">
+              <button class="upload-pdf-btn" data-itemid="${itemId}" data-category="${category}" data-monthlabel="${label}" title="Adicionar PDF" ${disabledAttr}>➕</button>
+              ${showFormButton ? `<button class="fill-form-btn" data-itemid="${itemId}" data-category="${category}" data-monthname="${label}" title="Preencher formulário" ${disabledAttr}>📝</button>` : ''}
+            </div>
+          </div>
+        `;
+      }
     }
 
     // Formulário de inspeção (mantido igual)
@@ -722,8 +806,12 @@
     }
 
     function openFormModal(itemId, category, monthName) {
-      currentFormItemId = itemId; currentFormCategory = category; currentFormMonthName = monthName;
       const itemAtual = currentItems.find(i => i.id === itemId);
+      if (!itemAtual || itemAtual.status !== 'active') {
+        alert("Este item está inativo. Não é possível realizar inspeção.");
+        return;
+      }
+      currentFormItemId = itemId; currentFormCategory = category; currentFormMonthName = monthName;
       currentItemInfo = itemAtual || { name: '', code: '', tamanho: '' };
       document.getElementById('formModalTitle').innerText = `Formulário de Inspeção - ${monthName}`;
       let html = `<div class="form-row"><div class="form-group"><label>Unidade</label><input type="text" id="unidade" placeholder="Ex: Matriz"></div><div class="form-group"><label>Nome da Localidade</label><input type="text" id="localidade"></div></div><div class="form-row"><div class="form-group"><label>Responsável - Nome</label><input type="text" id="resp_nome"></div><div class="form-group"><label>Responsável - Matrícula</label><input type="text" id="resp_matricula"></div></div><div class="form-row"><div class="form-group"><label>Data da Inspeção</label><input type="date" id="data_inspecao"></div><div class="form-group"><label>Empresa</label><input type="text" id="empresa"></div></div><hr style="margin: 1rem 0;"><h3>Checklist de Inspeção</h3>`;
