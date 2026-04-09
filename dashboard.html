@@ -49,17 +49,7 @@
     .btn-confirm:hover { background: #dc2626; }
     .btn-cancel-logout { background: #64748b; color: white; border: none; padding: 0.5rem 1.5rem; border-radius: 2rem; cursor: pointer; font-weight: 600; }
     .btn-cancel-logout:hover { background: #475569; }
-    .item-detail-title { background: #f1f5f9; padding: 0.8rem; border-radius: 1rem; margin-bottom: 1.2rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
-    .toggle-switch { display: flex; align-items: center; gap: 0.8rem; font-size: 0.85rem; font-weight: 600; }
-    .switch { position: relative; display: inline-block; width: 52px; height: 26px; }
-    .switch input { opacity: 0; width: 0; height: 0; }
-    .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ef4444; transition: 0.3s; border-radius: 34px; }
-    .slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 3px; bottom: 3px; background-color: white; transition: 0.3s; border-radius: 50%; }
-    input:checked + .slider { background-color: #10b981; }
-    input:checked + .slider:before { transform: translateX(26px); }
-    .toggle-label { font-weight: 500; }
-    .toggle-active { color: #10b981; }
-    .toggle-inactive { color: #ef4444; }
+    .item-detail-title { background: #f1f5f9; padding: 0.8rem; border-radius: 1rem; margin-bottom: 1.2rem; }
     .pdf-group { margin-bottom: 1.2rem; }
     .pdf-group-title { font-weight: 600; font-size: 0.9rem; border-left: 3px solid #3b82f6; padding-left: 0.6rem; margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center; }
     .pdf-row { display: flex; align-items: center; justify-content: space-between; background: #f9fafb; margin-bottom: 0.5rem; padding: 0.4rem 0.8rem; border-radius: 2rem; font-size: 0.75rem; }
@@ -103,6 +93,59 @@
     .loader-spinner { width: 70px; height: 70px; border: 8px solid rgba(255,255,255,0.3); border-top-color: #3b82f6; border-radius: 50%; animation: spin 1s linear infinite; }
     .loader-text { margin-top: 1.5rem; font-size: 1.2rem; font-weight: 600; color: white; background: rgba(0,0,0,0.6); padding: 0.5rem 1.2rem; border-radius: 2rem; letter-spacing: 1px; }
     @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Toggle Switch */
+    .toggle-switch {
+      position: relative;
+      display: inline-block;
+      width: 60px;
+      height: 28px;
+      margin-left: 10px;
+    }
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #ef4444;
+      transition: 0.3s;
+      border-radius: 28px;
+    }
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 22px;
+      width: 22px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: 0.3s;
+      border-radius: 50%;
+    }
+    input:checked + .slider {
+      background-color: #10b981;
+    }
+    input:checked + .slider:before {
+      transform: translateX(32px);
+    }
+    .status-text {
+      font-size: 0.8rem;
+      font-weight: 600;
+      margin-left: 5px;
+    }
+    .status-container {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      margin-bottom: 1rem;
+    }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
@@ -128,8 +171,8 @@
   </div>
 </div>
 
-<!-- Modal de edição ao reativar -->
-<div id="reactivateModal" class="modal">
+<!-- Modal de edição ao reativar (sobrepõe o modal de detalhes) -->
+<div id="reactivateModal" class="modal" style="z-index: 1001;">
   <div class="modal-content">
     <div class="modal-header"><h2>✏️ Reativar Item - Editar dados</h2><button class="close-modal" id="closeReactivateModalBtn">&times;</button></div>
     <div class="form-group"><label>Localização *</label><input type="text" id="editItemName" placeholder="Ex: Tenda 5x5"></div>
@@ -168,7 +211,7 @@
   </div>
 </div>
 
-<!-- Modal de detalhes do item -->
+<!-- Modal de detalhes do item (agora com toggle switch) -->
 <div id="detailModal" class="modal">
   <div class="modal-content">
     <div class="modal-header"><h2 id="detailModalTitle">Detalhes do Item</h2><button class="close-modal" id="closeDetailModalBtn">&times;</button></div>
@@ -259,6 +302,7 @@
     let currentFormItemId = null, currentFormCategory = null, currentFormMonthName = null, currentItemInfo = null;
     let currentItems = [];
     let reactivatingItemId = null;
+    let detailModalRef = null; // referência para o modal de detalhes
 
     // Helper para extrair o caminho do arquivo dentro do bucket a partir da URL pública
     function getStoragePathFromUrl(url) {
@@ -367,22 +411,20 @@
       });
     }
 
-    // Função para alternar status (inativar)
-    async function toggleStatus(itemId, currentStatus) {
+    // Função para alternar status (usada pelo toggle switch)
+    async function toggleStatusFromDetail(itemId, newStatus) {
       const item = currentItems.find(i => i.id === itemId);
       if (!item) return;
-      if (currentStatus === 'active') {
-        // Inativar: salvar histórico e marcar como inactive
-        await saveHistory(itemId, { name: item.name, sub_localizacao: item.sub_localizacao, tamanho: item.tamanho, code: item.code });
-        await supabase.from('items').update({ status: 'inactive' }).eq('id', itemId);
-        await refreshData();
-        // Atualizar o modal aberto (se estiver aberto)
-        const modal = document.getElementById('detailModal');
-        if (modal && modal.style.display === 'flex') {
-          await openDetailModal(itemId);
+      if (newStatus === 'inactive') {
+        // Inativar: salvar histórico
+        if (confirm('Inativar este item? Os dados atuais serão salvos no histórico.')) {
+          await saveHistory(itemId, { name: item.name, sub_localizacao: item.sub_localizacao, tamanho: item.tamanho, code: item.code });
+          await supabase.from('items').update({ status: 'inactive' }).eq('id', itemId);
+          await refreshData();
+          if (detailModalRef && detailModalRef.style.display === 'flex') detailModalRef.style.display = 'none';
         }
-      } else {
-        // Reativar: abrir modal para edição
+      } else if (newStatus === 'active') {
+        // Reativar: abrir modal de edição sobre o modal de detalhes
         reactivatingItemId = itemId;
         document.getElementById('editItemName').value = item.name;
         document.getElementById('editSubLocalizacao').value = item.sub_localizacao;
@@ -409,12 +451,10 @@
         status: 'active'
       }).eq('id', reactivatingItemId);
       document.getElementById('reactivateModal').style.display = 'none';
+      if (detailModalRef && detailModalRef.style.display === 'flex') detailModalRef.style.display = 'none';
       await refreshData();
-      // Reabrir o modal com os novos dados
-      await openDetailModal(reactivatingItemId);
     }
 
-    // Adicionar assinatura e info no PDF (já existente)
     async function adicionarInfoItemEAssinatura(pdfDoc, itemCode, itemTamanho) {
       try {
         const pages = pdfDoc.getPages();
@@ -497,7 +537,6 @@
         const blob = new Blob([pdfBytes], { type: 'application/pdf' });
         const file = new File([blob], `checklist_${monthName}_${Date.now()}.pdf`, { type: 'application/pdf' });
         
-        // Substituir PDF antigo e salvar com data
         const { data: existingFile } = await supabase.from('files').select('id, file_url').eq('item_id', itemId).eq('category', category).maybeSingle();
         if (existingFile && existingFile.file_url) {
           await deleteStorageFile(existingFile.file_url);
@@ -511,7 +550,7 @@
       } catch(err) { console.error(err); alert("Erro ao gerar PDF: " + err.message); }
     }
 
-    // Renderização dos cards com status (sem botão toggle)
+    // Renderização dos cards com status e botão toggle (agora apenas o badge, sem botão)
     function renderCards(filterText = "") {
       const container = document.getElementById('itemsContainer');
       const lowerFilter = filterText.toLowerCase();
@@ -524,10 +563,17 @@
       const mesAtualKey = monthKeys[mesAtualIndex];
       
       container.innerHTML = filtered.map(item => {
+        // Encontrar arquivo do mês atual e verificar se a data de inspeção corresponde ao mês atual
         const arquivoMesAtual = item.files.find(f => f.category === mesAtualKey);
         let inspecaoMsg = '';
         if (arquivoMesAtual && arquivoMesAtual.inspecao_data) {
-          inspecaoMsg = `<p style="color: #10b981; font-size: 0.7rem; margin-top: 0.3rem;">✅ Inspeção ${mesAtualNome}: ${formatarData(arquivoMesAtual.inspecao_data)}</p>`;
+          const dataInspecao = new Date(arquivoMesAtual.inspecao_data);
+          const mesInspecao = dataInspecao.getMonth();
+          if (mesInspecao === mesAtualIndex) {
+            inspecaoMsg = `<p style="color: #10b981; font-size: 0.7rem; margin-top: 0.3rem;">✅ Inspeção ${mesAtualNome}: ${formatarData(arquivoMesAtual.inspecao_data)}</p>`;
+          } else {
+            inspecaoMsg = `<p style="color: #f59e0b; font-size: 0.7rem; margin-top: 0.3rem;">⚠️ Inspeção ${mesAtualNome}: pendente</p>`;
+          }
         } else {
           inspecaoMsg = `<p style="color: #f59e0b; font-size: 0.7rem; margin-top: 0.3rem;">⚠️ Inspeção ${mesAtualNome}: pendente</p>`;
         }
@@ -535,12 +581,14 @@
         const statusText = item.status === 'active' ? 'Ativo' : 'Inativo';
         return `
           <div class="item-card" data-id="${item.id}">
-            <h3>📌 ${escapeHtml(item.name)}</h3>
-            <p>ID: ${escapeHtml(item.code)}</p>
-            ${item.sub_localizacao ? `<p>📍 ${escapeHtml(item.sub_localizacao)}</p>` : ''}
-            ${item.tamanho ? `<p>📏 ${escapeHtml(item.tamanho)}</p>` : ''}
-            <div><span class="status-badge ${statusClass}">${statusText}</span></div>
-            ${inspecaoMsg}
+            <div>
+              <h3>📌 ${escapeHtml(item.name)}</h3>
+              <p>ID: ${escapeHtml(item.code)}</p>
+              ${item.sub_localizacao ? `<p>📍 ${escapeHtml(item.sub_localizacao)}</p>` : ''}
+              ${item.tamanho ? `<p>📏 ${escapeHtml(item.tamanho)}</p>` : ''}
+              <div><span class="status-badge ${statusClass}">${statusText}</span></div>
+              ${inspecaoMsg}
+            </div>
           </div>
         `;
       }).join('');
@@ -560,17 +608,19 @@
     function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;'); }
     async function refreshData() { currentItems = await getAllItemsWithFiles(); renderCards(document.getElementById('searchInput').value); }
 
-    // Modais de edição e detalhes (mantidos)
-    const detailModal = document.getElementById('detailModal'), detailContent = document.getElementById('detailContent'), closeDetailModalBtn = document.getElementById('closeDetailModalBtn');
-    if (closeDetailModalBtn) closeDetailModalBtn.addEventListener('click', () => detailModal.style.display = 'none');
-    detailModal.addEventListener('click', (e) => { if (e.target === detailModal) detailModal.style.display = 'none'; });
-    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && detailModal.style.display === 'flex') detailModal.style.display = 'none'; });
+    // MODAL DE DETALHES com toggle switch
+    const detailModalRefElem = document.getElementById('detailModal');
+    const detailContent = document.getElementById('detailContent');
+    const closeDetailModalBtn = document.getElementById('closeDetailModalBtn');
+    if (closeDetailModalBtn) closeDetailModalBtn.addEventListener('click', () => detailModalRefElem.style.display = 'none');
+    detailModalRefElem.addEventListener('click', (e) => { if (e.target === detailModalRefElem) detailModalRefElem.style.display = 'none'; });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && detailModalRefElem.style.display === 'flex') detailModalRefElem.style.display = 'none'; });
 
     async function openDetailModal(itemId) {
       const item = currentItems.find(i => i.id === itemId);
       if (!item) return;
       detailContent.innerHTML = '<div class="loading">Carregando...</div>';
-      detailModal.style.display = 'flex';
+      detailModalRefElem.style.display = 'flex';
       const freshItems = await getAllItemsWithFiles();
       const freshItem = freshItems.find(i => i.id === itemId);
       if (!freshItem) return;
@@ -581,54 +631,44 @@
       const files = item.files;
       const memorialFile = files.find(f => f.category === 'memorial');
       const monthlyFiles = monthKeys.map(key => files.find(f => f.category === key));
-      const isActive = item.status === 'active';
+      
+      // Monta o HTML com toggle switch
       let html = `
-        <div class="item-detail-title">
-          <div>
-            <strong>${escapeHtml(item.name)}</strong><br>
-            ${item.sub_localizacao ? `📍 Sub. Localização: ${escapeHtml(item.sub_localizacao)}<br>` : ''}
-            ${item.tamanho ? `📏 Tamanho: ${escapeHtml(item.tamanho)}<br>` : ''}
-            ID: ${escapeHtml(item.code)}
-          </div>
-          <div class="toggle-switch">
-            <span class="toggle-label ${!isActive ? 'toggle-inactive' : ''}">Inativo</span>
-            <label class="switch">
-              <input type="checkbox" id="statusToggle" ${isActive ? 'checked' : ''}>
-              <span class="slider"></span>
-            </label>
-            <span class="toggle-label ${isActive ? 'toggle-active' : ''}">Ativo</span>
-          </div>
+        <div class="status-container">
+          <span style="font-weight: 500;">Status:</span>
+          <label class="toggle-switch">
+            <input type="checkbox" id="statusToggle" ${item.status === 'active' ? 'checked' : ''}>
+            <span class="slider"></span>
+          </label>
+          <span class="status-text" id="statusText">${item.status === 'active' ? 'Ativo' : 'Inativo'}</span>
         </div>
-        <div class="pdf-group"><div class="pdf-group-title">📄 Memorial de Cálculo</div>${renderDetailPdfRow('memorial', 'Memorial', memorialFile, item.id)}</div>
-        <div class="pdf-group"><div class="pdf-group-title">📅 Documentos Mensais</div>${monthNames.map((month, idx) => renderDetailPdfRow(monthKeys[idx], month, monthlyFiles[idx], item.id, true)).join('')}</div>
+        <div class="item-detail-title">
+          <strong>${escapeHtml(item.name)}</strong><br>
+          ${item.sub_localizacao ? `📍 Sub. Localização: ${escapeHtml(item.sub_localizacao)}<br>` : ''}
+          ${item.tamanho ? `📏 Tamanho: ${escapeHtml(item.tamanho)}<br>` : ''}
+          ID: ${escapeHtml(item.code)}
+        </div>
+        <div class="pdf-group">
+          <div class="pdf-group-title">📄 Memorial de Cálculo</div>
+          ${renderDetailPdfRow('memorial', 'Memorial', memorialFile, item.id)}
+        </div>
+        <div class="pdf-group">
+          <div class="pdf-group-title">📅 Documentos Mensais</div>
+          ${monthNames.map((month, idx) => renderDetailPdfRow(monthKeys[idx], month, monthlyFiles[idx], item.id, true)).join('')}
+        </div>
         <button class="delete-item-btn" id="deleteItemFromDetailBtn">🗑️ Excluir este item</button>
         <div class="notice">* Clique nos botões + para anexar/substituir PDFs. Clique em 📝 para preencher formulário e gerar PDF.</div>
       `;
       detailContent.innerHTML = html;
       
       // Evento do toggle switch
-      const toggleCheckbox = document.getElementById('statusToggle');
-      if (toggleCheckbox) {
-        toggleCheckbox.addEventListener('change', async (e) => {
-          e.stopPropagation();
-          if (e.target.checked) {
-            // Reativar: abre modal de edição
-            reactivatingItemId = item.id;
-            document.getElementById('editItemName').value = item.name;
-            document.getElementById('editSubLocalizacao').value = item.sub_localizacao;
-            document.getElementById('editTamanho').value = item.tamanho;
-            document.getElementById('reactivateModal').style.display = 'flex';
-            // Reverte o checkbox visualmente até confirmar
-            e.target.checked = false;
-          } else {
-            // Inativar
-            if (confirm(`Deseja inativar o item "${item.name}"? Os dados atuais serão salvos no histórico.`)) {
-              await toggleStatus(item.id, 'active');
-            } else {
-              // Reverte o checkbox
-              e.target.checked = true;
-            }
-          }
+      const toggle = document.getElementById('statusToggle');
+      const statusTextSpan = document.getElementById('statusText');
+      if (toggle) {
+        toggle.addEventListener('change', async (e) => {
+          const newStatus = e.target.checked ? 'active' : 'inactive';
+          statusTextSpan.innerText = newStatus === 'active' ? 'Ativo' : 'Inativo';
+          await toggleStatusFromDetail(item.id, newStatus);
         });
       }
       
@@ -636,7 +676,7 @@
       document.querySelectorAll('.remove-pdf-btn').forEach(btn => btn.addEventListener('click', async (e) => { if (confirm('Remover este PDF?')) { await deleteFileById(Number(btn.dataset.fileid)); refreshData(); openDetailModal(item.id); } }));
       document.querySelectorAll('.fill-form-btn').forEach(btn => btn.addEventListener('click', () => openFormModal(Number(btn.dataset.itemid), btn.dataset.category, btn.dataset.monthname)));
       const deleteBtn = document.getElementById('deleteItemFromDetailBtn');
-      if (deleteBtn) deleteBtn.addEventListener('click', async () => { if (confirm(`Excluir o item "${item.name}"? Esta ação é irreversível.`)) { await deleteItemAndFiles(item.id); detailModal.style.display = 'none'; refreshData(); } });
+      if (deleteBtn) deleteBtn.addEventListener('click', async () => { if (confirm(`Excluir o item "${item.name}"?`)) { await deleteItemAndFiles(item.id); detailModalRefElem.style.display = 'none'; refreshData(); } });
     }
 
     function renderDetailPdfRow(category, label, file, itemId, showFormButton = false) {
@@ -644,7 +684,7 @@
       else return `<div class="pdf-row"><span class="pdf-label">${escapeHtml(label)}</span><div class="pdf-file-info">— Nenhum PDF anexado —</div><div class="pdf-actions"><button class="upload-pdf-btn" data-itemid="${itemId}" data-category="${category}" title="Adicionar PDF">➕</button>${showFormButton ? `<button class="fill-form-btn" data-itemid="${itemId}" data-category="${category}" data-monthname="${label}" title="Preencher formulário">📝</button>` : ''}</div></div>`;
     }
 
-    // Formulário de inspeção (igual ao original)
+    // Formulário de inspeção (mantido igual)
     const formModal = document.getElementById('formModal');
     const formFieldsContainer = document.getElementById('formFieldsContainer');
     const closeFormModalBtn = document.getElementById('closeFormModalBtn');
@@ -721,15 +761,9 @@
     const confirmReactivateBtn = document.getElementById('confirmReactivateBtn');
     closeReactivateModalBtn.addEventListener('click', () => reactivateModal.style.display = 'none');
     cancelReactivateBtn.addEventListener('click', () => reactivateModal.style.display = 'none');
-    confirmReactivateBtn.addEventListener('click', async () => {
-      await saveReactivate();
-      // Após reativar, recarregar o modal do item
-      if (reactivatingItemId) {
-        await openDetailModal(reactivatingItemId);
-      }
-    });
+    confirmReactivateBtn.addEventListener('click', saveReactivate);
 
-    // CRIAÇÃO DE ITEM
+    // CRIAÇÃO DE ITEM (mantido)
     const createModal = document.getElementById('createItemModal');
     const closeCreateBtn = document.getElementById('closeCreateModalBtn'), cancelCreateBtn = document.getElementById('cancelCreateBtn'), confirmCreateBtn = document.getElementById('confirmCreateBtn');
     const newItemName = document.getElementById('newItemName'), newSubLocalizacao = document.getElementById('newSubLocalizacao'), newTamanho = document.getElementById('newTamanho'), newItemCode = document.getElementById('newItemCode'), newMemorialFile = document.getElementById('newMemorialFile'), newMonthlyContainer = document.getElementById('newMonthlyFilesContainer'), createCodeError = document.getElementById('createCodeError');
