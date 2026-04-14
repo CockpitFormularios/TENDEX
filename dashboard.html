@@ -354,14 +354,29 @@
     }
 
     async function salvarPending(data) {
-      const db = await initOfflineDB();
-      return new Promise((resolve, reject) => {
-        const tx = db.transaction(STORE_PENDING, 'readwrite');
-        const store = tx.objectStore(STORE_PENDING);
-        const request = store.add(data);
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => reject(request.error);
-      });
+      try {
+        const db = await initOfflineDB();
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction(STORE_PENDING, 'readwrite');
+          const store = tx.objectStore(STORE_PENDING);
+          const request = store.add(data);
+          request.onsuccess = () => {
+            console.log('✅ Dados salvos localmente com ID:', request.result);
+            resolve(request.result);
+          };
+          request.onerror = (event) => {
+            console.error('❌ Erro ao salvar no IndexedDB:', event);
+            reject(request.error);
+          };
+          tx.onerror = (event) => {
+            console.error('❌ Erro na transação:', event);
+            reject(tx.error);
+          };
+        });
+      } catch (error) {
+        console.error('❌ Erro ao abrir o banco de dados:', error);
+        throw error;
+      }
     }
 
     async function getPendingInspections() {
@@ -611,7 +626,6 @@
       const { error: insertError } = await supabase.from('files').insert(insertData);
       if (insertError) throw insertError;
       
-      // Atualizar cache local
       const allFiles = await carregarFilesLocal();
       allFiles.push(insertData);
       await salvarFilesLocal(allFiles);
@@ -623,7 +637,6 @@
       if (file && file.file_url) await deleteStorageFile(file.file_url);
       await supabase.from('files').delete().eq('id', fileId);
       
-      // Atualizar cache local
       const allFiles = await carregarFilesLocal();
       const filtered = allFiles.filter(f => f.id !== fileId);
       await salvarFilesLocal(filtered);
@@ -635,7 +648,6 @@
       for (const file of files) if (file.file_url) await deleteStorageFile(file.file_url);
       await supabase.from('items').delete().eq('id', itemId);
       
-      // Atualizar cache local
       const allItems = await carregarItemsLocal();
       const filteredItems = allItems.filter(i => i.id !== itemId);
       await salvarItemsLocal(filteredItems);
@@ -695,7 +707,6 @@
         }
       }
       
-      // Atualizar cache
       const allItems = await supabase.from('items').select('*');
       const allFiles = await supabase.from('files').select('*');
       await salvarItemsLocal(allItems.data || []);
@@ -817,26 +828,40 @@
       if (!navigator.onLine) {
         try {
           fullscreenLoader.classList.add('active');
+          
           const pdfBlob = await gerarPDFBlob(formData, itemInfo, fotoFile);
-          const fotoBase64 = fotoFile ? await blobToBase64(fotoFile) : null;
           const pdfBase64 = await blobToBase64(pdfBlob);
+          let fotoBase64 = null;
+          if (fotoFile) {
+            fotoBase64 = await blobToBase64(fotoFile);
+          }
           
           const pendingData = {
             type: 'inspecao',
-            itemId, category, monthName,
-            formData, itemInfo,
-            pdfBase64, fotoBase64,
+            itemId: itemId,
+            category: category,
+            monthName: monthName,
+            formData: formData,
+            itemInfo: {
+              code: itemInfo.code,
+              tamanho: itemInfo.tamanho,
+              name: itemInfo.name
+            },
+            pdfBase64: pdfBase64,
+            fotoBase64: fotoBase64,
             timestamp: new Date().toISOString()
           };
+          
           await salvarPending(pendingData);
           await registrarSync();
+          
           fullscreenLoader.classList.remove('active');
           alert('⚠️ Você está offline. O PDF foi salvo localmente e será enviado automaticamente quando a internet voltar.');
           return;
         } catch (error) {
           fullscreenLoader.classList.remove('active');
-          console.error('Erro ao salvar offline:', error);
-          alert('Erro ao salvar inspeção localmente. Tente novamente.');
+          console.error('Erro detalhado ao salvar offline:', error);
+          alert('Erro ao salvar inspeção localmente: ' + error.message);
           return;
         }
       }
