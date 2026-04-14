@@ -6,6 +6,7 @@ const urlsToCache = [
   '/TENDEX/index.html'
 ];
 
+// URLs que NÃO devem ser interceptadas pelo Service Worker
 const EXCLUDED_URLS = [
   'supabase.co',
   'jklcvyuxwxgsfczrfaco.supabase.co'
@@ -15,15 +16,20 @@ function isExcluded(url) {
   return EXCLUDED_URLS.some(excluded => url.includes(excluded));
 }
 
+// Instalação do Service Worker
 self.addEventListener('install', event => {
   console.log('Service Worker instalado');
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(urlsToCache))
+      .then(cache => {
+        console.log('Cache aberto');
+        return cache.addAll(urlsToCache);
+      })
       .catch(err => console.error('Erro ao adicionar ao cache:', err))
   );
 });
 
+// Ativação - limpa caches antigos
 self.addEventListener('activate', event => {
   console.log('Service Worker ativado');
   event.waitUntil(
@@ -40,17 +46,23 @@ self.addEventListener('activate', event => {
   );
 });
 
+// Busca - NÃO intercepta requisições para o Supabase
 self.addEventListener('fetch', event => {
   const url = event.request.url;
+  
+  // Se for requisição para o Supabase, deixa passar direto
   if (isExcluded(url)) {
     return;
   }
+  
+  // Para outros recursos, usa cache first
   event.respondWith(
     caches.match(event.request)
       .then(response => response || fetch(event.request))
   );
 });
 
+// Background Sync
 self.addEventListener('sync', event => {
   console.log('Evento sync recebido:', event.tag);
   if (event.tag === 'sync-inspecoes') {
