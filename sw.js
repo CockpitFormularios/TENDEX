@@ -1,71 +1,1424 @@
-// sw.js - Service Worker para TENDEX
-const CACHE_NAME = 'tendex-v1';
-const urlsToCache = [
-  '/TENDEX/',
-  '/TENDEX/dashboard.html',
-  '/TENDEX/index.html'
-];
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>TENDEX | Inspeção de Tendas</title>
+  <link rel="manifest" href="https://cockpitformularios.github.io/TENDEX/manifest.json">
+  <link rel="icon" type="image/x-icon" href="https://jklcvyuxwxgsfczrfaco.supabase.co/storage/v1/object/public/assinaturas/favicon.ico">
+  <link rel="icon" type="image/png" sizes="192x192" href="https://jklcvyuxwxgsfczrfaco.supabase.co/storage/v1/object/public/assinaturas/icon-180.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="https://jklcvyuxwxgsfczrfaco.supabase.co/storage/v1/object/public/assinaturas/icon-180.png">
+  <style>
+    * { margin:0; padding:0; box-sizing: border-box; font-family: system-ui, 'Segoe UI', 'Inter', sans-serif; }
+    body { background: #f3f6fc; padding: 2rem 1.5rem; }
+    .dashboard-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem; padding-bottom: 0.75rem; border-bottom: 2px solid #cbd5e1; }
+    .dashboard-header h1 { font-size: 1.8rem; background: linear-gradient(135deg, #0f2b3d, #1e4a76); background-clip: text; -webkit-background-clip: text; color: transparent; }
+    .logo { height: 50px; width: auto; object-fit: contain; }
+    .user-info { background: #1e293b; padding: 0.3rem 1rem; border-radius: 2rem; font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem; cursor: pointer; transition: 0.2s; }
+    .user-info:hover { background: #0f172a; transform: scale(0.98); }
+    .header-left { display: flex; align-items: center; gap: 1rem; }
+    .search-area { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 1.5rem; background: white; padding: 0.5rem 1rem; border-radius: 2rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .search-icon { font-size: 1.2rem; color: #64748b; }
+    .search-input { flex: 1; border: none; outline: none; font-size: 1rem; padding: 0.4rem 0; background: transparent; }
+    .download-section { background: white; border-radius: 1rem; padding: 1rem; margin-bottom: 2rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .download-section h3 { font-size: 1rem; margin-bottom: 0.8rem; color: #1e4a76; }
+    .month-buttons { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+    .month-btn { background: #e2e8f0; border: none; padding: 0.4rem 0.9rem; border-radius: 2rem; font-size: 0.8rem; cursor: pointer; transition: 0.2s; }
+    .month-btn:hover { background: #cbd5e1; transform: scale(0.96); }
+    .items-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1.2rem; margin-top: 1rem; }
+    .item-card { background: white; border-radius: 1rem; padding: 1rem; cursor: pointer; transition: 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid #e2edff; position: relative; }
+    .item-card:hover { transform: translateY(-2px); box-shadow: 0 8px 16px rgba(0,0,0,0.08); background: #fafcff; }
+    .item-card h3 { font-size: 1.1rem; color: #0f172a; margin-bottom: 0.3rem; }
+    .item-card p { font-size: 0.8rem; color: #5b6e8c; margin: 0.2rem 0; }
+    .status-badge { display: inline-block; padding: 0.2rem 0.5rem; border-radius: 2rem; font-size: 0.7rem; font-weight: 600; margin-top: 0.5rem; }
+    .status-active { background: #d1fae5; color: #065f46; }
+    .status-inactive { background: #fee2e2; color: #991b1b; }
+    .empty-state { text-align: center; color: #6c86a3; margin-top: 3rem; }
+    .fab { position: fixed; bottom: 2rem; right: 2rem; background: linear-gradient(135deg, #0f2b3d, #1e4a76); color: white; width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; box-shadow: 0 8px 16px rgba(0,0,0,0.2); cursor: pointer; border: none; z-index: 10; }
+    .fab:hover { transform: scale(1.05); }
+    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; z-index: 1000; }
+    .modal-content { background: white; max-width: 800px; width: 90%; border-radius: 1.5rem; padding: 1.5rem; max-height: 85vh; overflow-y: auto; }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+    .modal-header h2 { font-size: 1.3rem; }
+    .close-modal { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #64748b; padding: 0 0.5rem; }
+    .close-modal:hover { color: #ef4444; }
+    .logout-modal-content { max-width: 400px; text-align: center; }
+    .logout-modal-content p { margin: 1rem 0; font-size: 1.1rem; }
+    .logout-buttons { display: flex; gap: 1rem; justify-content: center; margin-top: 1rem; }
+    .btn-confirm { background: #ef4444; color: white; border: none; padding: 0.5rem 1.5rem; border-radius: 2rem; cursor: pointer; font-weight: 600; }
+    .btn-confirm:hover { background: #dc2626; }
+    .btn-cancel-logout { background: #64748b; color: white; border: none; padding: 0.5rem 1.5rem; border-radius: 2rem; cursor: pointer; font-weight: 600; }
+    .btn-cancel-logout:hover { background: #475569; }
+    .item-detail-title { background: #f1f5f9; padding: 0.8rem; border-radius: 1rem; margin-bottom: 1.2rem; }
+    .pdf-group { margin-bottom: 1.2rem; }
+    .pdf-group-title { font-weight: 600; font-size: 0.9rem; border-left: 3px solid #3b82f6; padding-left: 0.6rem; margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center; }
+    .pdf-row { display: flex; align-items: center; justify-content: space-between; background: #f9fafb; margin-bottom: 0.5rem; padding: 0.4rem 0.8rem; border-radius: 2rem; font-size: 0.75rem; }
+    .pdf-label { font-weight: 600; background: #e2e8f0; padding: 0.2rem 0.6rem; border-radius: 2rem; min-width: 85px; text-align: center; }
+    .pdf-file-info { flex: 1; margin: 0 0.8rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .pdf-file-info a { text-decoration: none; color: #1e4a76; }
+    .pdf-actions button { background: none; border: none; cursor: pointer; font-size: 1rem; width: 28px; height: 28px; border-radius: 50%; }
+    .upload-pdf-btn { color: #2c6e9e; }
+    .upload-pdf-btn:hover { background: #e0f2fe; }
+    .remove-pdf-btn { color: #9ca3af; }
+    .remove-pdf-btn:hover { background: #fee2e2; color: #dc2626; }
+    .fill-form-btn { background: #10b981; color: white; border: none; border-radius: 2rem; padding: 0.2rem 0.6rem; font-size: 0.7rem; cursor: pointer; margin-left: 0.5rem; }
+    .fill-form-btn:hover { background: #059669; }
+    .delete-item-btn { background: #ef4444; color: white; border: none; padding: 0.5rem 1rem; border-radius: 2rem; cursor: pointer; margin-top: 1rem; font-weight: 600; }
+    .delete-item-btn:hover { background: #dc2626; }
+    .notice { font-size: 0.7rem; color: #5b6e8c; margin-top: 1rem; text-align: center; }
+    .loading { text-align: center; padding: 2rem; color: #1e4a76; }
+    .error-text { color: #dc2626; font-size: 0.75rem; margin-top: 0.25rem; }
+    .form-group { margin-bottom: 1rem; }
+    .form-group label { display: block; font-weight: 600; margin-bottom: 0.3rem; font-size: 0.85rem; }
+    .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 0.6rem; border: 1px solid #cbd5e1; border-radius: 1rem; font-family: inherit; }
+    .form-group textarea { min-height: 60px; resize: vertical; }
+    .form-row { display: flex; gap: 1rem; flex-wrap: wrap; }
+    .form-row .form-group { flex: 1; }
+    .question-group { margin-bottom: 1.5rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 1rem; }
+    .question-text { font-weight: 600; margin-bottom: 0.5rem; font-size: 0.85rem; }
+    .question-options { display: flex; gap: 1rem; margin-bottom: 0.5rem; }
+    .question-options label { font-weight: normal; margin-right: 0.5rem; }
+    .question-obs { margin-top: 0.5rem; }
+    .question-obs input { font-size: 0.8rem; padding: 0.4rem; }
+    .modal-buttons { display: flex; justify-content: flex-end; gap: 0.8rem; margin-top: 1.2rem; }
+    .btn-save { background: #1e4a76; color: white; padding: 0.5rem 1.2rem; border-radius: 2rem; border: none; cursor: pointer; }
+    .btn-cancel { background: #e2e8f0; color: #1e293b; padding: 0.5rem 1.2rem; border-radius: 2rem; border: none; cursor: pointer; }
+    .attachments-title { font-size: 0.8rem; font-weight: 600; color: #334155; margin-bottom: 0.8rem; border-left: 3px solid #3b82f6; padding-left: 0.6rem; margin-top: 1rem; }
+    .month-group { margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+    .month-group label { font-weight: 600; width: 110px; font-size: 0.8rem; }
+    .month-group input[type="file"] { flex: 1; }
+    .image-preview { max-width: 100%; max-height: 100px; margin-top: 0.5rem; border-radius: 0.5rem; border: 1px solid #cbd5e1; object-fit: contain; background: #f8fafc; }
+    .fullscreen-loader { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; visibility: hidden; opacity: 0; transition: visibility 0s, opacity 0.3s; }
+    .fullscreen-loader.active { visibility: visible; opacity: 1; }
+    .loader-spinner { width: 70px; height: 70px; border: 8px solid rgba(255,255,255,0.3); border-top-color: #3b82f6; border-radius: 50%; animation: spin 1s linear infinite; }
+    .loader-text { margin-top: 1.5rem; font-size: 1.2rem; font-weight: 600; color: white; background: rgba(0,0,0,0.6); padding: 0.5rem 1.2rem; border-radius: 2rem; letter-spacing: 1px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
 
-const EXCLUDED_URLS = [
-  'supabase.co',
-  'jklcvyuxwxgsfczrfaco.supabase.co'
-];
+    .toggle-switch {
+      position: relative;
+      display: inline-block;
+      width: 60px;
+      height: 28px;
+      margin-left: 10px;
+    }
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #ef4444;
+      transition: 0.3s;
+      border-radius: 28px;
+    }
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 22px;
+      width: 22px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: 0.3s;
+      border-radius: 50%;
+    }
+    input:checked + .slider {
+      background-color: #10b981;
+    }
+    input:checked + .slider:before {
+      transform: translateX(32px);
+    }
+    .status-text {
+      font-size: 0.8rem;
+      font-weight: 600;
+      margin-left: 5px;
+    }
+    .status-container {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      margin-bottom: 1rem;
+    }
+    .disabled-action {
+      opacity: 0.5;
+      pointer-events: none;
+    }
+    .inactive-message {
+      background: #fee2e2;
+      color: #991b1b;
+      padding: 0.5rem;
+      border-radius: 0.5rem;
+      margin-bottom: 1rem;
+      text-align: center;
+      font-size: 0.8rem;
+    }
+    .offline-badge {
+      background: #f59e0b;
+      color: white;
+      padding: 0.2rem 0.8rem;
+      border-radius: 2rem;
+      font-size: 0.7rem;
+      font-weight: 600;
+      margin-left: 1rem;
+    }
+    .online-badge {
+      background: #10b981;
+      color: white;
+      padding: 0.2rem 0.8rem;
+      border-radius: 2rem;
+      font-size: 0.7rem;
+      font-weight: 600;
+      margin-left: 1rem;
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+</head>
+<body>
 
-function isExcluded(url) {
-  return EXCLUDED_URLS.some(excluded => url.includes(excluded));
-}
+<div class="dashboard-header">
+  <div class="header-left">
+    <img src="https://jklcvyuxwxgsfczrfaco.supabase.co/storage/v1/object/public/assinaturas/Tenda_logo2.png" alt="Logo TENDEX" class="logo" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2240%22 height=%2240%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%233b82f6%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Cpath d=%22M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z%22%3E%3C/path%3E%3Cpolyline points=%229 22 9 12 15 12 15 22%22%3E%3C/polyline%3E%3C/svg%3E';">
+    <h1></h1>
+  </div>
+  <div style="display: flex; gap: 1rem; align-items: center;">
+    <div class="user-info" id="userInfoDisplay">👤 Carregando...</div>
+    <div id="connectionStatus" class="online-badge">🟢 Online</div>
+  </div>
+</div>
 
-self.addEventListener('install', event => {
-  console.log('Service Worker instalado');
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(urlsToCache))
-      .catch(err => console.error('Erro ao adicionar ao cache:', err))
-  );
-});
+<div id="logoutModal" class="modal">
+  <div class="modal-content logout-modal-content">
+    <div class="modal-header"><h2>🔓 Sair do Sistema</h2><button class="close-modal" id="closeLogoutModalBtn">&times;</button></div>
+    <p>Tem certeza que deseja sair?</p>
+    <div class="logout-buttons"><button class="btn-cancel-logout" id="cancelLogoutBtn">Cancelar</button><button class="btn-confirm" id="confirmLogoutBtn">Sair</button></div>
+  </div>
+</div>
 
-self.addEventListener('activate', event => {
-  console.log('Service Worker ativado');
-  event.waitUntil(
-    caches.keys().then(cacheNames => {
-      return Promise.all(
-        cacheNames.map(cache => {
-          if (cache !== CACHE_NAME) {
-            console.log('Removendo cache antigo:', cache);
-            return caches.delete(cache);
+<div id="reactivateModal" class="modal" style="z-index: 1001;">
+  <div class="modal-content">
+    <div class="modal-header"><h2>✏️ Reativar TENDA</h2><button class="close-modal" id="closeReactivateModalBtn">&times;</button></div>
+    <div class="form-group"><label>Localização *</label><input type="text" id="editItemName" placeholder="Ex: Tenda 5x5"></div>
+    <div class="form-group"><label>Sub. Localização</label><input type="text" id="editSubLocalizacao" placeholder="Ex: Área Central"></div>
+    <div class="form-group"><label>Tamanho</label><input type="text" id="editTamanho" placeholder="Ex: 5x5m, 10x20m"></div>
+    <div class="modal-buttons"><button class="btn-cancel" id="cancelReactivateBtn">Cancelar</button><button class="btn-save" id="confirmReactivateBtn">Salvar e Reativar</button></div>
+  </div>
+</div>
+
+<div class="search-area">
+  <span class="search-icon">🔍</span>
+  <input type="text" id="searchInput" class="search-input" placeholder="Filtrar por nome, ID, localização ou tamanho...">
+</div>
+
+<div class="download-section">
+  <h3>📥 Download por Mês</h3>
+  <div class="month-buttons" id="monthButtonsContainer"></div>
+</div>
+
+<div id="itemsContainer" class="items-grid"></div>
+<button class="fab" id="addItemBtn">+</button>
+
+<div id="createItemModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header"><h2>➕ Novo Item</h2><button class="close-modal" id="closeCreateModalBtn">&times;</button></div>
+    <div class="form-group"><label>Localização</label><input type="text" id="newItemName" placeholder="Ex: Tenda 5x5"></div>
+    <div class="form-group"><label>Sub. Localização</label><input type="text" id="newSubLocalizacao" placeholder="Ex: Área Central"></div>
+    <div class="form-group"><label>Tamanho</label><input type="text" id="newTamanho" placeholder="Ex: 5x5m, 10x20m"></div>
+    <div class="form-group"><label>TAG / ID *</label><input type="text" id="newItemCode" placeholder="Ex: T-001"><div id="createCodeError" class="error-text"></div></div>
+    <div class="attachments-title">📄 Memorial de Cálculo e Projeto</div>
+    <div class="month-group"><label>Memorial:</label><input type="file" id="newMemorialFile" accept=".pdf"></div>
+    <div class="attachments-title" style="margin-top: 1rem;">📅 Documentos Mensais</div>
+    <div id="newMonthlyFilesContainer"></div>
+    <div class="modal-buttons"><button class="btn-cancel" id="cancelCreateBtn">Cancelar</button><button class="btn-save" id="confirmCreateBtn">Salvar</button></div>
+  </div>
+</div>
+
+<div id="detailModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header"><h2 id="detailModalTitle">Detalhes do Item</h2><button class="close-modal" id="closeDetailModalBtn">&times;</button></div>
+    <div id="detailContent"></div>
+  </div>
+</div>
+
+<div id="formModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header"><h2 id="formModalTitle">Formulário de Inspeção</h2><button class="close-modal" id="closeFormModalBtn">&times;</button></div>
+    <div id="formFieldsContainer"></div>
+    <div class="form-group">
+      <label>📸 Foto da Inspeção (obrigatória)</label>
+      <input type="file" id="fotoInspecao" accept="image/png, image/jpeg" required>
+      <div id="fotoPreview" style="margin-top: 0.5rem;"></div>
+    </div>
+    <div class="modal-buttons"><button class="btn-cancel" id="cancelFormBtn">Cancelar</button><button class="btn-save" id="generatePdfBtn">Gerar PDF e Anexar</button></div>
+  </div>
+</div>
+
+<div id="fullscreenLoader" class="fullscreen-loader">
+  <div class="loader-spinner"></div>
+  <div class="loader-text">🔃 Processando, aguarde...</div>
+</div>
+
+<script>
+  (function() {
+    const SUPABASE_URL = "https://jklcvyuxwxgsfczrfaco.supabase.co";
+    const SUPABASE_ANON_KEY = "sb_publishable_oCE8y5qaLovVj0BU-rANHA__Zmy3XVl";
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const BUCKET = "pdfs";
+
+    // ==================== OFFLINE STORAGE (IndexedDB) ====================
+    const DB_NAME_OFFLINE = 'TendexOfflineDB';
+    const STORE_ITEMS = 'items_cache';
+    const STORE_FILES = 'files_cache';
+    const STORE_PENDING_ITEMS = 'pending_items';
+    const STORE_PENDING_INSPECTIONS = 'pending_inspections';
+
+    let dbInstance = null;
+
+    function initOfflineDB() {
+      return new Promise((resolve, reject) => {
+        if (dbInstance) {
+          resolve(dbInstance);
+          return;
+        }
+        const request = indexedDB.open(DB_NAME_OFFLINE, 8);
+        request.onerror = (event) => {
+          console.error('IndexedDB erro:', event);
+          reject(request.error);
+        };
+        request.onsuccess = (event) => {
+          dbInstance = request.result;
+          console.log('IndexedDB aberto com sucesso - versão 8');
+          resolve(dbInstance);
+        };
+        request.onupgradeneeded = (event) => {
+          const db = event.target.result;
+          console.log('Criando stores...');
+          if (!db.objectStoreNames.contains(STORE_ITEMS)) {
+            db.createObjectStore(STORE_ITEMS, { keyPath: 'id' });
           }
-        })
-      );
-    })
-  );
-});
+          if (!db.objectStoreNames.contains(STORE_FILES)) {
+            db.createObjectStore(STORE_FILES, { keyPath: 'id', autoIncrement: true });
+          }
+          if (!db.objectStoreNames.contains(STORE_PENDING_ITEMS)) {
+            db.createObjectStore(STORE_PENDING_ITEMS, { keyPath: 'id', autoIncrement: true });
+          }
+          if (!db.objectStoreNames.contains(STORE_PENDING_INSPECTIONS)) {
+            db.createObjectStore(STORE_PENDING_INSPECTIONS, { keyPath: 'id', autoIncrement: true });
+          }
+        };
+      });
+    }
 
-self.addEventListener('fetch', event => {
-  const url = event.request.url;
-  if (isExcluded(url)) {
-    return;
-  }
-  event.respondWith(
-    caches.match(event.request)
-      .then(response => response || fetch(event.request))
-  );
-});
+    // ==================== ITEMS CACHE ====================
+    async function salvarItemsLocal(items) {
+      try {
+        const db = await initOfflineDB();
+        const tx = db.transaction(STORE_ITEMS, 'readwrite');
+        const store = tx.objectStore(STORE_ITEMS);
+        for (const item of items) {
+          store.put(item);
+        }
+        return new Promise((resolve, reject) => {
+          tx.oncomplete = () => resolve();
+          tx.onerror = () => reject(tx.error);
+        });
+      } catch (e) { console.warn('Erro ao salvar items local:', e); }
+    }
 
-self.addEventListener('sync', event => {
-  console.log('Evento sync recebido:', event.tag);
-  if (event.tag === 'sync-inspecoes') {
-    event.waitUntil(sincronizarDados());
-  }
-});
+    async function carregarItemsLocal() {
+      try {
+        const db = await initOfflineDB();
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction(STORE_ITEMS, 'readonly');
+          const store = tx.objectStore(STORE_ITEMS);
+          const request = store.getAll();
+          request.onsuccess = () => resolve(request.result || []);
+          request.onerror = () => reject(request.error);
+        });
+      } catch (e) { console.warn('Erro ao carregar items local:', e); return []; }
+    }
 
-async function sincronizarDados() {
-  console.log('🔄 Sincronizando dados pendentes...');
-  const clients = await self.clients.matchAll();
-  clients.forEach(client => {
-    client.postMessage({
-      type: 'SYNC_TRIGGERED',
-      message: 'Internet restaurada. Iniciando sincronização...'
+    // ==================== FILES CACHE ====================
+    async function salvarFilesLocal(files) {
+      try {
+        const db = await initOfflineDB();
+        const tx = db.transaction(STORE_FILES, 'readwrite');
+        const store = tx.objectStore(STORE_FILES);
+        for (const file of files) {
+          store.put(file);
+        }
+        return new Promise((resolve, reject) => {
+          tx.oncomplete = () => resolve();
+          tx.onerror = () => reject(tx.error);
+        });
+      } catch (e) { console.warn('Erro ao salvar files local:', e); }
+    }
+
+    async function carregarFilesLocal() {
+      try {
+        const db = await initOfflineDB();
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction(STORE_FILES, 'readonly');
+          const store = tx.objectStore(STORE_FILES);
+          const request = store.getAll();
+          request.onsuccess = () => resolve(request.result || []);
+          request.onerror = () => reject(request.error);
+        });
+      } catch (e) { console.warn('Erro ao carregar files local:', e); return []; }
+    }
+
+    // ==================== PENDING ITEMS (para sincronizar novos itens) ====================
+    async function salvarItemPending(itemData) {
+      try {
+        const db = await initOfflineDB();
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction(STORE_PENDING_ITEMS, 'readwrite');
+          const store = tx.objectStore(STORE_PENDING_ITEMS);
+          const request = store.add(itemData);
+          request.onsuccess = () => {
+            console.log('✅ Item pendente salvo com ID:', request.result);
+            resolve(request.result);
+          };
+          request.onerror = () => reject(request.error);
+        });
+      } catch (error) {
+        console.error('Erro ao salvar item pendente:', error);
+        throw error;
+      }
+    }
+
+    async function getPendingItems() {
+      const db = await initOfflineDB();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE_PENDING_ITEMS, 'readonly');
+        const store = tx.objectStore(STORE_PENDING_ITEMS);
+        const request = store.getAll();
+        request.onsuccess = () => resolve(request.result || []);
+        request.onerror = () => reject(request.error);
+      });
+    }
+
+    async function removerItemPending(id) {
+      const db = await initOfflineDB();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE_PENDING_ITEMS, 'readwrite');
+        const store = tx.objectStore(STORE_PENDING_ITEMS);
+        const request = store.delete(id);
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(request.error);
+      });
+    }
+
+    // ==================== PENDING INSPECTIONS ====================
+    async function salvarInspecaoPending(data) {
+      try {
+        const db = await initOfflineDB();
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction(STORE_PENDING_INSPECTIONS, 'readwrite');
+          const store = tx.objectStore(STORE_PENDING_INSPECTIONS);
+          const request = store.add(data);
+          request.onsuccess = () => {
+            console.log('✅ Inspeção pendente salva com ID:', request.result);
+            resolve(request.result);
+          };
+          request.onerror = () => reject(request.error);
+        });
+      } catch (error) {
+        console.error('Erro ao salvar inspeção pendente:', error);
+        throw error;
+      }
+    }
+
+    async function getPendingInspections() {
+      const db = await initOfflineDB();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE_PENDING_INSPECTIONS, 'readonly');
+        const store = tx.objectStore(STORE_PENDING_INSPECTIONS);
+        const request = store.getAll();
+        request.onsuccess = () => resolve(request.result || []);
+        request.onerror = () => reject(request.error);
+      });
+    }
+
+    async function removerInspecaoPending(id) {
+      const db = await initOfflineDB();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE_PENDING_INSPECTIONS, 'readwrite');
+        const store = tx.objectStore(STORE_PENDING_INSPECTIONS);
+        const request = store.delete(id);
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(request.error);
+      });
+    }
+
+    // ==================== SINCronização ====================
+    async function sincronizarItensPendentes() {
+      const pendentes = await getPendingItems();
+      if (pendentes.length === 0) return 0;
+      
+      console.log(`📤 Sincronizando ${pendentes.length} itens pendentes...`);
+      let sucessos = 0;
+      
+      for (const item of pendentes) {
+        try {
+          const { data, error } = await supabase.from('items').insert({
+            name: item.name,
+            sub_localizacao: item.sub_localizacao,
+            tamanho: item.tamanho,
+            code: item.code,
+            status: 'active'
+          }).select().single();
+          
+          if (error) throw error;
+          
+          await removerItemPending(item.id);
+          sucessos++;
+          console.log(`✅ Item ${item.name} sincronizado com ID: ${data.id}`);
+        } catch (error) {
+          console.error(`❌ Erro ao sincronizar item ${item.id}:`, error);
+        }
+      }
+      return sucessos;
+    }
+
+    async function sincronizarInspecoesPendentes() {
+      const pendentes = await getPendingInspections();
+      if (pendentes.length === 0) return 0;
+      
+      console.log(`📤 Sincronizando ${pendentes.length} inspeções pendentes...`);
+      let sucessos = 0;
+      
+      for (const item of pendentes) {
+        try {
+          const pdfBlob = base64ToBlob(item.pdfBase64, 'application/pdf');
+          const pdfFile = new File([pdfBlob], `checklist_${item.monthName}_${Date.now()}.pdf`, { type: 'application/pdf' });
+          
+          let fotoFile = null;
+          if (item.fotoBase64) {
+            const fotoBlob = base64ToBlob(item.fotoBase64, 'image/jpeg');
+            fotoFile = new File([fotoBlob], `foto_${Date.now()}.jpg`, { type: 'image/jpeg' });
+          }
+          
+          await addFileToItem(item.itemId, item.category, pdfFile, item.formData.data_inspecao);
+          await removerInspecaoPending(item.id);
+          sucessos++;
+          console.log(`✅ Inspeção ${item.id} sincronizada com sucesso`);
+        } catch (error) {
+          console.error(`❌ Erro ao sincronizar inspeção ${item.id}:`, error);
+        }
+      }
+      return sucessos;
+    }
+
+    async function sincronizarTudo() {
+      if (!navigator.onLine) {
+        console.log('Offline - sincronização adiada');
+        return;
+      }
+      
+      fullscreenLoader.classList.add('active');
+      let mensagens = [];
+      
+      try {
+        const itensSincronizados = await sincronizarItensPendentes();
+        if (itensSincronizados > 0) mensagens.push(`${itensSincronizados} item(ns) sincronizado(s)`);
+        
+        const inspSincronizadas = await sincronizarInspecoesPendentes();
+        if (inspSincronizadas > 0) mensagens.push(`${inspSincronizadas} inspeção(ões) sincronizada(s)`);
+        
+        if (mensagens.length > 0) {
+          await refreshData();
+          alert(`✅ Sincronização concluída!\n${mensagens.join('\n')}`);
+        }
+      } catch (error) {
+        console.error('Erro na sincronização:', error);
+      } finally {
+        fullscreenLoader.classList.remove('active');
+      }
+    }
+
+    function blobToBase64(blob) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result.split(',')[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    }
+
+    function base64ToBlob(base64, mimeType) {
+      const byteCharacters = atob(base64);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      return new Blob([byteArray], { type: mimeType });
+    }
+
+    // ==================== STATUS DE CONEXÃO ====================
+    const connectionStatus = document.getElementById('connectionStatus');
+    function updateConnectionStatus() {
+      if (navigator.onLine) {
+        connectionStatus.className = 'online-badge';
+        connectionStatus.innerHTML = '🟢 Online';
+      } else {
+        connectionStatus.className = 'offline-badge';
+        connectionStatus.innerHTML = '🔴 Offline';
+      }
+    }
+    window.addEventListener('online', updateConnectionStatus);
+    window.addEventListener('offline', updateConnectionStatus);
+    updateConnectionStatus();
+
+    // ==================== SERVICE WORKER REGISTRATION ====================
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/TENDEX/sw.js')
+        .then(reg => console.log('Service Worker registrado', reg))
+        .catch(err => console.error('Falha ao registrar Service Worker', err));
+    }
+
+    // ==================== CONFIGURAÇÃO SUPABASE ====================
+    let currentUser = null;
+    try {
+      const savedUser = localStorage.getItem('tendex_current_user');
+      if (savedUser) currentUser = JSON.parse(savedUser);
+    } catch(e) { console.warn(e); }
+    
+    const userInfoDisplay = document.getElementById('userInfoDisplay');
+    if (currentUser && currentUser.username) userInfoDisplay.innerHTML = ` ${currentUser.username} `;
+    else { userInfoDisplay.innerHTML = `👤 Não logado`; window.location.href = 'index.html'; }
+
+    const logoutModal = document.getElementById('logoutModal');
+    const closeLogoutModalBtn = document.getElementById('closeLogoutModalBtn');
+    const cancelLogoutBtn = document.getElementById('cancelLogoutBtn');
+    const confirmLogoutBtn = document.getElementById('confirmLogoutBtn');
+    userInfoDisplay.addEventListener('click', () => { logoutModal.style.display = 'flex'; });
+    function closeLogoutModal() { logoutModal.style.display = 'none'; }
+    closeLogoutModalBtn.addEventListener('click', closeLogoutModal);
+    cancelLogoutBtn.addEventListener('click', closeLogoutModal);
+    confirmLogoutBtn.addEventListener('click', () => { localStorage.removeItem('tendex_current_user'); window.location.href = 'index.html'; });
+    logoutModal.addEventListener('click', (e) => { if (e.target === logoutModal) closeLogoutModal(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && logoutModal.style.display === 'flex') closeLogoutModal(); });
+
+    const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+    const monthKeys = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+
+    const checklistPerguntas = [
+      "[IMPEDITIVO] [Projeto] As tendas/ Galpões lonados possuem Projeto Estrutural e Anotação de Responsabilidade Técnica executado por um Engenheiro habilitado pelo CREA e está aderente? (caso as tendas/galpões lonados não possua projeto, considerar impeditivo)",
+      "[Projeto] As tendas/ Galpões lonados utilizados como abrigo seguro possuem Projeto de SPDA e Anotação de Responsabilidade Técnica executado por um Engenheiro habilitado pelo CREA e está vigente? (ver NBR-ABNT 5419). (referência, tendas >25 m²)",
+      "[Projeto] As tendas/ Galpões lonados utilizados para cobrir estruturas de canteiro, possuem aterramento conforme projeto do canteiro de obras?",
+      "[Projeto] O manual de instrução/ montagem do fabricante estão disponíveis na frente de serviço?",
+      "[Projeto] As tendas/ Galpões lonados, possuem a placa de liberação com data e responsável?",
+      "[Projeto] As tendas/ Galpões lonados possuem plano de inspeção e o mesmo está aderente, conforme projeto? (referência, tendas >25 m²)",
+      "[Projeto] O formulário de inspeção anterior está disponível na frente de serviço? (referência, tendas >25 m²)",
+      "[Inspeção] A aranha (estrutura de sustentação da lona), estão em bom estado de conservação, parafusadas com parafuso autotravante, tanto na parte superior e inferior do teto? conforme inspeção visual? não apresentando corrosão e/ou deformação?",
+      "[Inspeção] As Cintas Poliéster estão tensionada e não apresentam deformação, fissuras ou cortes, conforme projeto?",
+      "[Inspeção] As colunas de escoramento e colunas de sustentação (pilares) estão alinhadas perpendicular (90°) as vigas e não apresentam corrosão e/ou deformação?",
+      "[Inspeção] As colunas de sustentação estão encaixadas e parafusadas às vigas e possuem mão francesa?",
+      "[Inspeção] As mãos francesas possuem parafusos autotravantes de encaixe nas vigas e pilares?",
+      "[Inspeção] As tendas/ Galpões lonados não estão montadas próximo à escavação, taludes ou pilhas de materiais onde exista risco de ser atingido em caso de deslizamento ou ruptura? (distância a ser definida conforme projeto).",
+      "[Inspeção] As travas (parafusos cabeça sextavado, porcas sextavada, pino em L, arruela lisa, chumbadores, porca e contraporca, ou porca autotravante) apresentam sinais de corrosão ou folgas?",
+      "[Inspeção] As vigas (calha treliçada), estão alinhadas perpendicular (90°) aos pilares e não apresentam corrosão e/ou deformação?",
+      "[Inspeção] Os cabos de aço estão tensionados e possuem clips, não possuem fissuras ou corrosão, e possuem sapatilhas para fixação, conforme projeto?",
+      "[Inspeção] Todas as colunas de sustentação (pilares) possuem estaiamento com Cinta Poliéster e/ou cabo de aço conforme projeto e catraca vinculada a um Chumbador - Finca / Parabole? Ângulo mínimo de 60° entre o estaiamento e o pilar.",
+      "[Inspeção] Todas as colunas de sustentação (pilares) possuem no mínimo 02 Chumbadores - Finca com ponto de solda na base / Parabole por pilar?",
+      "[Inspeção] A lona / Sombrite do fechamento lateral, esta em bom estado de conservação, não apresenta rasgos, furos, esta amarrada e esticada em todos os pontos de fixação conforme projeto?",
+      "[Inspeção] A lona / Sombrite do teto, esta em bom estado de conservação, não apresenta rasgos, furos, esta esticada e amarrada às vigas em todos os pontos de fixação, conforme projeto?",
+      "[Inspeção] As calhas de água de chuva e o interior dos pilares vazados estão totalmente desobstruídos? (quando aplicável no projeto).",
+      "[Inspeção] As tendas/ Galpões lonados estão montadas a uma distância segura de rede elétrica, equipamento ou árvores que ofereça risco de queda de peças e materiais?",
+      "[Inspeção] As tendas/galpões lonados utilizadas para ocupação de pessoas possuem sinalização de saída de emergência e alarme de emergência, conforme projeto? (adotar o item conforme indicação do projeto)",
+      "[Inspeção] O sistema de iluminação (se aplicável), estão instalados corretamente?",
+      "[Inspeção] A lona de cobertura está sem nenhuma deformação ocasionada por acumulo de água, folhas, minério, etc.?"
+    ];
+
+    let currentFormItemId = null, currentFormCategory = null, currentFormMonthName = null, currentItemInfo = null;
+    let currentItems = [];
+    let reactivatingItemId = null;
+    window.currentDetailItem = null;
+
+    function getStoragePathFromUrl(url) {
+      const regex = /\/storage\/v1\/object\/public\/pdfs\/(.+)$/;
+      const match = url.match(regex);
+      return match ? match[1] : null;
+    }
+
+    async function deleteStorageFile(fileUrl) {
+      const path = getStoragePathFromUrl(fileUrl);
+      if (!path) return false;
+      const { error } = await supabase.storage.from(BUCKET).remove([path]);
+      if (error) console.error("Erro ao deletar arquivo do storage:", error);
+      return !error;
+    }
+
+    async function getAllItemsWithFiles() {
+      let items = [];
+      let files = [];
+      
+      if (navigator.onLine) {
+        try {
+          const { data: itemsData, error: itemsError } = await supabase.from('items').select('*').order('id', { ascending: true });
+          if (itemsError) throw itemsError;
+          items = itemsData;
+          const { data: filesData, error: filesError } = await supabase.from('files').select('*');
+          if (filesError) throw filesError;
+          files = filesData;
+          await salvarItemsLocal(items);
+          await salvarFilesLocal(files);
+        } catch (error) {
+          console.warn('Erro ao buscar online, usando cache local:', error);
+          items = await carregarItemsLocal();
+          files = await carregarFilesLocal();
+        }
+      } else {
+        items = await carregarItemsLocal();
+        files = await carregarFilesLocal();
+        if (items.length === 0) {
+          console.warn('Nenhum item em cache local. Conecte-se à internet para carregar os dados.');
+          return [];
+        }
+      }
+      
+      const filesByItem = {};
+      files.forEach(file => { 
+        if (!filesByItem[file.item_id]) filesByItem[file.item_id] = []; 
+        filesByItem[file.item_id].push(file); 
+      });
+      return items.map(item => ({ 
+        id: item.id, 
+        name: item.name, 
+        sub_localizacao: item.sub_localizacao || '', 
+        tamanho: item.tamanho || '', 
+        code: item.code, 
+        status: item.status || 'active', 
+        files: filesByItem[item.id] || [] 
+      }));
+    }
+
+    async function addFileToItem(itemId, category, file, inspecaoData = null) {
+      const { data: existing, error: findError } = await supabase.from('files').select('id, file_url').eq('item_id', itemId).eq('category', category).maybeSingle();
+      if (findError) throw findError;
+      if (existing && existing.file_url) {
+        await deleteStorageFile(existing.file_url);
+        await supabase.from('files').delete().eq('id', existing.id);
+      }
+      const fileExt = file.name.split('.').pop();
+      const filePath = `itens/${itemId}/${category}_${Date.now()}.${fileExt}`;
+      const { error: uploadError } = await supabase.storage.from(BUCKET).upload(filePath, file);
+      if (uploadError) throw uploadError;
+      const { data: publicUrlData } = supabase.storage.from(BUCKET).getPublicUrl(filePath);
+      const fileUrl = publicUrlData.publicUrl;
+      const insertData = { item_id: itemId, category, file_name: file.name, file_url: fileUrl };
+      if (inspecaoData) insertData.inspecao_data = inspecaoData;
+      const { error: insertError } = await supabase.from('files').insert(insertData);
+      if (insertError) throw insertError;
+      
+      const allFiles = await carregarFilesLocal();
+      allFiles.push(insertData);
+      await salvarFilesLocal(allFiles);
+    }
+
+    async function deleteFileById(fileId) {
+      const { data: file, error: findError } = await supabase.from('files').select('file_url').eq('id', fileId).single();
+      if (findError) throw findError;
+      if (file && file.file_url) await deleteStorageFile(file.file_url);
+      await supabase.from('files').delete().eq('id', fileId);
+      
+      const allFiles = await carregarFilesLocal();
+      const filtered = allFiles.filter(f => f.id !== fileId);
+      await salvarFilesLocal(filtered);
+    }
+
+    async function deleteItemAndFiles(itemId) {
+      const { data: files, error: findError } = await supabase.from('files').select('file_url').eq('item_id', itemId);
+      if (findError) throw findError;
+      for (const file of files) if (file.file_url) await deleteStorageFile(file.file_url);
+      await supabase.from('items').delete().eq('id', itemId);
+      
+      const allItems = await carregarItemsLocal();
+      const filteredItems = allItems.filter(i => i.id !== itemId);
+      await salvarItemsLocal(filteredItems);
+      
+      const allFiles = await carregarFilesLocal();
+      const filteredFiles = allFiles.filter(f => f.item_id !== itemId);
+      await salvarFilesLocal(filteredFiles);
+    }
+
+    async function saveItemComplete(itemId, name, sub_localizacao, tamanho, code, filesToProcess) {
+      if (!navigator.onLine) {
+        const pendingData = {
+          name: name,
+          sub_localizacao: sub_localizacao,
+          tamanho: tamanho,
+          code: code,
+          timestamp: new Date().toISOString()
+        };
+        await salvarItemPending(pendingData);
+        
+        const newId = Date.now();
+        const newItem = { id: newId, name, sub_localizacao, tamanho, code, status: 'active', files: [] };
+        const items = await carregarItemsLocal();
+        items.push(newItem);
+        await salvarItemsLocal(items);
+        await refreshData();
+        alert('⚠️ Você está offline. O item foi salvo localmente e será sincronizado quando a internet voltar.');
+        return newId;
+      }
+
+      const { data: existing, error: dupError } = await supabase.from('items').select('id').eq('code', code).maybeSingle();
+      if (dupError) throw dupError;
+      if (existing && existing.id !== itemId) throw new Error(`O código "${code}" já está em uso.`);
+      
+      const uploadedUrls = [];
+      for (const item of filesToProcess) {
+        if (item.file) {
+          const fileExt = item.file.name.split('.').pop();
+          const tempId = itemId || 'temp';
+          const filePath = `itens/${tempId}/${item.category}_${Date.now()}.${fileExt}`;
+          await supabase.storage.from(BUCKET).upload(filePath, item.file);
+          const { data: publicUrlData } = supabase.storage.from(BUCKET).getPublicUrl(filePath);
+          uploadedUrls.push({ category: item.category, url: publicUrlData.publicUrl, fileName: item.file.name });
+        } else uploadedUrls.push({ category: item.category, url: null });
+      }
+
+      let itemIdFinal = itemId;
+      const itemData = { name, sub_localizacao, tamanho, code, status: 'active' };
+      if (itemId) await supabase.from('items').update(itemData).eq('id', itemId);
+      else { const { data: newItem } = await supabase.from('items').insert(itemData).select().single(); itemIdFinal = newItem.id; }
+
+      for (const fileInfo of uploadedUrls) {
+        if (fileInfo.url) {
+          const { data: existingFile } = await supabase.from('files').select('id, file_url').eq('item_id', itemIdFinal).eq('category', fileInfo.category).maybeSingle();
+          if (existingFile) {
+            await deleteStorageFile(existingFile.file_url);
+            await supabase.from('files').delete().eq('id', existingFile.id);
+          }
+          await supabase.from('files').insert({ item_id: itemIdFinal, category: fileInfo.category, file_name: fileInfo.fileName, file_url: fileInfo.url });
+        }
+      }
+      
+      const allItems = await supabase.from('items').select('*');
+      const allFiles = await supabase.from('files').select('*');
+      await salvarItemsLocal(allItems.data || []);
+      await salvarFilesLocal(allFiles.data || []);
+      return itemIdFinal;
+    }
+
+    async function saveHistory(itemId, oldData) {
+      if (!oldData) return;
+      await supabase.from('items_history').insert({
+        item_id: itemId,
+        name: oldData.name,
+        sub_localizacao: oldData.sub_localizacao,
+        tamanho: oldData.tamanho,
+        code: oldData.code,
+        changed_by: currentUser?.username || 'sistema'
+      });
+    }
+
+    async function toggleStatusFromDetail(itemId, newStatus) {
+      const item = currentItems.find(i => i.id === itemId);
+      if (!item) return;
+      if (newStatus === 'inactive') {
+        if (confirm('Inativar este item? Os dados atuais serão salvos no histórico.')) {
+          fullscreenLoader.classList.add('active');
+          try {
+            await saveHistory(itemId, { name: item.name, sub_localizacao: item.sub_localizacao, tamanho: item.tamanho, code: item.code });
+            await supabase.from('items').update({ status: 'inactive' }).eq('id', itemId);
+            await refreshData();
+            const detailModalElem = document.getElementById('detailModal');
+            if (detailModalElem && detailModalElem.style.display === 'flex') {
+              await openDetailModal(itemId);
+            }
+          } finally {
+            fullscreenLoader.classList.remove('active');
+          }
+        } else {
+          const toggle = document.getElementById('statusToggle');
+          if (toggle) toggle.checked = true;
+          const statusTextSpan = document.getElementById('statusText');
+          if (statusTextSpan) statusTextSpan.innerText = 'Ativo';
+        }
+      } else if (newStatus === 'active') {
+        reactivatingItemId = itemId;
+        document.getElementById('editItemName').value = item.name;
+        document.getElementById('editSubLocalizacao').value = item.sub_localizacao;
+        document.getElementById('editTamanho').value = item.tamanho;
+        document.getElementById('reactivateModal').style.display = 'flex';
+      }
+    }
+
+    async function saveReactivate() {
+      const newName = document.getElementById('editItemName').value.trim();
+      const newSub = document.getElementById('editSubLocalizacao').value.trim();
+      const newTamanho = document.getElementById('editTamanho').value.trim();
+      if (!newName) { alert("Localização é obrigatória."); return; }
+      const item = currentItems.find(i => i.id === reactivatingItemId);
+      if (!item) return;
+      fullscreenLoader.classList.add('active');
+      try {
+        await saveHistory(reactivatingItemId, { name: item.name, sub_localizacao: item.sub_localizacao, tamanho: item.tamanho, code: item.code });
+        await supabase.from('items').update({
+          name: newName,
+          sub_localizacao: newSub,
+          tamanho: newTamanho,
+          status: 'active'
+        }).eq('id', reactivatingItemId);
+        document.getElementById('reactivateModal').style.display = 'none';
+        const detailModalElem = document.getElementById('detailModal');
+        if (detailModalElem && detailModalElem.style.display === 'flex') {
+          await openDetailModal(reactivatingItemId);
+        }
+        await refreshData();
+      } finally {
+        fullscreenLoader.classList.remove('active');
+      }
+    }
+
+    async function gerarPDFBlob(formData, itemInfo, fotoFile) {
+      if (!window.PDFLib) throw new Error("PDF-lib não carregado.");
+      const { PDFDocument } = window.PDFLib;
+      const modelBytes = await fetch(MODELO_PDF_URL).then(res => res.arrayBuffer());
+      const pdfDoc = await PDFDocument.load(modelBytes);
+      const form = pdfDoc.getForm();
+      const camposCabecalho = [
+        { nome: "unidade", valor: formData.unidade || "" },
+        { nome: "localidade", valor: formData.localidade || "" },
+        { nome: "nome", valor: formData.resp_nome || "" },
+        { nome: "matrcula", valor: formData.resp_matricula || "" },
+        { nome: "data", valor: formData.data_inspecao || "" },
+        { nome: "empresa", valor: formData.empresa || "" }
+      ];
+      for (const campo of camposCabecalho) try { form.getTextField(campo.nome).setText(campo.valor); } catch(e) {}
+      for (let i=1; i<=25; i++) {
+        const resposta = formData[`resp_${i-1}`] || "Não respondido";
+        try { form.getTextField(`${i}`).setText(resposta); } catch(e) {}
+      }
+      await adicionarInfoItemEAssinatura(pdfDoc, itemInfo.code, itemInfo.tamanho);
+      if (fotoFile) {
+        const fotoBytes = await fotoFile.arrayBuffer();
+        let fotoImage;
+        try { fotoImage = await pdfDoc.embedPng(fotoBytes); } catch { fotoImage = await pdfDoc.embedJpg(fotoBytes); }
+        if (fotoImage) {
+          const fotoMaxWidth = 300, fotoMaxHeight = 200;
+          const scale = Math.min(fotoMaxWidth / fotoImage.width, fotoMaxHeight / fotoImage.height);
+          const finalW = fotoImage.width * scale, finalH = fotoImage.height * scale;
+          const page = pdfDoc.getPages()[0];
+          const { width, height } = page.getSize();
+          const fotoX = 30;
+          const fotoY = 30;
+          page.drawImage(fotoImage, { x: fotoX, y: fotoY, width: finalW, height: finalH });
+        }
+      }
+      const pdfBytes = await pdfDoc.save();
+      return new Blob([pdfBytes], { type: 'application/pdf' });
+    }
+
+    async function generateAndAttachPdf(itemId, category, monthName, formData, itemInfo, fotoFile) {
+      if (!navigator.onLine) {
+        try {
+          fullscreenLoader.classList.add('active');
+          console.log('Modo offline - iniciando salvamento local...');
+          
+          const pdfBlob = await gerarPDFBlob(formData, itemInfo, fotoFile);
+          const pdfBase64 = await blobToBase64(pdfBlob);
+          let fotoBase64 = null;
+          if (fotoFile) {
+            fotoBase64 = await blobToBase64(fotoFile);
+          }
+          
+          const pendingData = {
+            type: 'inspecao',
+            itemId: itemId,
+            category: category,
+            monthName: monthName,
+            formData: formData,
+            itemInfo: {
+              code: itemInfo.code,
+              tamanho: itemInfo.tamanho,
+              name: itemInfo.name
+            },
+            pdfBase64: pdfBase64,
+            fotoBase64: fotoBase64,
+            timestamp: new Date().toISOString()
+          };
+          
+          await salvarInspecaoPending(pendingData);
+          
+          fullscreenLoader.classList.remove('active');
+          alert('⚠️ Você está offline. O PDF foi salvo localmente e será enviado automaticamente quando a internet voltar.');
+          return;
+        } catch (error) {
+          fullscreenLoader.classList.remove('active');
+          console.error('Erro detalhado ao salvar offline:', error);
+          alert('Erro ao salvar inspeção localmente: ' + (error.message || 'Verifique o console'));
+          return;
+        }
+      }
+
+      try {
+        if (!window.PDFLib) throw new Error("PDF-lib não carregado.");
+        const { PDFDocument } = window.PDFLib;
+        const modelBytes = await fetch(MODELO_PDF_URL).then(res => res.arrayBuffer());
+        const pdfDoc = await PDFDocument.load(modelBytes);
+        const form = pdfDoc.getForm();
+        const camposCabecalho = [
+          { nome: "unidade", valor: formData.unidade || "" },
+          { nome: "localidade", valor: formData.localidade || "" },
+          { nome: "nome", valor: formData.resp_nome || "" },
+          { nome: "matrcula", valor: formData.resp_matricula || "" },
+          { nome: "data", valor: formData.data_inspecao || "" },
+          { nome: "empresa", valor: formData.empresa || "" }
+        ];
+        for (const campo of camposCabecalho) try { form.getTextField(campo.nome).setText(campo.valor); } catch(e) {}
+        for (let i=1; i<=25; i++) {
+          const resposta = formData[`resp_${i-1}`] || "Não respondido";
+          try { form.getTextField(`${i}`).setText(resposta); } catch(e) {}
+        }
+        await adicionarInfoItemEAssinatura(pdfDoc, itemInfo.code, itemInfo.tamanho);
+        if (fotoFile) {
+          const fotoBytes = await fotoFile.arrayBuffer();
+          let fotoImage;
+          try { fotoImage = await pdfDoc.embedPng(fotoBytes); } catch { fotoImage = await pdfDoc.embedJpg(fotoBytes); }
+          if (fotoImage) {
+            const fotoMaxWidth = 300, fotoMaxHeight = 200;
+            const scale = Math.min(fotoMaxWidth / fotoImage.width, fotoMaxHeight / fotoImage.height);
+            const finalW = fotoImage.width * scale, finalH = fotoImage.height * scale;
+            const page = pdfDoc.getPages()[0];
+            const { width, height } = page.getSize();
+            const fotoX = 30;
+            const fotoY = 30;
+            page.drawImage(fotoImage, { x: fotoX, y: fotoY, width: finalW, height: finalH });
+          }
+        }
+        const pdfBytes = await pdfDoc.save();
+        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+        const file = new File([blob], `checklist_${monthName}_${Date.now()}.pdf`, { type: 'application/pdf' });
+        
+        const { data: existingFile } = await supabase.from('files').select('id, file_url').eq('item_id', itemId).eq('category', category).maybeSingle();
+        if (existingFile && existingFile.file_url) {
+          await deleteStorageFile(existingFile.file_url);
+          await supabase.from('files').delete().eq('id', existingFile.id);
+        }
+        await addFileToItem(itemId, category, file, formData.data_inspecao);
+        
+        alert(`✅ PDF gerado!\nID: ${itemInfo.code} | Tamanho: ${itemInfo.tamanho || 'N/I'}\nAssinatura: ${currentUser?.username || 'usuário'}`);
+        await refreshData();
+        await openDetailModal(itemId);
+      } catch(err) { console.error(err); alert("Erro ao gerar PDF: " + err.message); }
+    }
+
+    async function adicionarInfoItemEAssinatura(pdfDoc, itemCode, itemTamanho) {
+      try {
+        const pages = pdfDoc.getPages();
+        if (pages.length === 0) return pdfDoc;
+        const pagina = pages[0];
+        const { width, height } = pagina.getSize();
+        const { StandardFonts, rgb } = window.PDFLib;
+        const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+        const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+        const posX = width - 210;
+        let posY = 130;
+        pagina.drawText(`ID / TAG: ${itemCode}`, { x: posX, y: posY, size: 10, font: boldFont, color: rgb(0,0,0) });
+        posY -= 18;
+        pagina.drawText(`TAMANHO: ${itemTamanho || 'Não informado'}`, { x: posX, y: posY, size: 10, font: boldFont, color: rgb(0,0,0) });
+        posY -= 25;
+        pagina.drawLine({ start: { x: posX-10, y: posY+8 }, end: { x: width-30, y: posY+8 }, thickness: 1, color: rgb(0.5,0.5,0.5) });
+        pagina.drawText("Assinatura do Responsável", { x: posX-10, y: posY-5, size: 8, font: font, color: rgb(0.5,0.5,0.5) });
+        if (currentUser && currentUser.username) {
+          const nomeUsuario = currentUser.username.toLowerCase();
+          const assinaturaUrl = `https://jklcvyuxwxgsfczrfaco.supabase.co/storage/v1/object/public/assinaturas/${nomeUsuario}.png`;
+          try {
+            const response = await fetch(assinaturaUrl);
+            if (response.ok) {
+              const imageBytes = await response.arrayBuffer();
+              let imagem;
+              try { imagem = await pdfDoc.embedPng(imageBytes); } catch(e) { try { imagem = await pdfDoc.embedJpg(imageBytes); } catch(e2) {} }
+              if (imagem) {
+                const areaMaxWidth = 180, areaMaxHeight = 80;
+                const scale = Math.min(areaMaxWidth / imagem.width, areaMaxHeight / imagem.height);
+                const finalW = imagem.width * scale, finalH = imagem.height * scale;
+                const imgX = width - finalW - 30, imgY = posY - finalH - 10;
+                pagina.drawImage(imagem, { x: imgX, y: imgY, width: finalW, height: finalH });
+              }
+            }
+          } catch(err) { console.warn(err); }
+        }
+        return pdfDoc;
+      } catch(err) { console.warn(err); return pdfDoc; }
+    }
+
+    const MODELO_PDF_URL = "https://jklcvyuxwxgsfczrfaco.supabase.co/storage/v1/object/public/pdfs/modelo_checklist_com_campos%20(3).pdf";
+
+    async function uploadManualPDF(itemId, category, monthName) {
+      return new Promise((resolve, reject) => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.pdf';
+        input.onchange = async (ev) => {
+          const file = ev.target.files[0];
+          if (file && file.type === 'application/pdf') {
+            fullscreenLoader.classList.add('active');
+            try {
+              const inspecaoData = new Date().toISOString().split('T')[0];
+              await addFileToItem(itemId, category, file, inspecaoData);
+              await refreshData();
+              await openDetailModal(itemId);
+              resolve();
+            } catch (err) {
+              alert('Erro ao adicionar PDF: ' + err.message);
+              reject(err);
+            } finally {
+              fullscreenLoader.classList.remove('active');
+            }
+          } else if (file) {
+            alert('Selecione um PDF.');
+            reject();
+          }
+        };
+        input.click();
+      });
+    }
+
+    function renderCards(filterText = "") {
+      const container = document.getElementById('itemsContainer');
+      const lowerFilter = filterText.toLowerCase();
+      const filtered = currentItems.filter(item => item.name.toLowerCase().includes(lowerFilter) || item.code.toLowerCase().includes(lowerFilter) || (item.sub_localizacao && item.sub_localizacao.toLowerCase().includes(lowerFilter)) || (item.tamanho && item.tamanho.toLowerCase().includes(lowerFilter)));
+      if (filtered.length === 0) { container.innerHTML = `<div class="empty-state">✨ Nenhum item encontrado.</div>`; return; }
+      
+      const dataAtual = new Date();
+      const mesAtualIndex = dataAtual.getMonth();
+      const mesAtualNome = monthNames[mesAtualIndex];
+      const mesAtualKey = monthKeys[mesAtualIndex];
+      
+      container.innerHTML = filtered.map(item => {
+        const arquivoMesAtual = item.files.find(f => f.category === mesAtualKey);
+        let inspecaoMsg = '';
+        if (arquivoMesAtual) {
+          if (arquivoMesAtual.inspecao_data) {
+            inspecaoMsg = `<p style="color: #10b981; font-size: 0.7rem; margin-top: 0.3rem;">✅ Inspeção ${mesAtualNome}: ${formatarData(arquivoMesAtual.inspecao_data)}</p>`;
+          } else {
+            inspecaoMsg = `<p style="color: #10b981; font-size: 0.7rem; margin-top: 0.3rem;">✅ Inspeção ${mesAtualNome}: realizada</p>`;
+          }
+        } else {
+          inspecaoMsg = `<p style="color: #f59e0b; font-size: 0.7rem; margin-top: 0.3rem;">⚠️ Inspeção ${mesAtualNome}: pendente</p>`;
+        }
+        const statusClass = item.status === 'active' ? 'status-active' : 'status-inactive';
+        const statusText = item.status === 'active' ? 'Ativo' : 'Inativo';
+        return `
+          <div class="item-card" data-id="${item.id}">
+            <div>
+              <h3> ${escapeHtml(item.name)}</h3>
+              <p>TAG: ${escapeHtml(item.code)}</p>
+              ${item.sub_localizacao ? `<p>${escapeHtml(item.sub_localizacao)}</p>` : ''}
+              ${item.tamanho ? `<p> ${escapeHtml(item.tamanho)}</p>` : ''}
+              <div><span class="status-badge ${statusClass}">${statusText}</span></div>
+              ${inspecaoMsg}
+            </div>
+          </div>
+        `;
+      }).join('');
+      
+      document.querySelectorAll('.item-card').forEach(card => {
+        card.addEventListener('click', () => openDetailModal(parseInt(card.dataset.id)));
+      });
+    }
+    
+    function formatarData(dataString) {
+      if (!dataString) return '';
+      const partes = dataString.split('-');
+      if (partes.length === 3) return `${partes[2]}/${partes[1]}/${partes[0]}`;
+      return dataString;
+    }
+    
+    function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;'); }
+    async function refreshData() { currentItems = await getAllItemsWithFiles(); renderCards(document.getElementById('searchInput').value); }
+
+    const detailModalElem = document.getElementById('detailModal');
+    const detailContent = document.getElementById('detailContent');
+    const closeDetailModalBtn = document.getElementById('closeDetailModalBtn');
+    if (closeDetailModalBtn) closeDetailModalBtn.addEventListener('click', () => detailModalElem.style.display = 'none');
+    detailModalElem.addEventListener('click', (e) => { if (e.target === detailModalElem) detailModalElem.style.display = 'none'; });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && detailModalElem.style.display === 'flex') detailModalElem.style.display = 'none'; });
+
+    async function openDetailModal(itemId) {
+      const item = currentItems.find(i => i.id === itemId);
+      if (!item) return;
+      window.currentDetailItem = item;
+      detailContent.innerHTML = '<div class="loading">Carregando...</div>';
+      detailModalElem.style.display = 'flex';
+      const freshItems = await getAllItemsWithFiles();
+      const freshItem = freshItems.find(i => i.id === itemId);
+      if (!freshItem) return;
+      renderItemDetailModal(freshItem);
+    }
+
+    function renderItemDetailModal(item) {
+      const files = item.files;
+      const memorialFile = files.find(f => f.category === 'memorial');
+      const monthlyFiles = monthKeys.map(key => files.find(f => f.category === key));
+      const isActive = item.status === 'active';
+      
+      let html = `
+        <div class="status-container">
+          <span style="font-weight: 500;">Status:</span>
+          <label class="toggle-switch">
+            <input type="checkbox" id="statusToggle" ${isActive ? 'checked' : ''}>
+            <span class="slider"></span>
+          </label>
+          <span class="status-text" id="statusText">${isActive ? 'Ativo' : 'Inativo'}</span>
+        </div>
+        ${!isActive ? '<div class="inactive-message">⚠️ Item inativo. Não é possível anexar PDFs ou gerar formulários.</div>' : ''}
+        <div class="item-detail-title">
+          <strong>${escapeHtml(item.name)}</strong><br>
+          ${item.sub_localizacao ? `Sub. Localização: ${escapeHtml(item.sub_localizacao)}<br>` : ''}
+          ${item.tamanho ? `Tamanho: ${escapeHtml(item.tamanho)}<br>` : ''}
+          ID: ${escapeHtml(item.code)}
+        </div>
+        <div class="pdf-group">
+          <div class="pdf-group-title">📄 Memorial de Cálculo</div>
+          ${renderDetailPdfRow('memorial', 'Memorial', memorialFile, item.id, isActive)}
+        </div>
+        <div class="pdf-group">
+          <div class="pdf-group-title">📅 Documentos Mensais</div>
+          ${monthNames.map((month, idx) => renderDetailPdfRow(monthKeys[idx], month, monthlyFiles[idx], item.id, isActive, true)).join('')}
+        </div>
+        <button class="delete-item-btn" id="deleteItemFromDetailBtn">🗑️ Excluir este item</button>
+        <div class="notice">* Clique nos botões + para anexar/substituir PDFs. Clique em 📝 para preencher formulário e gerar PDF.</div>
+      `;
+      detailContent.innerHTML = html;
+      
+      const toggle = document.getElementById('statusToggle');
+      const statusTextSpan = document.getElementById('statusText');
+      if (toggle) {
+        toggle.addEventListener('change', async (e) => {
+          const newStatus = e.target.checked ? 'active' : 'inactive';
+          statusTextSpan.innerText = newStatus === 'active' ? 'Ativo' : 'Inativo';
+          await toggleStatusFromDetail(item.id, newStatus);
+        });
+      }
+      
+      document.querySelectorAll('.upload-pdf-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          if (!isActive) {
+            alert('Item inativo. Ative o item para anexar PDFs.');
+            return;
+          }
+          const itemId = Number(btn.dataset.itemid);
+          const category = btn.dataset.category;
+          const monthName = btn.dataset.monthname || '';
+          await uploadManualPDF(itemId, category, monthName);
+        });
+      });
+      document.querySelectorAll('.remove-pdf-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          if (!isActive) {
+            alert('Item inativo. Ative o item para remover PDFs.');
+            return;
+          }
+          if (confirm('Remover este PDF?')) {
+            fullscreenLoader.classList.add('active');
+            try {
+              await deleteFileById(Number(btn.dataset.fileid));
+              await refreshData();
+              await openDetailModal(item.id);
+            } finally {
+              fullscreenLoader.classList.remove('active');
+            }
+          }
+        });
+      });
+      document.querySelectorAll('.fill-form-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          if (!isActive) {
+            alert('Item inativo. Ative o item para preencher o formulário.');
+            return;
+          }
+          openFormModal(Number(btn.dataset.itemid), btn.dataset.category, btn.dataset.monthname);
+        });
+      });
+      const deleteBtn = document.getElementById('deleteItemFromDetailBtn');
+      if (deleteBtn) deleteBtn.addEventListener('click', async () => {
+        if (confirm(`Excluir o item "${item.name}"?`)) {
+          fullscreenLoader.classList.add('active');
+          try {
+            await deleteItemAndFiles(item.id);
+            detailModalElem.style.display = 'none';
+            await refreshData();
+          } finally {
+            fullscreenLoader.classList.remove('active');
+          }
+        }
+      });
+    }
+
+    function renderDetailPdfRow(category, label, file, itemId, isActive, showFormButton = false) {
+      const actions = `
+        <button class="upload-pdf-btn" data-itemid="${itemId}" data-category="${category}" data-monthname="${label}" title="Substituir PDF">🔄</button>
+        ${file ? `<button class="remove-pdf-btn" data-fileid="${file.id}" title="Remover">✖</button>` : ''}
+        ${showFormButton ? `<button class="fill-form-btn" data-itemid="${itemId}" data-category="${category}" data-monthname="${label}" title="Preencher formulário">📝</button>` : ''}
+      `;
+      const disabledClass = !isActive ? 'disabled-action' : '';
+      if (file) {
+        return `
+          <div class="pdf-row">
+            <span class="pdf-label">${escapeHtml(label)}</span>
+            <div class="pdf-file-info">
+              <a href="${file.file_url}" target="_blank">📄 ${escapeHtml(file.file_name)}</a>
+            </div>
+            <div class="pdf-actions ${disabledClass}">
+              ${actions}
+            </div>
+          </div>
+        `;
+      } else {
+        return `
+          <div class="pdf-row">
+            <span class="pdf-label">${escapeHtml(label)}</span>
+            <div class="pdf-file-info">— Nenhum PDF anexado —</div>
+            <div class="pdf-actions ${disabledClass}">
+              <button class="upload-pdf-btn" data-itemid="${itemId}" data-category="${category}" data-monthname="${label}" title="Adicionar PDF">➕</button>
+              ${showFormButton ? `<button class="fill-form-btn" data-itemid="${itemId}" data-category="${category}" data-monthname="${label}" title="Preencher formulário">📝</button>` : ''}
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    const formModal = document.getElementById('formModal');
+    const formFieldsContainer = document.getElementById('formFieldsContainer');
+    const closeFormModalBtn = document.getElementById('closeFormModalBtn');
+    const cancelFormBtn = document.getElementById('cancelFormBtn');
+    const generatePdfBtn = document.getElementById('generatePdfBtn');
+    const fullscreenLoader = document.getElementById('fullscreenLoader');
+    const fotoInput = document.getElementById('fotoInspecao');
+    const fotoPreview = document.getElementById('fotoPreview');
+
+    if (fotoInput) {
+      fotoInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = function(event) { fotoPreview.innerHTML = `<img src="${event.target.result}" class="image-preview" alt="Preview">`; };
+          reader.readAsDataURL(file);
+        } else { fotoPreview.innerHTML = ''; }
+      });
+    }
+
+    function openFormModal(itemId, category, monthName) {
+      currentFormItemId = itemId; currentFormCategory = category; currentFormMonthName = monthName;
+      const itemAtual = currentItems.find(i => i.id === itemId);
+      currentItemInfo = itemAtual || { name: '', code: '', tamanho: '' };
+      document.getElementById('formModalTitle').innerText = `Formulário de Inspeção - ${monthName}`;
+      let html = `<div class="form-row"><div class="form-group"><label>Unidade</label><input type="text" id="unidade" placeholder="Ex: Matriz"></div><div class="form-group"><label>Nome da Localidade</label><input type="text" id="localidade"></div></div><div class="form-row"><div class="form-group"><label>Responsável - Nome</label><input type="text" id="resp_nome"></div><div class="form-group"><label>Responsável - Matrícula</label><input type="text" id="resp_matricula"></div></div><div class="form-row"><div class="form-group"><label>Data da Inspeção</label><input type="date" id="data_inspecao"></div><div class="form-group"><label>Empresa</label><input type="text" id="empresa"></div></div><hr style="margin: 1rem 0;"><h3>Checklist de Inspeção</h3>`;
+      for (let i=0; i<checklistPerguntas.length; i++) html += `<div class="question-group"><div class="question-text">${i+1}. ${escapeHtml(checklistPerguntas[i])}</div><div class="question-options"><label><input type="radio" name="resp_${i}" value="Conforme"> Conforme</label><label><input type="radio" name="resp_${i}" value="Não conforme"> Não conforme</label><label><input type="radio" name="resp_${i}" value="Não se aplica"> Não se aplica</label></div><div class="question-obs"><input type="text" placeholder="Observação (opcional)" id="obs_${i}" style="width:100%;"></div></div>`;
+      formFieldsContainer.innerHTML = html;
+      
+      const unidadeInput = document.getElementById('unidade');
+      if (unidadeInput) unidadeInput.value = 'SERRA NORTE';
+      const localidadeInput = document.getElementById('localidade');
+      if (localidadeInput) {
+        const localizacao = itemAtual?.name || '';
+        const subLocal = itemAtual?.sub_localizacao || '';
+        const localidadeCompleta = subLocal ? `${localizacao} - ${subLocal}` : localizacao;
+        localidadeInput.value = localidadeCompleta;
+      }
+      if (fotoInput) fotoInput.value = '';
+      if (fotoPreview) fotoPreview.innerHTML = '';
+      formModal.style.display = 'flex';
+    }
+
+    generatePdfBtn.addEventListener('click', async () => {
+      const formData = {
+        unidade: document.getElementById('unidade')?.value || '',
+        localidade: document.getElementById('localidade')?.value || '',
+        resp_nome: document.getElementById('resp_nome')?.value || '',
+        resp_matricula: document.getElementById('resp_matricula')?.value || '',
+        data_inspecao: document.getElementById('data_inspecao')?.value || '',
+        empresa: document.getElementById('empresa')?.value || ''
+      };
+      for (let i=0; i<checklistPerguntas.length; i++) {
+        const radio = document.querySelector(`input[name="resp_${i}"]:checked`);
+        formData[`resp_${i}`] = radio ? radio.value : "Não respondido";
+      }
+      if (!formData.data_inspecao || !formData.resp_nome) { alert("Preencha Data e Responsável."); return; }
+      const fotoFile = document.getElementById('fotoInspecao')?.files[0] || null;
+      if (!fotoFile) { alert("Por favor, anexe uma foto da inspeção."); return; }
+      fullscreenLoader.classList.add('active');
+      try {
+        await generateAndAttachPdf(currentFormItemId, currentFormCategory, currentFormMonthName, formData, currentItemInfo, fotoFile);
+        formModal.style.display = 'none';
+      } catch(err) { alert("Erro: " + err.message); } finally { fullscreenLoader.classList.remove('active'); }
     });
-  });
-  console.log('✅ Sincronização finalizada');
-}
+
+    closeFormModalBtn.addEventListener('click', () => formModal.style.display = 'none');
+    cancelFormBtn.addEventListener('click', () => formModal.style.display = 'none');
+
+    const reactivateModal = document.getElementById('reactivateModal');
+    const closeReactivateModalBtn = document.getElementById('closeReactivateModalBtn');
+    const cancelReactivateBtn = document.getElementById('cancelReactivateBtn');
+    const confirmReactivateBtn = document.getElementById('confirmReactivateBtn');
+    closeReactivateModalBtn.addEventListener('click', () => reactivateModal.style.display = 'none');
+    cancelReactivateBtn.addEventListener('click', () => reactivateModal.style.display = 'none');
+    confirmReactivateBtn.addEventListener('click', saveReactivate);
+
+    const createModal = document.getElementById('createItemModal');
+    const closeCreateBtn = document.getElementById('closeCreateModalBtn'), cancelCreateBtn = document.getElementById('cancelCreateBtn'), confirmCreateBtn = document.getElementById('confirmCreateBtn');
+    const newItemName = document.getElementById('newItemName'), newSubLocalizacao = document.getElementById('newSubLocalizacao'), newTamanho = document.getElementById('newTamanho'), newItemCode = document.getElementById('newItemCode'), newMemorialFile = document.getElementById('newMemorialFile'), newMonthlyContainer = document.getElementById('newMonthlyFilesContainer'), createCodeError = document.getElementById('createCodeError');
+    function buildNewMonthlyInputs() { newMonthlyContainer.innerHTML = ''; monthNames.forEach((month, idx) => { const div = document.createElement('div'); div.className = 'month-group'; const label = document.createElement('label'); label.textContent = month + ':'; const input = document.createElement('input'); input.type = 'file'; input.accept = '.pdf'; input.id = `new_month_${monthKeys[idx]}`; div.appendChild(label); div.appendChild(input); newMonthlyContainer.appendChild(div); }); }
+    buildNewMonthlyInputs();
+    function openCreateModal() { newItemName.value = ''; newSubLocalizacao.value = ''; newTamanho.value = ''; newItemCode.value = ''; newMemorialFile.value = ''; monthKeys.forEach(key => { const inp = document.getElementById(`new_month_${key}`); if (inp) inp.value = ''; }); createCodeError.innerText = ''; createModal.style.display = 'flex'; }
+    closeCreateBtn.addEventListener('click', () => createModal.style.display = 'none');
+    cancelCreateBtn.addEventListener('click', () => createModal.style.display = 'none');
+    confirmCreateBtn.addEventListener('click', async () => {
+      const name = newItemName.value.trim(), sub_localizacao = newSubLocalizacao.value.trim(), tamanho = newTamanho.value.trim(), code = newItemCode.value.trim();
+      if (!name || !code) { createCodeError.innerText = 'Preencha nome e código.'; return; }
+      createCodeError.innerText = '';
+      const filesToProcess = [];
+      if (newMemorialFile.files.length > 0) filesToProcess.push({ category: 'memorial', file: newMemorialFile.files[0] });
+      else filesToProcess.push({ category: 'memorial', file: null });
+      for (let i=0; i<monthKeys.length; i++) { const key = monthKeys[i]; const inp = document.getElementById(`new_month_${key}`); if (inp && inp.files.length > 0) filesToProcess.push({ category: key, file: inp.files[0] }); else filesToProcess.push({ category: key, file: null }); }
+      try { await saveItemComplete(null, name, sub_localizacao, tamanho, code, filesToProcess); createModal.style.display = 'none'; refreshData(); } catch(err) { if (err.message.includes('código')) createCodeError.innerText = err.message; else alert('Erro ao criar item: ' + err.message); }
+    });
+
+    async function downloadMonthPDFs(category, monthName) {
+      try {
+        if (!window.PDFLib) throw new Error("PDF-lib não carregado.");
+        const { PDFDocument } = window.PDFLib;
+        const items = await getAllItemsWithFiles();
+        const filesToMerge = [];
+        for (const item of items) { const file = item.files.find(f => f.category === category); if (file && file.file_url) { const response = await fetch(file.file_url); if (response.ok) filesToMerge.push({ name: `${item.name} - ${item.code}.pdf`, blob: await response.blob() }); } }
+        if (filesToMerge.length === 0) { alert(`Nenhum PDF encontrado para ${monthName}.`); return; }
+        const mergedPdf = await PDFDocument.create();
+        for (const file of filesToMerge) { const pdf = await PDFDocument.load(await file.blob.arrayBuffer()); const pages = await mergedPdf.copyPages(pdf, pdf.getPageIndices()); pages.forEach(p => mergedPdf.addPage(p)); }
+        const mergedPdfBytes = await mergedPdf.save();
+        const blob = new Blob([mergedPdfBytes], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = `todos_${monthName}.pdf`; a.click(); URL.revokeObjectURL(url);
+      } catch(err) { alert(`Erro: ${err.message}`); }
+    }
+
+    document.getElementById('addItemBtn').addEventListener('click', openCreateModal);
+    document.getElementById('searchInput').addEventListener('input', (e) => renderCards(e.target.value));
+    const monthContainer = document.getElementById('monthButtonsContainer');
+    monthNames.forEach((month, idx) => { const btn = document.createElement('button'); btn.className = 'month-btn'; btn.textContent = month; btn.addEventListener('click', () => downloadMonthPDFs(monthKeys[idx], month)); monthContainer.appendChild(btn); });
+    window.addEventListener('DOMContentLoaded', async () => {
+      await initOfflineDB();
+      await refreshData();
+      await sincronizarTudo();
+    });
+    
+    window.addEventListener('online', async () => {
+      console.log('Internet restaurada! Sincronizando pendentes...');
+      await sincronizarTudo();
+    });
+  })();
+</script>
+</body>
+</html>
