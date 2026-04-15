@@ -30,7 +30,8 @@ self.addEventListener('activate', event => {
     caches.keys().then(cacheNames => {
       return Promise.all(
         cacheNames.map(cache => {
-          if (cache !== CACHE_NAME) {
+          // NÃO remover o cache tendex-modelos
+          if (cache !== CACHE_NAME && cache !== 'tendex-modelos') {
             console.log('Removendo cache antigo:', cache);
             return caches.delete(cache);
           }
