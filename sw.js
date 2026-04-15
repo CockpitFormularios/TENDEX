@@ -1,114 +1,131 @@
-// sw.js - Service Worker para TENDEX (CORRIGIDO)
+// sw.js - Service Worker OTIMIZADO para OFFLINE
 const CACHE_NAME = 'tendex-v1';
 const MODELOS_CACHE = 'tendex-modelos';
+const OFFLINE_PAGE = '/TENDEX/offline.html';
 
+// Arquivos para cachear na instalação
 const urlsToCache = [
   '/TENDEX/',
   '/TENDEX/dashboard.html',
-  '/TENDEX/index.html'
+  '/TENDEX/index.html',
+  'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',
+  'https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js'
 ];
 
-// URLs que NÃO devem ser interceptadas
+// Ignorar requisições externas problemáticas
 const EXCLUDED_URLS = [
   'supabase.co',
   'google.com',
   'googleapis.com',
-  'gstatic.com',
-  'github.io'
+  'gstatic.com'
 ];
 
 function isExcluded(url) {
   return EXCLUDED_URLS.some(excluded => url.includes(excluded));
 }
 
+// INSTALAÇÃO
 self.addEventListener('install', event => {
-  console.log('Service Worker instalado');
+  console.log('[SW] Instalando...');
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => {
-        console.log('Cache principal aberto');
+        console.log('[SW] Cacheando arquivos essenciais...');
         return cache.addAll(urlsToCache);
       })
-      .catch(err => console.error('Erro ao adicionar ao cache:', err))
+      .then(() => self.skipWaiting())
+      .catch(err => console.error('[SW] Erro no cache:', err))
   );
-  self.skipWaiting();
 });
 
+// ATIVAÇÃO
 self.addEventListener('activate', event => {
-  console.log('Service Worker ativado');
+  console.log('[SW] Ativando...');
   event.waitUntil(
     Promise.all([
       caches.keys().then(cacheNames => {
         return Promise.all(
           cacheNames.map(cache => {
             if (cache !== CACHE_NAME && cache !== MODELOS_CACHE) {
-              console.log('Removendo cache antigo:', cache);
+              console.log('[SW] Removendo cache antigo:', cache);
               return caches.delete(cache);
             }
           })
         );
       }),
-      self.clients.claim()
+      self.clients.claim() // Toma controle imediatamente
     ])
   );
 });
 
+// INTERCEPTAÇÃO DE REQUISIÇÕES
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
   
-  // NÃO interceptar requisições excluídas
+  // Ignorar requisições excluídas
   if (isExcluded(url.href)) {
     return;
   }
   
-  // Ignorar requisições que não são GET
+  // Ignorar métodos que não são GET
   if (event.request.method !== 'GET') {
     return;
   }
   
   event.respondWith(
     caches.match(event.request)
-      .then(response => {
-        if (response) {
-          return response;
+      .then(cachedResponse => {
+        // Se tem cache, retorna do cache
+        if (cachedResponse) {
+          console.log('[SW] Cache HIT:', url.pathname);
+          return cachedResponse;
         }
-        return fetch(event.request).catch(() => {
-          // Fallback para offline
-          if (event.request.headers.get('accept')?.includes('text/html')) {
-            return caches.match('/TENDEX/offline.html');
-          }
-          return new Response('Recurso não disponível offline', { status: 503 });
-        });
+        
+        // Se não tem cache, tenta buscar da rede
+        console.log('[SW] Cache MISS:', url.pathname);
+        return fetch(event.request)
+          .then(networkResponse => {
+            // Cachear apenas respostas bem-sucedidas do mesmo domínio
+            if (networkResponse && networkResponse.status === 200 && 
+                url.origin === self.location.origin) {
+              const responseClone = networkResponse.clone();
+              caches.open(CACHE_NAME)
+                .then(cache => cache.put(event.request, responseClone));
+            }
+            return networkResponse;
+          })
+          .catch(error => {
+            console.error('[SW] Fetch falhou:', url.pathname, error);
+            
+            // Retorna página offline para navegação HTML
+            if (event.request.headers.get('accept')?.includes('text/html')) {
+              return caches.match(OFFLINE_PAGE)
+                .then(offlineResponse => {
+                  if (offlineResponse) return offlineResponse;
+                  return new Response(`
+                    <!DOCTYPE html>
+                    <html>
+                    <head><title>Offline</title><meta charset="UTF-8"></head>
+                    <body style="text-align:center;padding:50px;font-family:sans-serif;">
+                      <h1>🔌 Modo Offline</h1>
+                      <p>Você está sem conexão com a internet.</p>
+                      <p>Os dados serão sincronizados quando a conexão for restabelecida.</p>
+                      <button onclick="location.reload()">Tentar novamente</button>
+                    </body>
+                    </html>
+                  `, { headers: { 'Content-Type': 'text/html' } });
+                });
+            }
+            
+            return new Response('Recurso não disponível offline', { status: 503 });
+          });
       })
   );
 });
 
-self.addEventListener('sync', event => {
-  console.log('Evento sync recebido:', event.tag);
-  if (event.tag === 'sync-inspecoes') {
-    event.waitUntil(sincronizarDados());
-  }
-});
-
+// MENSAGENS
 self.addEventListener('message', event => {
-  if (event.data && event.data.type === 'SKIP_WAITING') {
+  if (event.data === 'SKIP_WAITING') {
     self.skipWaiting();
   }
 });
-
-async function sincronizarDados() {
-  console.log('🔄 Sincronizando dados pendentes...');
-  try {
-    const clients = await self.clients.matchAll();
-    clients.forEach(client => {
-      client.postMessage({
-        type: 'SYNC_TRIGGERED',
-        message: 'Internet restaurada. Iniciando sincronização...',
-        timestamp: new Date().toISOString()
-      });
-    });
-    console.log('✅ Sincronização finalizada');
-  } catch (error) {
-    console.error('❌ Erro na sincronização:', error);
-  }
-}
