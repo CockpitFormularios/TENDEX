@@ -286,14 +286,14 @@
           resolve(dbInstance);
           return;
         }
-        const request = indexedDB.open(DB_NAME_OFFLINE, 8);
+        const request = indexedDB.open(DB_NAME_OFFLINE, 9);
         request.onerror = (event) => {
           console.error('IndexedDB erro:', event);
           reject(request.error);
         };
         request.onsuccess = (event) => {
           dbInstance = request.result;
-          console.log('IndexedDB aberto com sucesso - versão 8');
+          console.log('IndexedDB aberto com sucesso - versão 9');
           resolve(dbInstance);
         };
         request.onupgradeneeded = (event) => {
@@ -313,6 +313,25 @@
           }
         };
       });
+    }
+
+    // ==================== LIMPAR DADOS ANTIGOS ====================
+    async function limparDadosSincronizados() {
+      try {
+        const db = await initOfflineDB();
+        
+        // Limpar itens pendentes
+        const tx1 = db.transaction(STORE_PENDING_ITEMS, 'readwrite');
+        await tx1.objectStore(STORE_PENDING_ITEMS).clear();
+        
+        // Limpar inspeções pendentes
+        const tx2 = db.transaction(STORE_PENDING_INSPECTIONS, 'readwrite');
+        await tx2.objectStore(STORE_PENDING_INSPECTIONS).clear();
+        
+        console.log('✅ Dados pendentes antigos removidos');
+      } catch (e) {
+        console.warn('Erro ao limpar dados antigos:', e);
+      }
     }
 
     // ==================== ITEMS CACHE ====================
@@ -373,7 +392,7 @@
       } catch (e) { console.warn('Erro ao carregar files local:', e); return []; }
     }
 
-    // ==================== PENDING ITEMS (para sincronizar novos itens) ====================
+    // ==================== PENDING ITEMS ====================
     async function salvarItemPending(itemData) {
       try {
         const db = await initOfflineDB();
@@ -457,7 +476,43 @@
       });
     }
 
-    // ==================== SINCronização ====================
+    // ==================== LIMPAR TODOS PENDENTES ====================
+    async function limparTodosPendentes() {
+      try {
+        const db = await initOfflineDB();
+        
+        const tx1 = db.transaction(STORE_PENDING_ITEMS, 'readwrite');
+        await tx1.objectStore(STORE_PENDING_ITEMS).clear();
+        
+        const tx2 = db.transaction(STORE_PENDING_INSPECTIONS, 'readwrite');
+        await tx2.objectStore(STORE_PENDING_INSPECTIONS).clear();
+        
+        console.log('✅ Todos os dados pendentes foram removidos');
+        return true;
+      } catch (e) {
+        console.error('Erro ao limpar pendentes:', e);
+        return false;
+      }
+    }
+
+    // ==================== TESTE DE CONEXÃO ====================
+    async function testarConexao() {
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+        await fetch('https://supabase.co', { 
+          method: 'HEAD',
+          signal: controller.signal,
+          mode: 'no-cors'
+        });
+        clearTimeout(timeoutId);
+        return true;
+      } catch (error) {
+        return false;
+      }
+    }
+
+    // ==================== SINCRONIZAÇÃO ====================
     async function sincronizarItensPendentes() {
       const pendentes = await getPendingItems();
       if (pendentes.length === 0) return 0;
@@ -467,6 +522,21 @@
       
       for (const item of pendentes) {
         try {
+          // Verificar se o código já existe no Supabase para evitar duplicatas
+          const { data: existing, error: checkError } = await supabase
+            .from('items')
+            .select('id')
+            .eq('code', item.code)
+            .maybeSingle();
+          
+          if (checkError) throw checkError;
+          
+          if (existing) {
+            console.log(`⚠️ Item com código ${item.code} já existe, removendo pendência...`);
+            await removerItemPending(item.id);
+            continue;
+          }
+          
           const { data, error } = await supabase.from('items').insert({
             name: item.name,
             sub_localizacao: item.sub_localizacao,
@@ -481,7 +551,7 @@
           sucessos++;
           console.log(`✅ Item ${item.name} sincronizado com ID: ${data.id}`);
         } catch (error) {
-          console.error(`❌ Erro ao sincronizar item ${item.id}:`, error);
+          console.error(`❌ Erro ao sincronizar item:`, error);
         }
       }
       return sucessos;
@@ -510,15 +580,17 @@
           sucessos++;
           console.log(`✅ Inspeção ${item.id} sincronizada com sucesso`);
         } catch (error) {
-          console.error(`❌ Erro ao sincronizar inspeção ${item.id}:`, error);
+          console.error(`❌ Erro ao sincronizar inspeção:`, error);
         }
       }
       return sucessos;
     }
 
     async function sincronizarTudo() {
-      if (!navigator.onLine) {
-        console.log('Offline - sincronização adiada');
+      const isReallyOnline = await testarConexao();
+      
+      if (!isReallyOnline) {
+        console.log('Offline - sincronização aguardando conexão real');
         return;
       }
       
@@ -661,7 +733,7 @@
       let items = [];
       let files = [];
       
-      if (navigator.onLine) {
+      if (navigator.onLine && await testarConexao()) {
         try {
           const { data: itemsData, error: itemsError } = await supabase.from('items').select('*').order('id', { ascending: true });
           if (itemsError) throw itemsError;
@@ -751,7 +823,16 @@
     }
 
     async function saveItemComplete(itemId, name, sub_localizacao, tamanho, code, filesToProcess) {
-      if (!navigator.onLine) {
+      if (!navigator.onLine || !(await testarConexao())) {
+        // Verificar se o código já existe localmente
+        const itemsLocal = await carregarItemsLocal();
+        const existeLocal = itemsLocal.some(i => i.code === code && i.id !== itemId);
+        
+        if (existeLocal) {
+          alert('❌ Este código já existe localmente. Aguarde a sincronização ou use outro código.');
+          throw new Error('Código duplicado localmente');
+        }
+        
         const pendingData = {
           name: name,
           sub_localizacao: sub_localizacao,
@@ -921,7 +1002,7 @@
     }
 
     async function generateAndAttachPdf(itemId, category, monthName, formData, itemInfo, fotoFile) {
-      if (!navigator.onLine) {
+      if (!navigator.onLine || !(await testarConexao())) {
         try {
           fullscreenLoader.classList.add('active');
           console.log('Modo offline - iniciando salvamento local...');
@@ -1408,15 +1489,25 @@
     document.getElementById('searchInput').addEventListener('input', (e) => renderCards(e.target.value));
     const monthContainer = document.getElementById('monthButtonsContainer');
     monthNames.forEach((month, idx) => { const btn = document.createElement('button'); btn.className = 'month-btn'; btn.textContent = month; btn.addEventListener('click', () => downloadMonthPDFs(monthKeys[idx], month)); monthContainer.appendChild(btn); });
+    
     window.addEventListener('DOMContentLoaded', async () => {
       await initOfflineDB();
+      await limparDadosSincronizados();
       await refreshData();
       await sincronizarTudo();
     });
     
+    let syncScheduled = false;
     window.addEventListener('online', async () => {
-      console.log('Internet restaurada! Sincronizando pendentes...');
-      await sincronizarTudo();
+      console.log('Conexão detectada, aguardando estabilização...');
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      
+      if (await testarConexao() && !syncScheduled) {
+        syncScheduled = true;
+        console.log('Conexão estável! Sincronizando...');
+        await sincronizarTudo();
+        syncScheduled = false;
+      }
     });
   })();
 </script>
