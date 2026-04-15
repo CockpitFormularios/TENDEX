@@ -25,7 +25,7 @@
     .month-buttons { display: flex; flex-wrap: wrap; gap: 0.5rem; }
     .month-btn { background: #e2e8f0; border: none; padding: 0.4rem 0.9rem; border-radius: 2rem; font-size: 0.8rem; cursor: pointer; transition: 0.2s; }
     .month-btn:hover { background: #cbd5e1; transform: scale(0.96); }
-    .items-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 1.2rem; margin-top: 1rem; }
+    .items-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.2rem; margin-top: 1rem; }
     .item-card { background: white; border-radius: 1rem; padding: 1rem; cursor: pointer; transition: 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid #e2edff; position: relative; }
     .item-card:hover { transform: translateY(-2px); box-shadow: 0 8px 16px rgba(0,0,0,0.08); background: #fafcff; }
     .item-card h3 { font-size: 1.1rem; color: #0f172a; margin-bottom: 0.3rem; }
@@ -76,7 +76,7 @@
     .form-row .form-group { flex: 1; }
     .question-group { margin-bottom: 1.5rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 1rem; }
     .question-text { font-weight: 600; margin-bottom: 0.5rem; font-size: 0.85rem; }
-    .question-options { display: flex; gap: 1rem; margin-bottom: 0.5rem; }
+    .question-options { display: flex; gap: 1rem; margin-bottom: 0.5rem; flex-wrap: wrap; }
     .question-options label { font-weight: normal; margin-right: 0.5rem; }
     .question-obs { margin-top: 0.5rem; }
     .question-obs input { font-size: 0.8rem; padding: 0.4rem; }
@@ -94,88 +94,21 @@
     .loader-text { margin-top: 1.5rem; font-size: 1.2rem; font-weight: 600; color: white; background: rgba(0,0,0,0.6); padding: 0.5rem 1.2rem; border-radius: 2rem; letter-spacing: 1px; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    .toggle-switch {
-      position: relative;
-      display: inline-block;
-      width: 60px;
-      height: 28px;
-      margin-left: 10px;
-    }
-    .toggle-switch input {
-      opacity: 0;
-      width: 0;
-      height: 0;
-    }
-    .slider {
-      position: absolute;
-      cursor: pointer;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background-color: #ef4444;
-      transition: 0.3s;
-      border-radius: 28px;
-    }
-    .slider:before {
-      position: absolute;
-      content: "";
-      height: 22px;
-      width: 22px;
-      left: 3px;
-      bottom: 3px;
-      background-color: white;
-      transition: 0.3s;
-      border-radius: 50%;
-    }
-    input:checked + .slider {
-      background-color: #10b981;
-    }
-    input:checked + .slider:before {
-      transform: translateX(32px);
-    }
-    .status-text {
-      font-size: 0.8rem;
-      font-weight: 600;
-      margin-left: 5px;
-    }
-    .status-container {
-      display: flex;
-      align-items: center;
-      justify-content: flex-end;
-      margin-bottom: 1rem;
-    }
-    .disabled-action {
-      opacity: 0.5;
-      pointer-events: none;
-    }
-    .inactive-message {
-      background: #fee2e2;
-      color: #991b1b;
-      padding: 0.5rem;
-      border-radius: 0.5rem;
-      margin-bottom: 1rem;
-      text-align: center;
-      font-size: 0.8rem;
-    }
-    .offline-badge {
-      background: #f59e0b;
-      color: white;
-      padding: 0.2rem 0.8rem;
-      border-radius: 2rem;
-      font-size: 0.7rem;
-      font-weight: 600;
-      margin-left: 1rem;
-    }
-    .online-badge {
-      background: #10b981;
-      color: white;
-      padding: 0.2rem 0.8rem;
-      border-radius: 2rem;
-      font-size: 0.7rem;
-      font-weight: 600;
-      margin-left: 1rem;
-    }
+    .toggle-switch { position: relative; display: inline-block; width: 60px; height: 28px; margin-left: 10px; }
+    .toggle-switch input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ef4444; transition: 0.3s; border-radius: 28px; }
+    .slider:before { position: absolute; content: ""; height: 22px; width: 22px; left: 3px; bottom: 3px; background-color: white; transition: 0.3s; border-radius: 50%; }
+    input:checked + .slider { background-color: #10b981; }
+    input:checked + .slider:before { transform: translateX(32px); }
+    .status-text { font-size: 0.8rem; font-weight: 600; margin-left: 5px; }
+    .status-container { display: flex; align-items: center; justify-content: flex-end; margin-bottom: 1rem; }
+    .disabled-action { opacity: 0.5; pointer-events: none; }
+    .inactive-message { background: #fee2e2; color: #991b1b; padding: 0.5rem; border-radius: 0.5rem; margin-bottom: 1rem; text-align: center; font-size: 0.8rem; }
+    .offline-badge { background: #f59e0b; color: white; padding: 0.2rem 0.8rem; border-radius: 2rem; font-size: 0.7rem; font-weight: 600; margin-left: 1rem; }
+    .online-badge { background: #10b981; color: white; padding: 0.2rem 0.8rem; border-radius: 2rem; font-size: 0.7rem; font-weight: 600; margin-left: 1rem; }
+    .btn-offline-prepare { position: fixed; bottom: 80px; right: 20px; background: #4f46e5; color: white; border: none; border-radius: 50px; padding: 10px 15px; font-size: 12px; cursor: pointer; z-index: 10; font-weight: 600; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
+    .btn-offline-prepare:hover { background: #4338ca; transform: scale(1.02); }
+    @media (max-width: 640px) { body { padding: 1rem; } .fab { bottom: 1rem; right: 1rem; } .btn-offline-prepare { bottom: 70px; right: 10px; font-size: 10px; padding: 6px 12px; } }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
@@ -185,7 +118,7 @@
 <div class="dashboard-header">
   <div class="header-left">
     <img src="https://jklcvyuxwxgsfczrfaco.supabase.co/storage/v1/object/public/assinaturas/Tenda_logo2.png" alt="Logo TENDEX" class="logo" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2240%22 height=%2240%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%233b82f6%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Cpath d=%22M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z%22%3E%3C/path%3E%3Cpolyline points=%229 22 9 12 15 12 15 22%22%3E%3C/polyline%3E%3C/svg%3E';">
-    <h1>TENDEX - Sistema de Inspeção</h1>
+    <h1>TENDEX - Inspeção de Tendas</h1>
   </div>
   <div style="display: flex; gap: 1rem; align-items: center;">
     <div class="user-info" id="userInfoDisplay">👤 Carregando...</div>
@@ -204,16 +137,16 @@
 <div id="reactivateModal" class="modal" style="z-index: 1001;">
   <div class="modal-content">
     <div class="modal-header"><h2>✏️ Reativar TENDA</h2><button class="close-modal" id="closeReactivateModalBtn">&times;</button></div>
-    <div class="form-group"><label>Localização *</label><input type="text" id="editItemName" placeholder="Ex: Tenda 5x5"></div>
-    <div class="form-group"><label>Sub. Localização</label><input type="text" id="editSubLocalizacao" placeholder="Ex: Área Central"></div>
-    <div class="form-group"><label>Tamanho</label><input type="text" id="editTamanho" placeholder="Ex: 5x5m, 10x20m"></div>
+    <div class="form-group"><label>Localização *</label><input type="text" id="editItemName" placeholder="Ex: Tenda 5x5" spellcheck="false"></div>
+    <div class="form-group"><label>Sub. Localização</label><input type="text" id="editSubLocalizacao" placeholder="Ex: Área Central" spellcheck="false"></div>
+    <div class="form-group"><label>Tamanho</label><input type="text" id="editTamanho" placeholder="Ex: 5x5m, 10x20m" spellcheck="false"></div>
     <div class="modal-buttons"><button class="btn-cancel" id="cancelReactivateBtn">Cancelar</button><button class="btn-save" id="confirmReactivateBtn">Salvar e Reativar</button></div>
   </div>
 </div>
 
 <div class="search-area">
   <span class="search-icon">🔍</span>
-  <input type="text" id="searchInput" class="search-input" placeholder="Filtrar por nome, ID, localização ou tamanho...">
+  <input type="text" id="searchInput" class="search-input" placeholder="Filtrar por nome, ID, localização ou tamanho..." spellcheck="false">
 </div>
 
 <div class="download-section">
@@ -223,14 +156,15 @@
 
 <div id="itemsContainer" class="items-grid"></div>
 <button class="fab" id="addItemBtn">+</button>
+<button class="btn-offline-prepare" id="prepareOfflineBtn">📥 Preparar Modo Offline</button>
 
 <div id="createItemModal" class="modal">
   <div class="modal-content">
     <div class="modal-header"><h2>➕ Novo Item</h2><button class="close-modal" id="closeCreateModalBtn">&times;</button></div>
-    <div class="form-group"><label>Localização</label><input type="text" id="newItemName" placeholder="Ex: Tenda 5x5"></div>
-    <div class="form-group"><label>Sub. Localização</label><input type="text" id="newSubLocalizacao" placeholder="Ex: Área Central"></div>
-    <div class="form-group"><label>Tamanho</label><input type="text" id="newTamanho" placeholder="Ex: 5x5m, 10x20m"></div>
-    <div class="form-group"><label>TAG / ID *</label><input type="text" id="newItemCode" placeholder="Ex: T-001"><div id="createCodeError" class="error-text"></div></div>
+    <div class="form-group"><label>Localização</label><input type="text" id="newItemName" placeholder="Ex: Tenda 5x5" spellcheck="false"></div>
+    <div class="form-group"><label>Sub. Localização</label><input type="text" id="newSubLocalizacao" placeholder="Ex: Área Central" spellcheck="false"></div>
+    <div class="form-group"><label>Tamanho</label><input type="text" id="newTamanho" placeholder="Ex: 5x5m, 10x20m" spellcheck="false"></div>
+    <div class="form-group"><label>TAG / ID *</label><input type="text" id="newItemCode" placeholder="Ex: T-001" spellcheck="false"><div id="createCodeError" class="error-text"></div></div>
     <div class="attachments-title">📄 Memorial de Cálculo e Projeto</div>
     <div class="month-group"><label>Memorial:</label><input type="file" id="newMemorialFile" accept=".pdf"></div>
     <div class="attachments-title" style="margin-top: 1rem;">📅 Documentos Mensais</div>
@@ -266,7 +200,8 @@
 
 <script>
   (function() {
-    // Desabilitar spellcheck globalmente para evitar erros CORS
+    // ==================== CONFIGURAÇÕES INICIAIS ====================
+    // Desabilitar spellcheck globalmente
     document.addEventListener('DOMContentLoaded', () => {
       const disableSpellCheck = () => {
         document.querySelectorAll('input, textarea, [contenteditable="true"]').forEach(el => {
@@ -294,7 +229,6 @@
     let dbInstance = null;
     let cachedModeloPDF = null;
 
-    // ==================== MODELO PDF URL ====================
     const MODELO_PDF_URL = "https://jklcvyuxwxgsfczrfaco.supabase.co/storage/v1/object/public/pdfs/modelo_checklist_com_campos%20(3).pdf";
 
     // ==================== INICIALIZAR INDEXEDDB ====================
@@ -304,14 +238,14 @@
           resolve(dbInstance);
           return;
         }
-        const request = indexedDB.open(DB_NAME_OFFLINE, 11);
+        const request = indexedDB.open(DB_NAME_OFFLINE, 12);
         request.onerror = (event) => {
           console.error('IndexedDB erro:', event);
           reject(request.error);
         };
         request.onsuccess = (event) => {
           dbInstance = request.result;
-          console.log('IndexedDB aberto com sucesso - versão 11');
+          console.log('IndexedDB aberto com sucesso - versão 12');
           resolve(dbInstance);
         };
         request.onupgradeneeded = (event) => {
@@ -338,11 +272,8 @@
 
     // ==================== CARREGAR MODELO PDF ====================
     async function carregarModeloPDF() {
-      if (cachedModeloPDF) {
-        return cachedModeloPDF;
-      }
+      if (cachedModeloPDF) return cachedModeloPDF;
       
-      // Tentar buscar do IndexedDB primeiro
       try {
         const db = await initOfflineDB();
         const tx = db.transaction(STORE_MODELO_PDF, 'readonly');
@@ -359,7 +290,6 @@
         }
       } catch(e) { console.warn('Erro ao ler IndexedDB:', e); }
       
-      // Se não estiver em cache, buscar da rede (apenas quando online)
       if (!navigator.onLine) {
         throw new Error('Modelo PDF não está em cache e você está offline');
       }
@@ -371,14 +301,11 @@
         const buffer = await response.arrayBuffer();
         cachedModeloPDF = buffer;
         
-        // Salvar no IndexedDB
-        try {
-          const db = await initOfflineDB();
-          const tx = db.transaction(STORE_MODELO_PDF, 'readwrite');
-          const store = tx.objectStore(STORE_MODELO_PDF);
-          store.put({ id: 'modelo', data: buffer });
-          console.log('✅ Modelo PDF salvo no IndexedDB, tamanho:', buffer.byteLength);
-        } catch(e) { console.warn('Erro ao salvar no IndexedDB:', e); }
+        const db = await initOfflineDB();
+        const tx = db.transaction(STORE_MODELO_PDF, 'readwrite');
+        const store = tx.objectStore(STORE_MODELO_PDF);
+        store.put({ id: 'modelo', data: buffer });
+        console.log('✅ Modelo PDF salvo no IndexedDB, tamanho:', buffer.byteLength);
         
         return buffer;
       } catch (error) {
@@ -387,17 +314,61 @@
       }
     }
 
+    // ==================== VERIFICAR MODELO CACHEADO ====================
+    async function verificarModeloCacheado() {
+      try {
+        const db = await initOfflineDB();
+        const tx = db.transaction(STORE_MODELO_PDF, 'readonly');
+        const store = tx.objectStore(STORE_MODELO_PDF);
+        const result = await new Promise((resolve) => {
+          const request = store.get('modelo');
+          request.onsuccess = () => resolve(request.result);
+        });
+        return result && result.data;
+      } catch(e) {
+        return false;
+      }
+    }
+
+    // ==================== FORÇAR CACHE DO MODELO ====================
+    async function forcarCacheModeloPDF() {
+      const loader = document.getElementById('fullscreenLoader');
+      loader.classList.add('active');
+      
+      try {
+        console.log('📥 Forçando download do modelo PDF...');
+        const response = await fetch(MODELO_PDF_URL);
+        if (!response.ok) throw new Error('Falha ao baixar modelo');
+        const buffer = await response.arrayBuffer();
+        
+        const db = await initOfflineDB();
+        const tx = db.transaction(STORE_MODELO_PDF, 'readwrite');
+        const store = tx.objectStore(STORE_MODELO_PDF);
+        await new Promise((resolve, reject) => {
+          const req = store.put({ id: 'modelo', data: buffer });
+          req.onsuccess = () => resolve();
+          req.onerror = () => reject(req.error);
+        });
+        
+        cachedModeloPDF = buffer;
+        console.log('✅ Modelo PDF cacheado com sucesso!');
+        alert('✅ Modo offline preparado com sucesso!\n\nAgora você pode usar o sistema sem internet.');
+      } catch (error) {
+        console.error('❌ Erro ao cachear modelo:', error);
+        alert('Erro ao preparar modo offline: ' + error.message + '\n\nVerifique sua conexão com a internet.');
+      } finally {
+        loader.classList.remove('active');
+      }
+    }
+
     // ==================== LIMPAR DADOS PENDENTES ====================
     async function limparDadosSincronizados() {
       try {
         const db = await initOfflineDB();
-        
         const tx1 = db.transaction(STORE_PENDING_ITEMS, 'readwrite');
         await tx1.objectStore(STORE_PENDING_ITEMS).clear();
-        
         const tx2 = db.transaction(STORE_PENDING_INSPECTIONS, 'readwrite');
         await tx2.objectStore(STORE_PENDING_INSPECTIONS).clear();
-        
         console.log('✅ Dados pendentes antigos removidos');
       } catch (e) {
         console.warn('Erro ao limpar dados antigos:', e);
@@ -410,9 +381,7 @@
         const db = await initOfflineDB();
         const tx = db.transaction(STORE_ITEMS, 'readwrite');
         const store = tx.objectStore(STORE_ITEMS);
-        for (const item of items) {
-          store.put(item);
-        }
+        for (const item of items) store.put(item);
         return new Promise((resolve, reject) => {
           tx.oncomplete = () => resolve();
           tx.onerror = () => reject(tx.error);
@@ -433,15 +402,12 @@
       } catch (e) { console.warn('Erro ao carregar items local:', e); return []; }
     }
 
-    // ==================== FILES CACHE ====================
     async function salvarFilesLocal(files) {
       try {
         const db = await initOfflineDB();
         const tx = db.transaction(STORE_FILES, 'readwrite');
         const store = tx.objectStore(STORE_FILES);
-        for (const file of files) {
-          store.put(file);
-        }
+        for (const file of files) store.put(file);
         return new Promise((resolve, reject) => {
           tx.oncomplete = () => resolve();
           tx.onerror = () => reject(tx.error);
@@ -470,16 +436,10 @@
           const tx = db.transaction(STORE_PENDING_ITEMS, 'readwrite');
           const store = tx.objectStore(STORE_PENDING_ITEMS);
           const request = store.add(itemData);
-          request.onsuccess = () => {
-            console.log('✅ Item pendente salvo com ID:', request.result);
-            resolve(request.result);
-          };
+          request.onsuccess = () => { console.log('✅ Item pendente salvo'); resolve(request.result); };
           request.onerror = () => reject(request.error);
         });
-      } catch (error) {
-        console.error('Erro ao salvar item pendente:', error);
-        throw error;
-      }
+      } catch (error) { console.error('Erro ao salvar item pendente:', error); throw error; }
     }
 
     async function getPendingItems() {
@@ -512,16 +472,10 @@
           const tx = db.transaction(STORE_PENDING_INSPECTIONS, 'readwrite');
           const store = tx.objectStore(STORE_PENDING_INSPECTIONS);
           const request = store.add(data);
-          request.onsuccess = () => {
-            console.log('✅ Inspeção pendente salva com ID:', request.result);
-            resolve(request.result);
-          };
+          request.onsuccess = () => { console.log('✅ Inspeção pendente salva'); resolve(request.result); };
           request.onerror = () => reject(request.error);
         });
-      } catch (error) {
-        console.error('Erro ao salvar inspeção pendente:', error);
-        throw error;
-      }
+      } catch (error) { console.error('Erro ao salvar inspeção pendente:', error); throw error; }
     }
 
     async function getPendingInspections() {
@@ -552,16 +506,10 @@
       try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 5000);
-        await fetch('https://www.google.com', { 
-          method: 'HEAD',
-          signal: controller.signal,
-          mode: 'no-cors'
-        });
+        await fetch('https://www.google.com', { method: 'HEAD', signal: controller.signal, mode: 'no-cors' });
         clearTimeout(timeoutId);
         return true;
-      } catch (error) {
-        return navigator.onLine;
-      }
+      } catch (error) { return navigator.onLine; }
     }
 
     // ==================== SINCRONIZAÇÃO ====================
@@ -574,36 +522,24 @@
       
       for (const item of pendentes) {
         try {
-          const { data: existing, error: checkError } = await supabase
-            .from('items')
-            .select('id')
-            .eq('code', item.code)
-            .maybeSingle();
-          
+          const { data: existing, error: checkError } = await supabase.from('items').select('id').eq('code', item.code).maybeSingle();
           if (checkError) throw checkError;
           
           if (existing) {
-            console.log(`⚠️ Item com código ${item.code} já existe, removendo pendência...`);
             await removerItemPending(item.id);
             continue;
           }
           
           const { data, error } = await supabase.from('items').insert({
-            name: item.name,
-            sub_localizacao: item.sub_localizacao,
-            tamanho: item.tamanho,
-            code: item.code,
-            status: 'active'
+            name: item.name, sub_localizacao: item.sub_localizacao, tamanho: item.tamanho,
+            code: item.code, status: 'active'
           }).select().single();
           
           if (error) throw error;
-          
           await removerItemPending(item.id);
           sucessos++;
-          console.log(`✅ Item ${item.name} sincronizado com ID: ${data.id}`);
-        } catch (error) {
-          console.error(`❌ Erro ao sincronizar item:`, error);
-        }
+          console.log(`✅ Item ${item.name} sincronizado`);
+        } catch (error) { console.error(`❌ Erro ao sincronizar item:`, error); }
       }
       return sucessos;
     }
@@ -629,21 +565,15 @@
           await addFileToItem(item.itemId, item.category, pdfFile, item.formData.data_inspecao);
           await removerInspecaoPending(item.id);
           sucessos++;
-          console.log(`✅ Inspeção ${item.id} sincronizada com sucesso`);
-        } catch (error) {
-          console.error(`❌ Erro ao sincronizar inspeção:`, error);
-        }
+          console.log(`✅ Inspeção ${item.id} sincronizada`);
+        } catch (error) { console.error(`❌ Erro ao sincronizar inspeção:`, error); }
       }
       return sucessos;
     }
 
     async function sincronizarTudo() {
       const isReallyOnline = await testarConexao();
-      
-      if (!isReallyOnline) {
-        console.log('Offline - sincronização aguardando conexão real');
-        return;
-      }
+      if (!isReallyOnline) { console.log('Offline - sincronização aguardando'); return; }
       
       const loader = document.getElementById('fullscreenLoader');
       loader.classList.add('active');
@@ -660,11 +590,8 @@
           await refreshData();
           alert(`✅ Sincronização concluída!\n${mensagens.join('\n')}`);
         }
-      } catch (error) {
-        console.error('Erro na sincronização:', error);
-      } finally {
-        loader.classList.remove('active');
-      }
+      } catch (error) { console.error('Erro na sincronização:', error);
+      } finally { loader.classList.remove('active'); }
     }
 
     function blobToBase64(blob) {
@@ -679,9 +606,7 @@
     function base64ToBlob(base64, mimeType) {
       const byteCharacters = atob(base64);
       const byteNumbers = new Array(byteCharacters.length);
-      for (let i = 0; i < byteCharacters.length; i++) {
-        byteNumbers[i] = byteCharacters.charCodeAt(i);
-      }
+      for (let i = 0; i < byteCharacters.length; i++) byteNumbers[i] = byteCharacters.charCodeAt(i);
       const byteArray = new Uint8Array(byteNumbers);
       return new Blob([byteArray], { type: mimeType });
     }
@@ -701,7 +626,7 @@
     window.addEventListener('offline', updateConnectionStatus);
     updateConnectionStatus();
 
-    // ==================== SERVICE WORKER (CORRIGIDO) ====================
+    // ==================== SERVICE WORKER ====================
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/TENDEX/sw.js')
         .then(reg => console.log('Service Worker registrado', reg))
@@ -717,11 +642,7 @@
     
     const userInfoDisplay = document.getElementById('userInfoDisplay');
     if (currentUser && currentUser.username) userInfoDisplay.innerHTML = `👤 ${currentUser.username}`;
-    else { 
-      userInfoDisplay.innerHTML = `👤 Não logado`; 
-      window.location.href = 'index.html';
-      return;
-    }
+    else { userInfoDisplay.innerHTML = `👤 Não logado`; window.location.href = 'index.html'; return; }
 
     // Modal de logout
     const logoutModal = document.getElementById('logoutModal');
@@ -733,10 +654,7 @@
     function closeLogoutModal() { logoutModal.style.display = 'none'; }
     closeLogoutModalBtn.addEventListener('click', closeLogoutModal);
     cancelLogoutBtn.addEventListener('click', closeLogoutModal);
-    confirmLogoutBtn.addEventListener('click', () => { 
-      localStorage.removeItem('tendex_current_user'); 
-      window.location.href = 'index.html'; 
-    });
+    confirmLogoutBtn.addEventListener('click', () => { localStorage.removeItem('tendex_current_user'); window.location.href = 'index.html'; });
     logoutModal.addEventListener('click', (e) => { if (e.target === logoutModal) closeLogoutModal(); });
 
     const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
@@ -818,19 +736,8 @@
       }
       
       const filesByItem = {};
-      files.forEach(file => { 
-        if (!filesByItem[file.item_id]) filesByItem[file.item_id] = []; 
-        filesByItem[file.item_id].push(file); 
-      });
-      return items.map(item => ({ 
-        id: item.id, 
-        name: item.name, 
-        sub_localizacao: item.sub_localizacao || '', 
-        tamanho: item.tamanho || '', 
-        code: item.code, 
-        status: item.status || 'active', 
-        files: filesByItem[item.id] || [] 
-      }));
+      files.forEach(file => { if (!filesByItem[file.item_id]) filesByItem[file.item_id] = []; filesByItem[file.item_id].push(file); });
+      return items.map(item => ({ id: item.id, name: item.name, sub_localizacao: item.sub_localizacao || '', tamanho: item.tamanho || '', code: item.code, status: item.status || 'active', files: filesByItem[item.id] || [] }));
     }
 
     async function addFileToItem(itemId, category, file, inspecaoData = null) {
@@ -886,19 +793,9 @@
       if (!navigator.onLine || !(await testarConexao())) {
         const itemsLocal = await carregarItemsLocal();
         const existeLocal = itemsLocal.some(i => i.code === code && i.id !== itemId);
+        if (existeLocal) { alert('❌ Este código já existe localmente.'); throw new Error('Código duplicado localmente'); }
         
-        if (existeLocal) {
-          alert('❌ Este código já existe localmente. Aguarde a sincronização ou use outro código.');
-          throw new Error('Código duplicado localmente');
-        }
-        
-        const pendingData = {
-          name: name,
-          sub_localizacao: sub_localizacao,
-          tamanho: tamanho,
-          code: code,
-          timestamp: new Date().toISOString()
-        };
+        const pendingData = { name, sub_localizacao, tamanho, code, timestamp: new Date().toISOString() };
         await salvarItemPending(pendingData);
         
         const newId = Date.now();
@@ -952,14 +849,7 @@
 
     async function saveHistory(itemId, oldData) {
       if (!oldData) return;
-      await supabase.from('items_history').insert({
-        item_id: itemId,
-        name: oldData.name,
-        sub_localizacao: oldData.sub_localizacao,
-        tamanho: oldData.tamanho,
-        code: oldData.code,
-        changed_by: currentUser?.username || 'sistema'
-      });
+      await supabase.from('items_history').insert({ item_id: itemId, name: oldData.name, sub_localizacao: oldData.sub_localizacao, tamanho: oldData.tamanho, code: oldData.code, changed_by: currentUser?.username || 'sistema' });
     }
 
     async function toggleStatusFromDetail(itemId, newStatus) {
@@ -974,12 +864,8 @@
             await supabase.from('items').update({ status: 'inactive' }).eq('id', itemId);
             await refreshData();
             const detailModalElem = document.getElementById('detailModal');
-            if (detailModalElem && detailModalElem.style.display === 'flex') {
-              await openDetailModal(itemId);
-            }
-          } finally {
-            loader.classList.remove('active');
-          }
+            if (detailModalElem && detailModalElem.style.display === 'flex') await openDetailModal(itemId);
+          } finally { loader.classList.remove('active'); }
         } else {
           const toggle = document.getElementById('statusToggle');
           if (toggle) toggle.checked = true;
@@ -1006,43 +892,27 @@
       loader.classList.add('active');
       try {
         await saveHistory(reactivatingItemId, { name: item.name, sub_localizacao: item.sub_localizacao, tamanho: item.tamanho, code: item.code });
-        await supabase.from('items').update({
-          name: newName,
-          sub_localizacao: newSub,
-          tamanho: newTamanho,
-          status: 'active'
-        }).eq('id', reactivatingItemId);
+        await supabase.from('items').update({ name: newName, sub_localizacao: newSub, tamanho: newTamanho, status: 'active' }).eq('id', reactivatingItemId);
         document.getElementById('reactivateModal').style.display = 'none';
         const detailModalElem = document.getElementById('detailModal');
-        if (detailModalElem && detailModalElem.style.display === 'flex') {
-          await openDetailModal(reactivatingItemId);
-        }
+        if (detailModalElem && detailModalElem.style.display === 'flex') await openDetailModal(reactivatingItemId);
         await refreshData();
-      } finally {
-        loader.classList.remove('active');
-      }
+      } finally { loader.classList.remove('active'); }
     }
 
     async function gerarPDFBlob(formData, itemInfo, fotoFile) {
       if (!window.PDFLib) throw new Error("PDF-lib não carregado.");
       const { PDFDocument } = window.PDFLib;
-      
       const modelBytes = await carregarModeloPDF();
       const pdfDoc = await PDFDocument.load(modelBytes);
       const form = pdfDoc.getForm();
       const camposCabecalho = [
-        { nome: "unidade", valor: formData.unidade || "" },
-        { nome: "localidade", valor: formData.localidade || "" },
-        { nome: "nome", valor: formData.resp_nome || "" },
-        { nome: "matrcula", valor: formData.resp_matricula || "" },
-        { nome: "data", valor: formData.data_inspecao || "" },
-        { nome: "empresa", valor: formData.empresa || "" }
+        { nome: "unidade", valor: formData.unidade || "" }, { nome: "localidade", valor: formData.localidade || "" },
+        { nome: "nome", valor: formData.resp_nome || "" }, { nome: "matrcula", valor: formData.resp_matricula || "" },
+        { nome: "data", valor: formData.data_inspecao || "" }, { nome: "empresa", valor: formData.empresa || "" }
       ];
       for (const campo of camposCabecalho) try { form.getTextField(campo.nome).setText(campo.valor); } catch(e) {}
-      for (let i=1; i<=25; i++) {
-        const resposta = formData[`resp_${i-1}`] || "Não respondido";
-        try { form.getTextField(`${i}`).setText(resposta); } catch(e) {}
-      }
+      for (let i=1; i<=25; i++) { const resposta = formData[`resp_${i-1}`] || "Não respondido"; try { form.getTextField(`${i}`).setText(resposta); } catch(e) {} }
       await adicionarInfoItemEAssinatura(pdfDoc, itemInfo.code, itemInfo.tamanho);
       if (fotoFile) {
         const fotoBytes = await fotoFile.arrayBuffer();
@@ -1053,9 +923,7 @@
           const scale = Math.min(fotoMaxWidth / fotoImage.width, fotoMaxHeight / fotoImage.height);
           const finalW = fotoImage.width * scale, finalH = fotoImage.height * scale;
           const page = pdfDoc.getPages()[0];
-          const fotoX = 30;
-          const fotoY = 30;
-          page.drawImage(fotoImage, { x: fotoX, y: fotoY, width: finalW, height: finalH });
+          page.drawImage(fotoImage, { x: 30, y: 30, width: finalW, height: finalH });
         }
       }
       const pdfBytes = await pdfDoc.save();
@@ -1068,32 +936,12 @@
           const loader = document.getElementById('fullscreenLoader');
           loader.classList.add('active');
           console.log('Modo offline - iniciando salvamento local...');
-          
           const pdfBlob = await gerarPDFBlob(formData, itemInfo, fotoFile);
           const pdfBase64 = await blobToBase64(pdfBlob);
           let fotoBase64 = null;
-          if (fotoFile) {
-            fotoBase64 = await blobToBase64(fotoFile);
-          }
-          
-          const pendingData = {
-            type: 'inspecao',
-            itemId: itemId,
-            category: category,
-            monthName: monthName,
-            formData: formData,
-            itemInfo: {
-              code: itemInfo.code,
-              tamanho: itemInfo.tamanho,
-              name: itemInfo.name
-            },
-            pdfBase64: pdfBase64,
-            fotoBase64: fotoBase64,
-            timestamp: new Date().toISOString()
-          };
-          
+          if (fotoFile) fotoBase64 = await blobToBase64(fotoFile);
+          const pendingData = { type: 'inspecao', itemId, category, monthName, formData, itemInfo: { code: itemInfo.code, tamanho: itemInfo.tamanho, name: itemInfo.name }, pdfBase64, fotoBase64, timestamp: new Date().toISOString() };
           await salvarInspecaoPending(pendingData);
-          
           loader.classList.remove('active');
           alert('⚠️ Você está offline. O PDF foi salvo localmente e será enviado automaticamente quando a internet voltar.');
           return;
@@ -1113,18 +961,12 @@
         const pdfDoc = await PDFDocument.load(modelBytes);
         const form = pdfDoc.getForm();
         const camposCabecalho = [
-          { nome: "unidade", valor: formData.unidade || "" },
-          { nome: "localidade", valor: formData.localidade || "" },
-          { nome: "nome", valor: formData.resp_nome || "" },
-          { nome: "matrcula", valor: formData.resp_matricula || "" },
-          { nome: "data", valor: formData.data_inspecao || "" },
-          { nome: "empresa", valor: formData.empresa || "" }
+          { nome: "unidade", valor: formData.unidade || "" }, { nome: "localidade", valor: formData.localidade || "" },
+          { nome: "nome", valor: formData.resp_nome || "" }, { nome: "matrcula", valor: formData.resp_matricula || "" },
+          { nome: "data", valor: formData.data_inspecao || "" }, { nome: "empresa", valor: formData.empresa || "" }
         ];
         for (const campo of camposCabecalho) try { form.getTextField(campo.nome).setText(campo.valor); } catch(e) {}
-        for (let i=1; i<=25; i++) {
-          const resposta = formData[`resp_${i-1}`] || "Não respondido";
-          try { form.getTextField(`${i}`).setText(resposta); } catch(e) {}
-        }
+        for (let i=1; i<=25; i++) { const resposta = formData[`resp_${i-1}`] || "Não respondido"; try { form.getTextField(`${i}`).setText(resposta); } catch(e) {} }
         await adicionarInfoItemEAssinatura(pdfDoc, itemInfo.code, itemInfo.tamanho);
         if (fotoFile) {
           const fotoBytes = await fotoFile.arrayBuffer();
@@ -1135,9 +977,7 @@
             const scale = Math.min(fotoMaxWidth / fotoImage.width, fotoMaxHeight / fotoImage.height);
             const finalW = fotoImage.width * scale, finalH = fotoImage.height * scale;
             const page = pdfDoc.getPages()[0];
-            const fotoX = 30;
-            const fotoY = 30;
-            page.drawImage(fotoImage, { x: fotoX, y: fotoY, width: finalW, height: finalH });
+            page.drawImage(fotoImage, { x: 30, y: 30, width: finalW, height: finalH });
           }
         }
         const pdfBytes = await pdfDoc.save();
@@ -1151,7 +991,7 @@
         }
         await addFileToItem(itemId, category, file, formData.data_inspecao);
         
-        alert(`✅ PDF gerado!\nID: ${itemInfo.code} | Tamanho: ${itemInfo.tamanho || 'N/I'}\nAssinatura: ${currentUser?.username || 'usuário'}`);
+        alert(`✅ PDF gerado!\nID: ${itemInfo.code} | Tamanho: ${itemInfo.tamanho || 'N/I'}`);
         await refreshData();
         await openDetailModal(itemId);
       } catch(err) { console.error(err); alert("Erro ao gerar PDF: " + err.message); }
@@ -1213,16 +1053,9 @@
               await refreshData();
               await openDetailModal(itemId);
               resolve();
-            } catch (err) {
-              alert('Erro ao adicionar PDF: ' + err.message);
-              reject(err);
-            } finally {
-              loader.classList.remove('active');
-            }
-          } else if (file) {
-            alert('Selecione um PDF.');
-            reject();
-          }
+            } catch (err) { alert('Erro ao adicionar PDF: ' + err.message); reject(err);
+            } finally { loader.classList.remove('active'); }
+          } else if (file) { alert('Selecione um PDF.'); reject(); }
         };
         input.click();
       });
@@ -1243,42 +1076,18 @@
         const arquivoMesAtual = item.files.find(f => f.category === mesAtualKey);
         let inspecaoMsg = '';
         if (arquivoMesAtual) {
-          if (arquivoMesAtual.inspecao_data) {
-            inspecaoMsg = `<p style="color: #10b981; font-size: 0.7rem; margin-top: 0.3rem;">✅ Inspeção ${mesAtualNome}: ${formatarData(arquivoMesAtual.inspecao_data)}</p>`;
-          } else {
-            inspecaoMsg = `<p style="color: #10b981; font-size: 0.7rem; margin-top: 0.3rem;">✅ Inspeção ${mesAtualNome}: realizada</p>`;
-          }
-        } else {
-          inspecaoMsg = `<p style="color: #f59e0b; font-size: 0.7rem; margin-top: 0.3rem;">⚠️ Inspeção ${mesAtualNome}: pendente</p>`;
-        }
+          if (arquivoMesAtual.inspecao_data) inspecaoMsg = `<p style="color: #10b981; font-size: 0.7rem; margin-top: 0.3rem;">✅ Inspeção ${mesAtualNome}: ${formatarData(arquivoMesAtual.inspecao_data)}</p>`;
+          else inspecaoMsg = `<p style="color: #10b981; font-size: 0.7rem; margin-top: 0.3rem;">✅ Inspeção ${mesAtualNome}: realizada</p>`;
+        } else inspecaoMsg = `<p style="color: #f59e0b; font-size: 0.7rem; margin-top: 0.3rem;">⚠️ Inspeção ${mesAtualNome}: pendente</p>`;
         const statusClass = item.status === 'active' ? 'status-active' : 'status-inactive';
         const statusText = item.status === 'active' ? 'Ativo' : 'Inativo';
-        return `
-          <div class="item-card" data-id="${item.id}">
-            <div>
-              <h3>${escapeHtml(item.name)}</h3>
-              <p>TAG: ${escapeHtml(item.code)}</p>
-              ${item.sub_localizacao ? `<p>📍 ${escapeHtml(item.sub_localizacao)}</p>` : ''}
-              ${item.tamanho ? `<p>📏 ${escapeHtml(item.tamanho)}</p>` : ''}
-              <div><span class="status-badge ${statusClass}">${statusText}</span></div>
-              ${inspecaoMsg}
-            </div>
-          </div>
-        `;
+        return `<div class="item-card" data-id="${item.id}"><div><h3>${escapeHtml(item.name)}</h3><p>TAG: ${escapeHtml(item.code)}</p>${item.sub_localizacao ? `<p>📍 ${escapeHtml(item.sub_localizacao)}</p>` : ''}${item.tamanho ? `<p>📏 ${escapeHtml(item.tamanho)}</p>` : ''}<div><span class="status-badge ${statusClass}">${statusText}</span></div>${inspecaoMsg}</div></div>`;
       }).join('');
       
-      document.querySelectorAll('.item-card').forEach(card => {
-        card.addEventListener('click', () => openDetailModal(parseInt(card.dataset.id)));
-      });
+      document.querySelectorAll('.item-card').forEach(card => { card.addEventListener('click', () => openDetailModal(parseInt(card.dataset.id))); });
     }
     
-    function formatarData(dataString) {
-      if (!dataString) return '';
-      const partes = dataString.split('-');
-      if (partes.length === 3) return `${partes[2]}/${partes[1]}/${partes[0]}`;
-      return dataString;
-    }
-    
+    function formatarData(dataString) { if (!dataString) return ''; const partes = dataString.split('-'); if (partes.length === 3) return `${partes[2]}/${partes[1]}/${partes[0]}`; return dataString; }
     function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;'); }
     async function refreshData() { currentItems = await getAllItemsWithFiles(); renderCards(document.getElementById('searchInput').value); }
 
@@ -1306,132 +1115,25 @@
       const monthlyFiles = monthKeys.map(key => files.find(f => f.category === key));
       const isActive = item.status === 'active';
       
-      let html = `
-        <div class="status-container">
-          <span style="font-weight: 500;">Status:</span>
-          <label class="toggle-switch">
-            <input type="checkbox" id="statusToggle" ${isActive ? 'checked' : ''}>
-            <span class="slider"></span>
-          </label>
-          <span class="status-text" id="statusText">${isActive ? 'Ativo' : 'Inativo'}</span>
-        </div>
-        ${!isActive ? '<div class="inactive-message">⚠️ Item inativo. Não é possível anexar PDFs ou gerar formulários.</div>' : ''}
-        <div class="item-detail-title">
-          <strong>${escapeHtml(item.name)}</strong><br>
-          ${item.sub_localizacao ? `Sub. Localização: ${escapeHtml(item.sub_localizacao)}<br>` : ''}
-          ${item.tamanho ? `Tamanho: ${escapeHtml(item.tamanho)}<br>` : ''}
-          ID: ${escapeHtml(item.code)}
-        </div>
-        <div class="pdf-group">
-          <div class="pdf-group-title">📄 Memorial de Cálculo</div>
-          ${renderDetailPdfRow('memorial', 'Memorial', memorialFile, item.id, isActive)}
-        </div>
-        <div class="pdf-group">
-          <div class="pdf-group-title">📅 Documentos Mensais</div>
-          ${monthNames.map((month, idx) => renderDetailPdfRow(monthKeys[idx], month, monthlyFiles[idx], item.id, isActive, true)).join('')}
-        </div>
-        <button class="delete-item-btn" id="deleteItemFromDetailBtn">🗑️ Excluir este item</button>
-        <div class="notice">* Clique nos botões + para anexar/substituir PDFs. Clique em 📝 para preencher formulário e gerar PDF.</div>
-      `;
+      let html = `<div class="status-container"><span style="font-weight: 500;">Status:</span><label class="toggle-switch"><input type="checkbox" id="statusToggle" ${isActive ? 'checked' : ''}><span class="slider"></span></label><span class="status-text" id="statusText">${isActive ? 'Ativo' : 'Inativo'}</span></div>${!isActive ? '<div class="inactive-message">⚠️ Item inativo. Não é possível anexar PDFs ou gerar formulários.</div>' : ''}<div class="item-detail-title"><strong>${escapeHtml(item.name)}</strong><br>${item.sub_localizacao ? `Sub. Localização: ${escapeHtml(item.sub_localizacao)}<br>` : ''}${item.tamanho ? `Tamanho: ${escapeHtml(item.tamanho)}<br>` : ''}ID: ${escapeHtml(item.code)}</div><div class="pdf-group"><div class="pdf-group-title">📄 Memorial de Cálculo</div>${renderDetailPdfRow('memorial', 'Memorial', memorialFile, item.id, isActive)}</div><div class="pdf-group"><div class="pdf-group-title">📅 Documentos Mensais</div>${monthNames.map((month, idx) => renderDetailPdfRow(monthKeys[idx], month, monthlyFiles[idx], item.id, isActive, true)).join('')}</div><button class="delete-item-btn" id="deleteItemFromDetailBtn">🗑️ Excluir este item</button><div class="notice">* Clique nos botões + para anexar/substituir PDFs. Clique em 📝 para preencher formulário e gerar PDF.</div>`;
       detailContent.innerHTML = html;
       
       const toggle = document.getElementById('statusToggle');
       const statusTextSpan = document.getElementById('statusText');
-      if (toggle) {
-        toggle.addEventListener('change', async (e) => {
-          const newStatus = e.target.checked ? 'active' : 'inactive';
-          statusTextSpan.innerText = newStatus === 'active' ? 'Ativo' : 'Inativo';
-          await toggleStatusFromDetail(item.id, newStatus);
-        });
-      }
+      if (toggle) toggle.addEventListener('change', async (e) => { const newStatus = e.target.checked ? 'active' : 'inactive'; statusTextSpan.innerText = newStatus === 'active' ? 'Ativo' : 'Inativo'; await toggleStatusFromDetail(item.id, newStatus); });
       
-      document.querySelectorAll('.upload-pdf-btn').forEach(btn => {
-        btn.addEventListener('click', async (e) => {
-          if (!isActive) {
-            alert('Item inativo. Ative o item para anexar PDFs.');
-            return;
-          }
-          const itemId = Number(btn.dataset.itemid);
-          const category = btn.dataset.category;
-          const monthName = btn.dataset.monthname || '';
-          await uploadManualPDF(itemId, category, monthName);
-        });
-      });
-      document.querySelectorAll('.remove-pdf-btn').forEach(btn => {
-        btn.addEventListener('click', async (e) => {
-          if (!isActive) {
-            alert('Item inativo. Ative o item para remover PDFs.');
-            return;
-          }
-          if (confirm('Remover este PDF?')) {
-            const loader = document.getElementById('fullscreenLoader');
-            loader.classList.add('active');
-            try {
-              await deleteFileById(Number(btn.dataset.fileid));
-              await refreshData();
-              await openDetailModal(item.id);
-            } finally {
-              loader.classList.remove('active');
-            }
-          }
-        });
-      });
-      document.querySelectorAll('.fill-form-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-          if (!isActive) {
-            alert('Item inativo. Ative o item para preencher o formulário.');
-            return;
-          }
-          openFormModal(Number(btn.dataset.itemid), btn.dataset.category, btn.dataset.monthname);
-        });
-      });
+      document.querySelectorAll('.upload-pdf-btn').forEach(btn => { btn.addEventListener('click', async (e) => { if (!isActive) { alert('Item inativo. Ative o item para anexar PDFs.'); return; } const itemId = Number(btn.dataset.itemid); const category = btn.dataset.category; const monthName = btn.dataset.monthname || ''; await uploadManualPDF(itemId, category, monthName); }); });
+      document.querySelectorAll('.remove-pdf-btn').forEach(btn => { btn.addEventListener('click', async (e) => { if (!isActive) { alert('Item inativo. Ative o item para remover PDFs.'); return; } if (confirm('Remover este PDF?')) { const loader = document.getElementById('fullscreenLoader'); loader.classList.add('active'); try { await deleteFileById(Number(btn.dataset.fileid)); await refreshData(); await openDetailModal(item.id); } finally { loader.classList.remove('active'); } } }); });
+      document.querySelectorAll('.fill-form-btn').forEach(btn => { btn.addEventListener('click', () => { if (!isActive) { alert('Item inativo. Ative o item para preencher o formulário.'); return; } openFormModal(Number(btn.dataset.itemid), btn.dataset.category, btn.dataset.monthname); }); });
       const deleteBtn = document.getElementById('deleteItemFromDetailBtn');
-      if (deleteBtn) deleteBtn.addEventListener('click', async () => {
-        if (confirm(`Excluir o item "${item.name}"?`)) {
-          const loader = document.getElementById('fullscreenLoader');
-          loader.classList.add('active');
-          try {
-            await deleteItemAndFiles(item.id);
-            detailModalElem.style.display = 'none';
-            await refreshData();
-          } finally {
-            loader.classList.remove('active');
-          }
-        }
-      });
+      if (deleteBtn) deleteBtn.addEventListener('click', async () => { if (confirm(`Excluir o item "${item.name}"?`)) { const loader = document.getElementById('fullscreenLoader'); loader.classList.add('active'); try { await deleteItemAndFiles(item.id); detailModalElem.style.display = 'none'; await refreshData(); } finally { loader.classList.remove('active'); } } });
     }
 
     function renderDetailPdfRow(category, label, file, itemId, isActive, showFormButton = false) {
-      const actions = `
-        <button class="upload-pdf-btn" data-itemid="${itemId}" data-category="${category}" data-monthname="${label}" title="Substituir PDF">🔄</button>
-        ${file ? `<button class="remove-pdf-btn" data-fileid="${file.id}" title="Remover">✖</button>` : ''}
-        ${showFormButton ? `<button class="fill-form-btn" data-itemid="${itemId}" data-category="${category}" data-monthname="${label}" title="Preencher formulário">📝</button>` : ''}
-      `;
+      const actions = `<button class="upload-pdf-btn" data-itemid="${itemId}" data-category="${category}" data-monthname="${label}" title="Substituir PDF">🔄</button>${file ? `<button class="remove-pdf-btn" data-fileid="${file.id}" title="Remover">✖</button>` : ''}${showFormButton ? `<button class="fill-form-btn" data-itemid="${itemId}" data-category="${category}" data-monthname="${label}" title="Preencher formulário">📝</button>` : ''}`;
       const disabledClass = !isActive ? 'disabled-action' : '';
-      if (file) {
-        return `
-          <div class="pdf-row">
-            <span class="pdf-label">${escapeHtml(label)}</span>
-            <div class="pdf-file-info">
-              <a href="${file.file_url}" target="_blank">📄 ${escapeHtml(file.file_name)}</a>
-            </div>
-            <div class="pdf-actions ${disabledClass}">
-              ${actions}
-            </div>
-          </div>
-        `;
-      } else {
-        return `
-          <div class="pdf-row">
-            <span class="pdf-label">${escapeHtml(label)}</span>
-            <div class="pdf-file-info">— Nenhum PDF anexado —</div>
-            <div class="pdf-actions ${disabledClass}">
-              <button class="upload-pdf-btn" data-itemid="${itemId}" data-category="${category}" data-monthname="${label}" title="Adicionar PDF">➕</button>
-              ${showFormButton ? `<button class="fill-form-btn" data-itemid="${itemId}" data-category="${category}" data-monthname="${label}" title="Preencher formulário">📝</button>` : ''}
-            </div>
-          </div>
-        `;
-      }
+      if (file) return `<div class="pdf-row"><span class="pdf-label">${escapeHtml(label)}</span><div class="pdf-file-info"><a href="${file.file_url}" target="_blank">📄 ${escapeHtml(file.file_name)}</a></div><div class="pdf-actions ${disabledClass}">${actions}</div></div>`;
+      else return `<div class="pdf-row"><span class="pdf-label">${escapeHtml(label)}</span><div class="pdf-file-info">— Nenhum PDF anexado —</div><div class="pdf-actions ${disabledClass}"><button class="upload-pdf-btn" data-itemid="${itemId}" data-category="${category}" data-monthname="${label}" title="Adicionar PDF">➕</button>${showFormButton ? `<button class="fill-form-btn" data-itemid="${itemId}" data-category="${category}" data-monthname="${label}" title="Preencher formulário">📝</button>` : ''}</div></div>`;
     }
 
     const formModal = document.getElementById('formModal');
@@ -1442,62 +1144,37 @@
     const fotoInput = document.getElementById('fotoInspecao');
     const fotoPreview = document.getElementById('fotoPreview');
 
-    if (fotoInput) {
-      fotoInput.addEventListener('change', function(e) {
-        const file = e.target.files[0];
-        if (file) {
-          const reader = new FileReader();
-          reader.onload = function(event) { fotoPreview.innerHTML = `<img src="${event.target.result}" class="image-preview" alt="Preview">`; };
-          reader.readAsDataURL(file);
-        } else { fotoPreview.innerHTML = ''; }
-      });
-    }
+    if (fotoInput) fotoInput.addEventListener('change', function(e) { const file = e.target.files[0]; if (file) { const reader = new FileReader(); reader.onload = function(event) { fotoPreview.innerHTML = `<img src="${event.target.result}" class="image-preview" alt="Preview">`; }; reader.readAsDataURL(file); } else { fotoPreview.innerHTML = ''; } });
 
     function openFormModal(itemId, category, monthName) {
       currentFormItemId = itemId; currentFormCategory = category; currentFormMonthName = monthName;
       const itemAtual = currentItems.find(i => i.id === itemId);
       currentItemInfo = itemAtual || { name: '', code: '', tamanho: '' };
       document.getElementById('formModalTitle').innerText = `Formulário de Inspeção - ${monthName}`;
-      let html = `<div class="form-row"><div class="form-group"><label>Unidade</label><input type="text" id="unidade" placeholder="Ex: Matriz"></div><div class="form-group"><label>Nome da Localidade</label><input type="text" id="localidade"></div></div><div class="form-row"><div class="form-group"><label>Responsável - Nome</label><input type="text" id="resp_nome"></div><div class="form-group"><label>Responsável - Matrícula</label><input type="text" id="resp_matricula"></div></div><div class="form-row"><div class="form-group"><label>Data da Inspeção</label><input type="date" id="data_inspecao"></div><div class="form-group"><label>Empresa</label><input type="text" id="empresa"></div></div><hr style="margin: 1rem 0;"><h3>Checklist de Inspeção</h3>`;
-      for (let i=0; i<checklistPerguntas.length; i++) html += `<div class="question-group"><div class="question-text">${i+1}. ${escapeHtml(checklistPerguntas[i])}</div><div class="question-options"><label><input type="radio" name="resp_${i}" value="Conforme"> Conforme</label><label><input type="radio" name="resp_${i}" value="Não conforme"> Não conforme</label><label><input type="radio" name="resp_${i}" value="Não se aplica"> Não se aplica</label></div><div class="question-obs"><input type="text" placeholder="Observação (opcional)" id="obs_${i}" style="width:100%;"></div></div>`;
+      let html = `<div class="form-row"><div class="form-group"><label>Unidade</label><input type="text" id="unidade" placeholder="Ex: Matriz" spellcheck="false"></div><div class="form-group"><label>Nome da Localidade</label><input type="text" id="localidade" spellcheck="false"></div></div><div class="form-row"><div class="form-group"><label>Responsável - Nome</label><input type="text" id="resp_nome" spellcheck="false"></div><div class="form-group"><label>Responsável - Matrícula</label><input type="text" id="resp_matricula" spellcheck="false"></div></div><div class="form-row"><div class="form-group"><label>Data da Inspeção</label><input type="date" id="data_inspecao"></div><div class="form-group"><label>Empresa</label><input type="text" id="empresa" spellcheck="false"></div></div><hr style="margin: 1rem 0;"><h3>Checklist de Inspeção</h3>`;
+      for (let i=0; i<checklistPerguntas.length; i++) html += `<div class="question-group"><div class="question-text">${i+1}. ${escapeHtml(checklistPerguntas[i])}</div><div class="question-options"><label><input type="radio" name="resp_${i}" value="Conforme"> Conforme</label><label><input type="radio" name="resp_${i}" value="Não conforme"> Não conforme</label><label><input type="radio" name="resp_${i}" value="Não se aplica"> Não se aplica</label></div><div class="question-obs"><input type="text" placeholder="Observação (opcional)" id="obs_${i}" style="width:100%;" spellcheck="false"></div></div>`;
       formFieldsContainer.innerHTML = html;
       
       const unidadeInput = document.getElementById('unidade');
       if (unidadeInput) unidadeInput.value = 'SERRA NORTE';
       const localidadeInput = document.getElementById('localidade');
-      if (localidadeInput) {
-        const localizacao = itemAtual?.name || '';
-        const subLocal = itemAtual?.sub_localizacao || '';
-        const localidadeCompleta = subLocal ? `${localizacao} - ${subLocal}` : localizacao;
-        localidadeInput.value = localidadeCompleta;
-      }
+      if (localidadeInput) { const localizacao = itemAtual?.name || ''; const subLocal = itemAtual?.sub_localizacao || ''; const localidadeCompleta = subLocal ? `${localizacao} - ${subLocal}` : localizacao; localidadeInput.value = localidadeCompleta; }
       if (fotoInput) fotoInput.value = '';
       if (fotoPreview) fotoPreview.innerHTML = '';
       formModal.style.display = 'flex';
     }
 
     generatePdfBtn.addEventListener('click', async () => {
-      const formData = {
-        unidade: document.getElementById('unidade')?.value || '',
-        localidade: document.getElementById('localidade')?.value || '',
-        resp_nome: document.getElementById('resp_nome')?.value || '',
-        resp_matricula: document.getElementById('resp_matricula')?.value || '',
-        data_inspecao: document.getElementById('data_inspecao')?.value || '',
-        empresa: document.getElementById('empresa')?.value || ''
-      };
-      for (let i=0; i<checklistPerguntas.length; i++) {
-        const radio = document.querySelector(`input[name="resp_${i}"]:checked`);
-        formData[`resp_${i}`] = radio ? radio.value : "Não respondido";
-      }
+      const formData = { unidade: document.getElementById('unidade')?.value || '', localidade: document.getElementById('localidade')?.value || '', resp_nome: document.getElementById('resp_nome')?.value || '', resp_matricula: document.getElementById('resp_matricula')?.value || '', data_inspecao: document.getElementById('data_inspecao')?.value || '', empresa: document.getElementById('empresa')?.value || '' };
+      for (let i=0; i<checklistPerguntas.length; i++) { const radio = document.querySelector(`input[name="resp_${i}"]:checked`); formData[`resp_${i}`] = radio ? radio.value : "Não respondido"; }
       if (!formData.data_inspecao || !formData.resp_nome) { alert("Preencha Data e Responsável."); return; }
       const fotoFile = document.getElementById('fotoInspecao')?.files[0] || null;
       if (!fotoFile) { alert("Por favor, anexe uma foto da inspeção."); return; }
       const loader = document.getElementById('fullscreenLoader');
       loader.classList.add('active');
-      try {
-        await generateAndAttachPdf(currentFormItemId, currentFormCategory, currentFormMonthName, formData, currentItemInfo, fotoFile);
-        formModal.style.display = 'none';
-      } catch(err) { alert("Erro: " + err.message); } finally { loader.classList.remove('active'); }
+      try { await generateAndAttachPdf(currentFormItemId, currentFormCategory, currentFormMonthName, formData, currentItemInfo, fotoFile); formModal.style.display = 'none';
+      } catch(err) { alert("Erro: " + err.message);
+      } finally { loader.classList.remove('active'); }
     });
 
     closeFormModalBtn.addEventListener('click', () => formModal.style.display = 'none');
@@ -1519,16 +1196,7 @@
     function openCreateModal() { newItemName.value = ''; newSubLocalizacao.value = ''; newTamanho.value = ''; newItemCode.value = ''; newMemorialFile.value = ''; monthKeys.forEach(key => { const inp = document.getElementById(`new_month_${key}`); if (inp) inp.value = ''; }); createCodeError.innerText = ''; createModal.style.display = 'flex'; }
     closeCreateBtn.addEventListener('click', () => createModal.style.display = 'none');
     cancelCreateBtn.addEventListener('click', () => createModal.style.display = 'none');
-    confirmCreateBtn.addEventListener('click', async () => {
-      const name = newItemName.value.trim(), sub_localizacao = newSubLocalizacao.value.trim(), tamanho = newTamanho.value.trim(), code = newItemCode.value.trim();
-      if (!name || !code) { createCodeError.innerText = 'Preencha nome e código.'; return; }
-      createCodeError.innerText = '';
-      const filesToProcess = [];
-      if (newMemorialFile.files.length > 0) filesToProcess.push({ category: 'memorial', file: newMemorialFile.files[0] });
-      else filesToProcess.push({ category: 'memorial', file: null });
-      for (let i=0; i<monthKeys.length; i++) { const key = monthKeys[i]; const inp = document.getElementById(`new_month_${key}`); if (inp && inp.files.length > 0) filesToProcess.push({ category: key, file: inp.files[0] }); else filesToProcess.push({ category: key, file: null }); }
-      try { await saveItemComplete(null, name, sub_localizacao, tamanho, code, filesToProcess); createModal.style.display = 'none'; refreshData(); } catch(err) { if (err.message.includes('código')) createCodeError.innerText = err.message; else alert('Erro ao criar item: ' + err.message); }
-    });
+    confirmCreateBtn.addEventListener('click', async () => { const name = newItemName.value.trim(), sub_localizacao = newSubLocalizacao.value.trim(), tamanho = newTamanho.value.trim(), code = newItemCode.value.trim(); if (!name || !code) { createCodeError.innerText = 'Preencha nome e código.'; return; } createCodeError.innerText = ''; const filesToProcess = []; if (newMemorialFile.files.length > 0) filesToProcess.push({ category: 'memorial', file: newMemorialFile.files[0] }); else filesToProcess.push({ category: 'memorial', file: null }); for (let i=0; i<monthKeys.length; i++) { const key = monthKeys[i]; const inp = document.getElementById(`new_month_${key}`); if (inp && inp.files.length > 0) filesToProcess.push({ category: key, file: inp.files[0] }); else filesToProcess.push({ category: key, file: null }); } try { await saveItemComplete(null, name, sub_localizacao, tamanho, code, filesToProcess); createModal.style.display = 'none'; refreshData(); } catch(err) { if (err.message.includes('código')) createCodeError.innerText = err.message; else alert('Erro ao criar item: ' + err.message); } });
 
     async function downloadMonthPDFs(category, monthName) {
       try {
@@ -1548,46 +1216,37 @@
     }
 
     document.getElementById('addItemBtn').addEventListener('click', openCreateModal);
+    document.getElementById('prepareOfflineBtn').addEventListener('click', forcarCacheModeloPDF);
     document.getElementById('searchInput').addEventListener('input', (e) => renderCards(e.target.value));
     const monthContainer = document.getElementById('monthButtonsContainer');
     monthNames.forEach((month, idx) => { const btn = document.createElement('button'); btn.className = 'month-btn'; btn.textContent = month; btn.addEventListener('click', () => downloadMonthPDFs(monthKeys[idx], month)); monthContainer.appendChild(btn); });
     
     // ==================== INICIALIZAÇÃO ====================
     window.addEventListener('DOMContentLoaded', async () => {
+      console.log('🚀 Inicializando TENDEX...');
       await initOfflineDB();
       await limparDadosSincronizados();
       
-      if (navigator.onLine) {
-        try {
-          console.log('📥 Pré-carregando modelo PDF para uso offline...');
-          await carregarModeloPDF();
-          console.log('✅ Modelo PDF pré-carregado com sucesso');
-        } catch (error) {
-          console.error('❌ Erro ao pré-carregar modelo:', error);
-        }
-      }
+      const modeloCacheado = await verificarModeloCacheado();
+      if (modeloCacheado) {
+        console.log('✅ Modelo PDF já está cacheado para uso offline');
+      } else if (navigator.onLine) {
+        console.log('📥 Modelo PDF não cacheado. Baixando...');
+        try { await carregarModeloPDF(); console.log('✅ Modelo PDF cacheado com sucesso!');
+        } catch (error) { console.error('❌ Erro ao cachear modelo:', error); alert('⚠️ Não foi possível preparar o modo offline. Clique no botão "Preparar Modo Offline" quando estiver com internet.'); }
+      } else { console.warn('⚠️ Sem modelo PDF cacheado e sem internet.'); alert('⚠️ Você está offline e o modelo PDF não está disponível.\nClique em "Preparar Modo Offline" quando tiver internet.'); }
       
       await refreshData();
-      await sincronizarTudo();
+      if (navigator.onLine) await sincronizarTudo();
+      console.log('✅ Inicialização concluída!');
     });
     
     let syncScheduled = false;
     window.addEventListener('online', async () => {
       console.log('Conexão detectada, aguardando estabilização...');
       await new Promise(resolve => setTimeout(resolve, 3000));
-      
-      if (navigator.onLine) {
-        try {
-          await carregarModeloPDF();
-        } catch(e) {}
-      }
-      
-      if (await testarConexao() && !syncScheduled) {
-        syncScheduled = true;
-        console.log('Conexão estável! Sincronizando...');
-        await sincronizarTudo();
-        syncScheduled = false;
-      }
+      if (navigator.onLine) { try { await carregarModeloPDF(); } catch(e) {} }
+      if (await testarConexao() && !syncScheduled) { syncScheduled = true; console.log('Conexão estável! Sincronizando...'); await sincronizarTudo(); syncScheduled = false; }
     });
   })();
 </script>
