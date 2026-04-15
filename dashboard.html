@@ -275,7 +275,8 @@
     const DB_NAME_OFFLINE = 'TendexOfflineDB';
     const STORE_ITEMS = 'items_cache';
     const STORE_FILES = 'files_cache';
-    const STORE_PENDING = 'pending_inspecoes';
+    const STORE_PENDING_ITEMS = 'pending_items';
+    const STORE_PENDING_INSPECTIONS = 'pending_inspections';
 
     let dbInstance = null;
 
@@ -285,32 +286,36 @@
           resolve(dbInstance);
           return;
         }
-        const request = indexedDB.open(DB_NAME_OFFLINE, 7);
+        const request = indexedDB.open(DB_NAME_OFFLINE, 8);
         request.onerror = (event) => {
           console.error('IndexedDB erro:', event);
           reject(request.error);
         };
         request.onsuccess = (event) => {
           dbInstance = request.result;
-          console.log('IndexedDB aberto com sucesso - versão 7');
+          console.log('IndexedDB aberto com sucesso - versão 8');
           resolve(dbInstance);
         };
         request.onupgradeneeded = (event) => {
           const db = event.target.result;
-          console.log('Criando/atualizando stores...');
+          console.log('Criando stores...');
           if (!db.objectStoreNames.contains(STORE_ITEMS)) {
             db.createObjectStore(STORE_ITEMS, { keyPath: 'id' });
           }
           if (!db.objectStoreNames.contains(STORE_FILES)) {
             db.createObjectStore(STORE_FILES, { keyPath: 'id', autoIncrement: true });
           }
-          if (!db.objectStoreNames.contains(STORE_PENDING)) {
-            db.createObjectStore(STORE_PENDING, { keyPath: 'id', autoIncrement: true });
+          if (!db.objectStoreNames.contains(STORE_PENDING_ITEMS)) {
+            db.createObjectStore(STORE_PENDING_ITEMS, { keyPath: 'id', autoIncrement: true });
+          }
+          if (!db.objectStoreNames.contains(STORE_PENDING_INSPECTIONS)) {
+            db.createObjectStore(STORE_PENDING_INSPECTIONS, { keyPath: 'id', autoIncrement: true });
           }
         };
       });
     }
 
+    // ==================== ITEMS CACHE ====================
     async function salvarItemsLocal(items) {
       try {
         const db = await initOfflineDB();
@@ -339,6 +344,7 @@
       } catch (e) { console.warn('Erro ao carregar items local:', e); return []; }
     }
 
+    // ==================== FILES CACHE ====================
     async function salvarFilesLocal(files) {
       try {
         const db = await initOfflineDB();
@@ -367,25 +373,64 @@
       } catch (e) { console.warn('Erro ao carregar files local:', e); return []; }
     }
 
-    async function salvarPending(data) {
+    // ==================== PENDING ITEMS (para sincronizar novos itens) ====================
+    async function salvarItemPending(itemData) {
       try {
-        console.log('Salvando pending data...');
         const db = await initOfflineDB();
         return new Promise((resolve, reject) => {
-          const tx = db.transaction(STORE_PENDING, 'readwrite');
-          const store = tx.objectStore(STORE_PENDING);
-          const request = store.add(data);
+          const tx = db.transaction(STORE_PENDING_ITEMS, 'readwrite');
+          const store = tx.objectStore(STORE_PENDING_ITEMS);
+          const request = store.add(itemData);
           request.onsuccess = () => {
-            console.log('✅ Pending salvo com ID:', request.result);
+            console.log('✅ Item pendente salvo com ID:', request.result);
             resolve(request.result);
           };
-          request.onerror = (event) => {
-            console.error('Erro ao salvar pending:', event);
-            reject(request.error);
-          };
+          request.onerror = () => reject(request.error);
         });
       } catch (error) {
-        console.error('Erro no salvarPending:', error);
+        console.error('Erro ao salvar item pendente:', error);
+        throw error;
+      }
+    }
+
+    async function getPendingItems() {
+      const db = await initOfflineDB();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE_PENDING_ITEMS, 'readonly');
+        const store = tx.objectStore(STORE_PENDING_ITEMS);
+        const request = store.getAll();
+        request.onsuccess = () => resolve(request.result || []);
+        request.onerror = () => reject(request.error);
+      });
+    }
+
+    async function removerItemPending(id) {
+      const db = await initOfflineDB();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE_PENDING_ITEMS, 'readwrite');
+        const store = tx.objectStore(STORE_PENDING_ITEMS);
+        const request = store.delete(id);
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(request.error);
+      });
+    }
+
+    // ==================== PENDING INSPECTIONS ====================
+    async function salvarInspecaoPending(data) {
+      try {
+        const db = await initOfflineDB();
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction(STORE_PENDING_INSPECTIONS, 'readwrite');
+          const store = tx.objectStore(STORE_PENDING_INSPECTIONS);
+          const request = store.add(data);
+          request.onsuccess = () => {
+            console.log('✅ Inspeção pendente salva com ID:', request.result);
+            resolve(request.result);
+          };
+          request.onerror = () => reject(request.error);
+        });
+      } catch (error) {
+        console.error('Erro ao salvar inspeção pendente:', error);
         throw error;
       }
     }
@@ -393,45 +438,108 @@
     async function getPendingInspections() {
       const db = await initOfflineDB();
       return new Promise((resolve, reject) => {
-        const tx = db.transaction(STORE_PENDING, 'readonly');
-        const store = tx.objectStore(STORE_PENDING);
+        const tx = db.transaction(STORE_PENDING_INSPECTIONS, 'readonly');
+        const store = tx.objectStore(STORE_PENDING_INSPECTIONS);
         const request = store.getAll();
         request.onsuccess = () => resolve(request.result || []);
         request.onerror = () => reject(request.error);
       });
     }
 
-    async function removerPending(id) {
+    async function removerInspecaoPending(id) {
       const db = await initOfflineDB();
       return new Promise((resolve, reject) => {
-        const tx = db.transaction(STORE_PENDING, 'readwrite');
-        const store = tx.objectStore(STORE_PENDING);
+        const tx = db.transaction(STORE_PENDING_INSPECTIONS, 'readwrite');
+        const store = tx.objectStore(STORE_PENDING_INSPECTIONS);
         const request = store.delete(id);
         request.onsuccess = () => resolve();
         request.onerror = () => reject(request.error);
       });
     }
 
-    async function limparTodosPendentes() {
-      const db = await initOfflineDB();
-      return new Promise((resolve, reject) => {
-        const tx = db.transaction(STORE_PENDING, 'readwrite');
-        const store = tx.objectStore(STORE_PENDING);
-        const request = store.clear();
-        request.onsuccess = () => resolve();
-        request.onerror = () => reject(request.error);
-      });
+    // ==================== SINCronização ====================
+    async function sincronizarItensPendentes() {
+      const pendentes = await getPendingItems();
+      if (pendentes.length === 0) return 0;
+      
+      console.log(`📤 Sincronizando ${pendentes.length} itens pendentes...`);
+      let sucessos = 0;
+      
+      for (const item of pendentes) {
+        try {
+          const { data, error } = await supabase.from('items').insert({
+            name: item.name,
+            sub_localizacao: item.sub_localizacao,
+            tamanho: item.tamanho,
+            code: item.code,
+            status: 'active'
+          }).select().single();
+          
+          if (error) throw error;
+          
+          await removerItemPending(item.id);
+          sucessos++;
+          console.log(`✅ Item ${item.name} sincronizado com ID: ${data.id}`);
+        } catch (error) {
+          console.error(`❌ Erro ao sincronizar item ${item.id}:`, error);
+        }
+      }
+      return sucessos;
     }
 
-    async function registrarSync() {
-      if ('serviceWorker' in navigator && 'SyncManager' in window) {
-        const registration = await navigator.serviceWorker.ready;
+    async function sincronizarInspecoesPendentes() {
+      const pendentes = await getPendingInspections();
+      if (pendentes.length === 0) return 0;
+      
+      console.log(`📤 Sincronizando ${pendentes.length} inspeções pendentes...`);
+      let sucessos = 0;
+      
+      for (const item of pendentes) {
         try {
-          await registration.sync.register('sync-inspecoes');
-          console.log('Sync registrado com sucesso');
+          const pdfBlob = base64ToBlob(item.pdfBase64, 'application/pdf');
+          const pdfFile = new File([pdfBlob], `checklist_${item.monthName}_${Date.now()}.pdf`, { type: 'application/pdf' });
+          
+          let fotoFile = null;
+          if (item.fotoBase64) {
+            const fotoBlob = base64ToBlob(item.fotoBase64, 'image/jpeg');
+            fotoFile = new File([fotoBlob], `foto_${Date.now()}.jpg`, { type: 'image/jpeg' });
+          }
+          
+          await addFileToItem(item.itemId, item.category, pdfFile, item.formData.data_inspecao);
+          await removerInspecaoPending(item.id);
+          sucessos++;
+          console.log(`✅ Inspeção ${item.id} sincronizada com sucesso`);
         } catch (error) {
-          console.error('Falha ao registrar sync:', error);
+          console.error(`❌ Erro ao sincronizar inspeção ${item.id}:`, error);
         }
+      }
+      return sucessos;
+    }
+
+    async function sincronizarTudo() {
+      if (!navigator.onLine) {
+        console.log('Offline - sincronização adiada');
+        return;
+      }
+      
+      fullscreenLoader.classList.add('active');
+      let mensagens = [];
+      
+      try {
+        const itensSincronizados = await sincronizarItensPendentes();
+        if (itensSincronizados > 0) mensagens.push(`${itensSincronizados} item(ns) sincronizado(s)`);
+        
+        const inspSincronizadas = await sincronizarInspecoesPendentes();
+        if (inspSincronizadas > 0) mensagens.push(`${inspSincronizadas} inspeção(ões) sincronizada(s)`);
+        
+        if (mensagens.length > 0) {
+          await refreshData();
+          alert(`✅ Sincronização concluída!\n${mensagens.join('\n')}`);
+        }
+      } catch (error) {
+        console.error('Erro na sincronização:', error);
+      } finally {
+        fullscreenLoader.classList.remove('active');
       }
     }
 
@@ -474,48 +582,6 @@
       navigator.serviceWorker.register('/TENDEX/sw.js')
         .then(reg => console.log('Service Worker registrado', reg))
         .catch(err => console.error('Falha ao registrar Service Worker', err));
-      
-      navigator.serviceWorker.addEventListener('message', async (event) => {
-        if (event.data && event.data.type === 'SYNC_TRIGGERED') {
-          console.log('Sync triggered pelo Service Worker');
-          await processarPendentes();
-        }
-      });
-    }
-
-    // Função principal de sincronização
-    async function processarPendentes() {
-      const pendentes = await getPendingInspections();
-      if (pendentes.length === 0) return;
-      
-      console.log(`📤 Sincronizando ${pendentes.length} inspeções pendentes...`);
-      let sucessos = 0;
-      
-      for (const item of pendentes) {
-        try {
-          const pdfBlob = base64ToBlob(item.pdfBase64, 'application/pdf');
-          const pdfFile = new File([pdfBlob], `checklist_${item.monthName}_${Date.now()}.pdf`, { type: 'application/pdf' });
-          
-          let fotoFile = null;
-          if (item.fotoBase64) {
-            const fotoBlob = base64ToBlob(item.fotoBase64, 'image/jpeg');
-            fotoFile = new File([fotoBlob], `foto_${Date.now()}.jpg`, { type: 'image/jpeg' });
-          }
-          
-          await addFileToItem(item.itemId, item.category, pdfFile, item.formData.data_inspecao);
-          await removerPending(item.id);
-          sucessos++;
-          console.log(`✅ Inspeção ${item.id} enviada com sucesso`);
-        } catch (error) {
-          console.error(`❌ Erro ao enviar inspeção ${item.id}:`, error);
-        }
-      }
-      
-      if (sucessos > 0) {
-        // Recarregar dados e atualizar cache
-        await refreshData();
-        alert(`✅ ${sucessos} inspeção(ões) sincronizada(s) com sucesso!`);
-      }
     }
 
     // ==================== CONFIGURAÇÃO SUPABASE ====================
@@ -686,16 +752,19 @@
 
     async function saveItemComplete(itemId, name, sub_localizacao, tamanho, code, filesToProcess) {
       if (!navigator.onLine) {
-        const newId = itemId || Date.now();
-        const newItem = { id: newId, name, sub_localizacao, tamanho, code, status: 'active' };
+        const pendingData = {
+          name: name,
+          sub_localizacao: sub_localizacao,
+          tamanho: tamanho,
+          code: code,
+          timestamp: new Date().toISOString()
+        };
+        await salvarItemPending(pendingData);
+        
+        const newId = Date.now();
+        const newItem = { id: newId, name, sub_localizacao, tamanho, code, status: 'active', files: [] };
         const items = await carregarItemsLocal();
-        if (itemId) {
-          const index = items.findIndex(i => i.id === itemId);
-          if (index !== -1) items[index] = newItem;
-          else items.push(newItem);
-        } else {
-          items.push(newItem);
-        }
+        items.push(newItem);
         await salvarItemsLocal(items);
         await refreshData();
         alert('⚠️ Você está offline. O item foi salvo localmente e será sincronizado quando a internet voltar.');
@@ -880,8 +949,7 @@
             timestamp: new Date().toISOString()
           };
           
-          await salvarPending(pendingData);
-          await registrarSync();
+          await salvarInspecaoPending(pendingData);
           
           fullscreenLoader.classList.remove('active');
           alert('⚠️ Você está offline. O PDF foi salvo localmente e será enviado automaticamente quando a internet voltar.');
@@ -1343,17 +1411,12 @@
     window.addEventListener('DOMContentLoaded', async () => {
       await initOfflineDB();
       await refreshData();
-      
-      // Verificar pendentes ao carregar (se estiver online)
-      if (navigator.onLine) {
-        await processarPendentes();
-      }
+      await sincronizarTudo();
     });
     
-    // Monitorar volta da internet para sincronizar automaticamente
     window.addEventListener('online', async () => {
       console.log('Internet restaurada! Sincronizando pendentes...');
-      await processarPendentes();
+      await sincronizarTudo();
     });
   })();
 </script>
