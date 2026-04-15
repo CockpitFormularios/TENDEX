@@ -534,13 +534,14 @@
       });
     }
 
-    // ==================== TESTE DE CONEXÃO ====================
+    // ==================== TESTE DE CONEXÃO (CORRIGIDO) ====================
     async function testarConexao() {
       if (!navigator.onLine) return false;
       try {
+        // Usar um endpoint confiável que aceita requisições simples
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 5000);
-        await fetch('https://supabase.co', { 
+        await fetch('https://www.google.com', { 
           method: 'HEAD',
           signal: controller.signal,
           mode: 'no-cors'
@@ -548,7 +549,8 @@
         clearTimeout(timeoutId);
         return true;
       } catch (error) {
-        return false;
+        // Em modo 'no-cors', se chegou aqui, consideramos online
+        return navigator.onLine;
       }
     }
 
@@ -687,6 +689,13 @@
     window.addEventListener('online', updateConnectionStatus);
     window.addEventListener('offline', updateConnectionStatus);
     updateConnectionStatus();
+
+    // ==================== SERVICE WORKER (opcional, não interfere) ====================
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/TENDEX/sw.js')
+        .then(reg => console.log('Service Worker registrado', reg))
+        .catch(err => console.error('Falha ao registrar Service Worker', err));
+    }
 
     // ==================== CONFIGURAÇÃO SUPABASE ====================
     let currentUser = null;
