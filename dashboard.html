@@ -303,6 +303,7 @@
 
     let dbInstance = null;
     let cachedModeloPDF = null;
+    let isInitialized = false;
 
     const MODELO_PDF_URL = "https://jklcvyuxwxgsfczrfaco.supabase.co/storage/v1/object/public/pdfs/modelo_checklist_com_campos%20(3).pdf";
 
@@ -313,14 +314,18 @@
           resolve(dbInstance);
           return;
         }
-        const request = indexedDB.open(DB_NAME_OFFLINE, 18);
+        const request = indexedDB.open(DB_NAME_OFFLINE, 19);
         request.onerror = (event) => {
           console.error('IndexedDB erro:', event);
           reject(request.error);
         };
         request.onsuccess = (event) => {
           dbInstance = request.result;
-          console.log('IndexedDB aberto com sucesso - versão 18');
+          console.log('IndexedDB aberto com sucesso - versão 19');
+          
+          // Verificar se há dados após abrir
+          verificarPersistenciaDados();
+          
           resolve(dbInstance);
         };
         request.onupgradeneeded = (event) => {
@@ -346,6 +351,43 @@
           }
         };
       });
+    }
+
+    // ==================== VERIFICAR PERSISTÊNCIA DOS DADOS ====================
+    async function verificarPersistenciaDados() {
+      try {
+        const pendentesItems = await getPendingItems();
+        const pendentesInsp = await getPendingInspections();
+        const itemsLocal = await carregarItemsLocal();
+        
+        console.log(`📊 Dados persistidos no IndexedDB:`);
+        console.log(`   - Itens locais: ${itemsLocal.length}`);
+        console.log(`   - Itens pendentes: ${pendentesItems.length}`);
+        console.log(`   - Inspeções pendentes: ${pendentesInsp.length}`);
+        
+        if (pendentesItems.length > 0 || pendentesInsp.length > 0) {
+          console.log('✅ Dados pendentes encontrados! Serão sincronizados quando a internet voltar.');
+          await updatePendingBadge();
+        }
+      } catch(e) {
+        console.error('Erro ao verificar persistência:', e);
+      }
+    }
+
+    // ==================== FORÇAR CARREGAMENTO DE DADOS LOCAIS ====================
+    async function carregarDadosLocaisForcado() {
+      console.log('📂 Carregando dados locais do IndexedDB...');
+      const items = await carregarItemsLocal();
+      const files = await carregarFilesLocal();
+      const pendentesItems = await getPendingItems();
+      const pendentesInsp = await getPendingInspections();
+      
+      console.log(`📦 Itens carregados: ${items.length}`);
+      console.log(`📎 Arquivos carregados: ${files.length}`);
+      console.log(`⏳ Pendentes itens: ${pendentesItems.length}`);
+      console.log(`⏳ Pendentes inspeções: ${pendentesInsp.length}`);
+      
+      return { items, files, pendentesItems, pendentesInsp };
     }
 
     // ==================== ATUALIZAR BADGE DE PENDENTES ====================
@@ -391,7 +433,7 @@
         html += `<p style="margin-top: 1rem;"><strong>📋 Inspeções (${pendentesInsp.length}):</strong></p>`;
         for (const insp of pendentesInsp) {
           html += `<div class="pending-item">
-            <span>📄 Inspeção - ${escapeHtml(insp.monthName)} (Item ID: ${insp.itemId})</span>
+            <span>📄 Inspeção - ${escapeHtml(insp.monthName)} (Item: ${escapeHtml(insp.itemInfo?.code || 'Código não informado')})</span>
             <span style="font-size: 0.7rem; color: #92400e;">Aguardando sincronização</span>
           </div>`;
         }
@@ -400,22 +442,7 @@
       container.innerHTML = html;
     }
 
-    // ==================== MAPEAR IDS DOS ITENS SINCRONIZADOS ====================
-    async function mapearIdsItensSincronizados() {
-      // Buscar todos os itens do servidor para mapear código -> ID real
-      const { data: items, error } = await supabase.from('items').select('id, code');
-      if (error) {
-        console.error('Erro ao buscar itens:', error);
-        return {};
-      }
-      const mapa = {};
-      items.forEach(item => {
-        mapa[item.code] = item.id;
-      });
-      return mapa;
-    }
-
-    // ==================== MODAL DE SINCRONIZAÇÃO DETALHADA (ORDEM CORRETA) ====================
+    // ==================== MODAL DE SINCRONIZAÇÃO DETALHADA ====================
     async function mostrarModalSincronizacao() {
       const syncModal = document.getElementById('syncModal');
       const syncModalList = document.getElementById('syncModalList');
@@ -448,14 +475,13 @@
       
       for (const insp of pendentesInsp) {
         html += `<div class="pending-item" id="sync-insp-${insp.id}">
-          <span>📄 Inspeção - ${escapeHtml(insp.monthName)}</span>
+          <span>📄 Inspeção - ${escapeHtml(insp.monthName)} (Item: ${escapeHtml(insp.itemInfo?.code || 'Código não informado')})</span>
           <span style="color: #f59e0b;">⏳ Aguardando...</span>
         </div>`;
       }
       
       syncModalList.innerHTML = html;
       
-      // Iniciar sincronização na ordem correta
       await sincronizarComProgresso();
       
       setTimeout(() => {
@@ -463,7 +489,7 @@
       }, 2000);
     }
 
-    // ==================== SINCRONIZAR COM PROGRESSO (ORDEM CORRETA) ====================
+    // ==================== SINCRONIZAR COM PROGRESSO ====================
     async function sincronizarComProgresso() {
       const syncModalProgress = document.getElementById('syncModalProgress');
       const pendentesItems = await getPendingItems();
@@ -471,8 +497,6 @@
       const total = pendentesItems.length + pendentesInsp.length;
       let concluidos = 0;
       let erros = 0;
-      
-      // Mapa para armazenar a relação entre código local e ID real no servidor
       const mapaIds = {};
       
       function atualizarProgresso(sucesso) {
@@ -481,7 +505,7 @@
         if (syncModalProgress) syncModalProgress.style.width = `${percent}%`;
       }
       
-      // ==================== FASE 1: SINCRONIZAR ITENS PRIMEIRO ====================
+      // FASE 1: Sincronizar itens
       console.log('📦 FASE 1: Sincronizando itens...');
       
       for (const item of pendentesItems) {
@@ -491,7 +515,6 @@
             element.querySelector('span:last-child').innerHTML = '<span style="color: #f59e0b;">🔄 Verificando...</span>';
           }
           
-          // Verificar se já existe no servidor
           const { data: existing, error: checkError } = await supabase
             .from('items')
             .select('id, code')
@@ -500,20 +523,17 @@
           
           if (checkError) throw checkError;
           
-          // Se já existe, mapear o ID e remover pendente
           if (existing) {
             mapaIds[item.code] = existing.id;
             if (element) {
-              element.querySelector('span:last-child').innerHTML = '<span style="color: #10b981;">✅ Já existe no servidor (ID: ' + existing.id + ')</span>';
+              element.querySelector('span:last-child').innerHTML = '<span style="color: #10b981;">✅ Já existe no servidor</span>';
               element.style.background = '#d1fae5';
             }
             await removerItemPending(item.id);
             atualizarProgresso(true);
-            console.log(`⚠️ Item com código ${item.code} já existe, ID mapeado: ${existing.id}`);
             continue;
           }
           
-          // Se não existe, criar
           if (element) {
             element.querySelector('span:last-child').innerHTML = '<span style="color: #f59e0b;">🔄 Criando item...</span>';
           }
@@ -528,7 +548,6 @@
           
           if (insertError) {
             if (insertError.code === '23505') {
-              // Duplicado - tentar buscar novamente
               const { data: existingAgain } = await supabase
                 .from('items')
                 .select('id')
@@ -537,7 +556,7 @@
               if (existingAgain) {
                 mapaIds[item.code] = existingAgain.id;
                 if (element) {
-                  element.querySelector('span:last-child').innerHTML = '<span style="color: #10b981;">✅ Código já existia (ID: ' + existingAgain.id + ')</span>';
+                  element.querySelector('span:last-child').innerHTML = '<span style="color: #10b981;">✅ Código já existia</span>';
                   element.style.background = '#d1fae5';
                 }
                 await removerItemPending(item.id);
@@ -548,12 +567,11 @@
             throw insertError;
           }
           
-          // Mapear o novo ID
           mapaIds[item.code] = newItem.id;
           await removerItemPending(item.id);
           
           if (element) {
-            element.querySelector('span:last-child').innerHTML = '<span style="color: #10b981;">✅ Sincronizado! (ID: ' + newItem.id + ')</span>';
+            element.querySelector('span:last-child').innerHTML = '<span style="color: #10b981;">✅ Sincronizado!</span>';
             element.style.background = '#d1fae5';
           }
           atualizarProgresso(true);
@@ -564,18 +582,14 @@
           erros++;
           const element = document.getElementById(`sync-item-${item.id}`);
           if (element) {
-            let errorMsg = error.message || 'Erro desconhecido';
-            if (errorMsg.includes('duplicate') || errorMsg.includes('unique')) {
-              errorMsg = 'Código duplicado - item já existe';
-            }
-            element.querySelector('span:last-child').innerHTML = `<span style="color: #ef4444;">❌ ${errorMsg.substring(0, 50)}</span>`;
+            element.querySelector('span:last-child').innerHTML = `<span style="color: #ef4444;">❌ ${error.message?.substring(0, 50) || 'Erro'}</span>`;
             element.style.background = '#fee2e2';
           }
           atualizarProgresso(false);
         }
       }
       
-      // ==================== FASE 2: SINCRONIZAR INSPEÇÕES ====================
+      // FASE 2: Sincronizar inspeções
       console.log('📋 FASE 2: Sincronizando inspeções...');
       
       for (const insp of pendentesInsp) {
@@ -585,11 +599,9 @@
             element.querySelector('span:last-child').innerHTML = '<span style="color: #f59e0b;">🔄 Verificando item pai...</span>';
           }
           
-          // Buscar o ID real do item no servidor
           let itemIdReal = mapaIds[insp.itemInfo?.code];
           
           if (!itemIdReal) {
-            // Tentar buscar pelo código do item
             const { data: itemData, error: itemError } = await supabase
               .from('items')
               .select('id')
@@ -602,7 +614,7 @@
               itemIdReal = itemData.id;
               mapaIds[insp.itemInfo.code] = itemIdReal;
             } else {
-              throw new Error(`Item pai não encontrado no servidor (Código: ${insp.itemInfo?.code})`);
+              throw new Error(`Item pai não encontrado (Código: ${insp.itemInfo?.code})`);
             }
           }
           
@@ -619,7 +631,6 @@
             fotoFile = new File([fotoBlob], `foto_${Date.now()}.jpg`, { type: 'image/jpeg' });
           }
           
-          // Usar o ID real do item para anexar o arquivo
           await addFileToItem(itemIdReal, insp.category, pdfFile, insp.formData.data_inspecao);
           await removerInspecaoPending(insp.id);
           
@@ -628,25 +639,19 @@
             element.style.background = '#d1fae5';
           }
           atualizarProgresso(true);
-          console.log(`✅ Inspeção para item ${insp.itemInfo?.code} sincronizada`);
           
         } catch (error) {
           console.error(`❌ Erro ao sincronizar inspeção:`, error);
           erros++;
           const element = document.getElementById(`sync-insp-${insp.id}`);
           if (element) {
-            let errorMsg = error.message || 'Erro desconhecido';
-            if (errorMsg.includes('foreign key')) {
-              errorMsg = 'Item pai não sincronizado - sincronize os itens primeiro';
-            }
-            element.querySelector('span:last-child').innerHTML = `<span style="color: #ef4444;">❌ ${errorMsg.substring(0, 50)}</span>`;
+            element.querySelector('span:last-child').innerHTML = `<span style="color: #ef4444;">❌ ${error.message?.substring(0, 50) || 'Erro'}</span>`;
             element.style.background = '#fee2e2';
           }
           atualizarProgresso(false);
         }
       }
       
-      // Recarregar dados e atualizar UI
       await refreshData();
       await updatePendingBadge();
       await listarPendentesNoModal();
@@ -655,10 +660,6 @@
       const mensagem = `✅ Sincronização concluída! ${concluidos - erros}/${total} itens processados.${erros > 0 ? ` ${erros} erro(s).` : ''}`;
       showSyncStatus(mensagem, erros > 0);
       
-      if (erros > 0) {
-        console.warn(`${erros} item(ns) falharam na sincronização`);
-      }
-      
       return { concluidos, erros };
     }
 
@@ -666,8 +667,12 @@
     let verificadorAtivo = false;
     
     async function verificarESincronizar() {
-      if (!navigator.onLine) return;
-      if (verificadorAtivo) return;
+      if (!navigator.onLine) {
+        console.log('📡 Offline - verificando dados locais...');
+        await carregarDadosLocaisForcado();
+        return false;
+      }
+      if (verificadorAtivo) return false;
       
       verificadorAtivo = true;
       
@@ -682,9 +687,12 @@
           await sincronizarComProgresso();
           await refreshData();
           showSyncStatus(`✅ Sincronização concluída!`);
+          return true;
         }
+        return false;
       } catch (error) {
         console.error('Erro na verificação persistente:', error);
+        return false;
       } finally {
         verificadorAtivo = false;
       }
@@ -1220,6 +1228,7 @@
       } else {
         items = await carregarItemsLocal();
         files = await carregarFilesLocal();
+        console.log(`📂 Modo offline - carregados ${items.length} itens do cache local`);
       }
       
       const filesByItem = {};
@@ -1277,7 +1286,6 @@
     }
 
     async function saveItemComplete(itemId, name, sub_localizacao, tamanho, code, filesToProcess) {
-      // Se estiver online, verificar duplicata no servidor
       if (navigator.onLine && await testarConexao()) {
         const { data: existing, error: dupError } = await supabase
           .from('items')
@@ -1292,9 +1300,7 @@
         }
       }
       
-      // Se estiver offline ou falhou a verificação online
       if (!navigator.onLine || !(await testarConexao())) {
-        // Verificar duplicata local
         const itemsLocal = await carregarItemsLocal();
         const existeLocal = itemsLocal.some(i => i.code === code && i.id !== itemId);
         
@@ -1303,7 +1309,6 @@
           throw new Error('Código duplicado localmente');
         }
         
-        // Salvar como pendente
         const pendingData = {
           name: name,
           sub_localizacao: sub_localizacao || '',
@@ -1313,7 +1318,6 @@
         };
         await salvarItemPending(pendingData);
         
-        // Criar item local temporário
         const newId = Date.now();
         const newItem = {
           id: newId,
@@ -1336,7 +1340,6 @@
         return newId;
       }
 
-      // Se chegou aqui, está online e sem conflitos
       const uploadedUrls = [];
       for (const item of filesToProcess) {
         if (item.file) {
@@ -1383,7 +1386,6 @@
         itemIdFinal = newItem.id;
       }
 
-      // Processar arquivos
       for (const fileInfo of uploadedUrls) {
         if (fileInfo.url) {
           const { data: existingFile } = await supabase
@@ -1407,7 +1409,6 @@
         }
       }
       
-      // Atualizar cache local
       const allItems = await supabase.from('items').select('*');
       const allFiles = await supabase.from('files').select('*');
       await salvarItemsLocal(allItems.data || []);
@@ -1522,7 +1523,6 @@
           let fotoBase64 = null;
           if (fotoFile) fotoBase64 = await blobToBase64(fotoFile);
           
-          // Salvar o código do item também para referência
           const pendingData = {
             type: 'inspecao',
             itemId: itemId,
@@ -1828,12 +1828,16 @@
     
     window.addEventListener('DOMContentLoaded', async () => {
       console.log('🚀 Inicializando TENDEX...');
+      
+      // 1. Iniciar IndexedDB
       await initOfflineDB();
       await limparDadosSincronizados();
       
+      // 2. Carregar dados locais primeiro (offline)
+      await carregarDadosLocaisForcado();
       await refreshData();
       
-      // Verificar se precisa baixar o modelo PDF
+      // 3. Verificar modelo PDF
       const modeloCacheado = await isModeloCacheado();
       if (!modeloCacheado && navigator.onLine) {
         console.log('📥 Baixando modelo PDF...');
@@ -1843,13 +1847,19 @@
         } catch(e) { console.error('Erro ao baixar modelo:', e); }
       }
       
-      // Verificar pendentes e sincronizar se necessário
-      await verificarESincronizar();
+      // 4. Sincronizar se estiver online
+      if (navigator.onLine) {
+        console.log('🔄 Verificando pendentes para sincronizar...');
+        await verificarESincronizar();
+      } else {
+        console.log('📡 Modo offline - dados carregados do cache local');
+        showSyncStatus('📡 Modo offline - dados do cache local', false);
+      }
       
       inicializacaoCompleta = true;
       console.log('✅ Inicialização concluída!');
       
-      // Configurar verificação periódica (a cada 30 segundos)
+      // Verificação periódica a cada 30 segundos
       setInterval(async () => {
         if (navigator.onLine && inicializacaoCompleta) {
           await verificarESincronizar();
@@ -1862,15 +1872,21 @@
     window.addEventListener('online', async () => {
       if (!inicializacaoCompleta) return;
       
-      console.log('🌐 Conexão detectada!');
-      showSyncStatus('🔄 Verificando pendentes...');
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      console.log('🌐 Conexão detectada! Verificando pendentes...');
+      showSyncStatus('🔄 Verificando dados pendentes...');
+      await new Promise(resolve => setTimeout(resolve, 3000));
       
       if (!syncScheduled) { 
         syncScheduled = true; 
         await verificarESincronizar();
         syncScheduled = false; 
       }
+    });
+    
+    // Salvar dados antes de fechar a página
+    window.addEventListener('beforeunload', async () => {
+      console.log('💾 Salvando dados antes de fechar...');
+      await refreshData();
     });
   })();
 </script>
