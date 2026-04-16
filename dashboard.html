@@ -111,6 +111,7 @@
     .btn-clear-cache { position: fixed; bottom: 140px; right: 20px; background: #dc2626; color: white; border: none; border-radius: 50px; padding: 10px 15px; font-size: 12px; cursor: pointer; z-index: 10; font-weight: 600; box-shadow: 0 2px 8px rgba(0,0,0,0.2); }
     .btn-clear-cache:hover { background: #b91c1c; transform: scale(1.02); }
     .cache-status { position: fixed; bottom: 20px; left: 20px; background: #1e293b; color: white; padding: 5px 10px; border-radius: 20px; font-size: 10px; font-family: monospace; z-index: 10; }
+    .sync-status { position: fixed; top: 10px; right: 10px; background: rgba(0,0,0,0.7); color: white; padding: 4px 8px; border-radius: 20px; font-size: 10px; z-index: 10; display: none; }
     @media (max-width: 640px) { body { padding: 1rem; } .fab { bottom: 1rem; right: 1rem; } .btn-offline-prepare { bottom: 70px; right: 10px; font-size: 10px; padding: 6px 12px; } .btn-clear-cache { bottom: 120px; right: 10px; font-size: 10px; padding: 6px 12px; } .cache-status { bottom: 10px; left: 10px; font-size: 8px; } }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -162,6 +163,7 @@
 <button class="btn-offline-prepare" id="prepareOfflineBtn">📥 Preparar Modo Offline</button>
 <button class="btn-clear-cache" id="clearCacheBtn">🗑️ Limpar Cache Offline</button>
 <div class="cache-status" id="cacheStatus">🔍 Verificando cache...</div>
+<div class="sync-status" id="syncStatus"></div>
 
 <div id="createItemModal" class="modal">
   <div class="modal-content">
@@ -243,14 +245,14 @@
           resolve(dbInstance);
           return;
         }
-        const request = indexedDB.open(DB_NAME_OFFLINE, 14);
+        const request = indexedDB.open(DB_NAME_OFFLINE, 15);
         request.onerror = (event) => {
           console.error('IndexedDB erro:', event);
           reject(request.error);
         };
         request.onsuccess = (event) => {
           dbInstance = request.result;
-          console.log('IndexedDB aberto com sucesso - versão 14');
+          console.log('IndexedDB aberto com sucesso - versão 15');
           updateCacheStatus();
           resolve(dbInstance);
         };
@@ -303,6 +305,17 @@
       }
     }
 
+    // ==================== MOSTRAR STATUS DE SINCRONIZAÇÃO ====================
+    function showSyncStatus(message, isError = false) {
+      const statusDiv = document.getElementById('syncStatus');
+      statusDiv.textContent = message;
+      statusDiv.style.display = 'block';
+      statusDiv.style.background = isError ? '#ef4444' : '#10b981';
+      setTimeout(() => {
+        statusDiv.style.display = 'none';
+      }, 3000);
+    }
+
     // ==================== LIMPAR CACHE COMPLETO ====================
     async function limparCacheOffline() {
       if (!confirm('⚠️ ATENÇÃO: Isso irá limpar TODO o cache offline, incluindo itens pendentes não sincronizados.\n\nDeseja continuar?')) return;
@@ -323,7 +336,6 @@
           });
         }
         
-        // Limpar cache do modelo PDF também
         const txModelo = db.transaction(STORE_MODELO_PDF, 'readwrite');
         await new Promise((resolve, reject) => {
           const req = txModelo.objectStore(STORE_MODELO_PDF).clear();
@@ -334,7 +346,7 @@
         cachedModeloPDF = null;
         
         console.log('✅ Cache offline limpo completamente');
-        alert('✅ Cache offline limpo com sucesso!\n\nRecarregue a página e prepare o modo offline novamente.');
+        showSyncStatus('✅ Cache limpo! Recarregando...');
         
         setTimeout(() => window.location.reload(), 2000);
         
@@ -377,39 +389,36 @@
       }
     }
 
-    // ==================== PREPARAR MODO OFFLINE (CORRIGIDO) ====================
-    async function forcarCacheModeloPDF() {
-      const loader = document.getElementById('fullscreenLoader');
-      loader.classList.add('active');
+    // ==================== PREPARAR MODO OFFLINE AUTOMÁTICO ====================
+    async function prepararModoOfflineAutomatico() {
+      console.log('🔄 Verificando necessidade de preparar modo offline...');
+      
+      const modeloCacheado = await isModeloCacheado();
+      if (modeloCacheado) {
+        console.log('✅ Modo offline já está pronto');
+        return true;
+      }
+      
+      if (!navigator.onLine) {
+        console.log('⚠️ Offline - não é possível preparar modo offline agora');
+        return false;
+      }
+      
+      console.log('📥 Preparando modo offline automaticamente...');
+      showSyncStatus('📥 Preparando modo offline...');
       
       try {
-        console.log('📥 Preparando modo offline...');
-        
-        // 1. Sincronizar dados pendentes primeiro
-        console.log('🔄 Sincronizando dados pendentes...');
-        await sincronizarTudo();
-        
-        // 2. Aguardar um pouco para garantir
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        // 3. Baixar e salvar modelo PDF (com transaction separada)
-        console.log('📥 Baixando modelo PDF...');
         const response = await fetch(MODELO_PDF_URL);
         if (!response.ok) throw new Error('Falha ao baixar modelo');
         const buffer = await response.arrayBuffer();
         
-        // 4. Salvar no IndexedDB (NOVA TRANSAÇÃO)
         const db = await initOfflineDB();
-        
-        // Usar uma transaction exclusiva para o modelo
         const tx = db.transaction(STORE_MODELO_PDF, 'readwrite');
         const store = tx.objectStore(STORE_MODELO_PDF);
         
         await new Promise((resolve, reject) => {
-          // Limpar primeiro
           const clearReq = store.clear();
           clearReq.onsuccess = () => {
-            // Depois adicionar
             const putReq = store.put({ id: 'modelo', data: buffer });
             putReq.onsuccess = () => resolve();
             putReq.onerror = () => reject(putReq.error);
@@ -417,27 +426,79 @@
           clearReq.onerror = () => reject(clearReq.error);
         });
         
-        // Aguardar transaction completar
-        await new Promise((resolve) => {
-          tx.oncomplete = () => resolve();
-        });
+        await new Promise((resolve) => { tx.oncomplete = () => resolve(); });
         
         cachedModeloPDF = buffer;
-        
-        // 5. Atualizar status
         await updateCacheStatus();
         
-        // 6. Recarregar dados
-        await refreshData();
-        
-        console.log('✅ Modo offline preparado com sucesso!');
-        alert('✅ Modo offline preparado com sucesso!\n\n- Dados sincronizados\n- Modelo PDF cacheado\n\nAgora você pode usar o sistema sem internet.');
+        console.log('✅ Modo offline preparado automaticamente');
+        showSyncStatus('✅ Modo offline pronto!');
+        return true;
         
       } catch (error) {
-        console.error('❌ Erro ao preparar modo offline:', error);
-        alert('Erro ao preparar modo offline: ' + error.message + '\n\nTente usar o botão "Limpar Cache Offline" primeiro.');
+        console.error('❌ Erro ao preparar modo offline automaticamente:', error);
+        showSyncStatus('⚠️ Falha ao preparar offline', true);
+        return false;
+      }
+    }
+
+    // ==================== ROTINA COMPLETA DE SINCRONIZAÇÃO E PREPARAÇÃO ====================
+    async function rotinaCompletaSincronizacao() {
+      if (!navigator.onLine) {
+        console.log('📡 Offline - pulando rotina de sincronização');
+        return;
+      }
+      
+      const loader = document.getElementById('fullscreenLoader');
+      let loaderAtivo = false;
+      
+      try {
+        // Verificar se há pendentes
+        const pendentesItems = await getPendingItems();
+        const pendentesInsp = await getPendingInspections();
+        const totalPendentes = pendentesItems.length + pendentesInsp.length;
+        
+        if (totalPendentes > 0) {
+          console.log(`🔄 Encontrados ${totalPendentes} itens pendentes. Iniciando sincronização...`);
+          showSyncStatus(`🔄 Sincronizando ${totalPendentes} itens...`);
+          loader.classList.add('active');
+          loaderAtivo = true;
+          
+          // Sincronizar itens pendentes
+          const itensSincronizados = await sincronizarItensPendentes();
+          const inspSincronizadas = await sincronizarInspecoesPendentes();
+          
+          if (itensSincronizados > 0 || inspSincronizadas > 0) {
+            console.log(`✅ Sincronizados: ${itensSincronizados} itens, ${inspSincronizadas} inspeções`);
+            showSyncStatus(`✅ ${itensSincronizados + inspSincronizadas} itens sincronizados!`);
+            
+            // Limpar pendentes após sincronização
+            await limparPendentesAposSincronizacao();
+            
+            // Recarregar dados
+            await refreshData();
+            
+            // Pequena pausa
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
+        } else {
+          console.log('✅ Nenhum item pendente para sincronizar');
+        }
+        
+        // Verificar e preparar modo offline automaticamente
+        const modeloPreparado = await prepararModoOfflineAutomatico();
+        
+        if (modeloPreparado && totalPendentes === 0) {
+          console.log('✅ Sistema pronto para uso offline');
+        }
+        
+      } catch (error) {
+        console.error('❌ Erro na rotina de sincronização:', error);
+        showSyncStatus('❌ Erro na sincronização', true);
       } finally {
-        loader.classList.remove('active');
+        if (loaderAtivo) {
+          loader.classList.remove('active');
+        }
       }
     }
 
@@ -457,14 +518,10 @@
       }
     }
 
-    // ==================== CARREGAR MODELO PDF (CORRIGIDO) ====================
+    // ==================== CARREGAR MODELO PDF ====================
     async function carregarModeloPDF() {
-      // Se já tem em memória, retorna
-      if (cachedModeloPDF) {
-        return cachedModeloPDF;
-      }
+      if (cachedModeloPDF) return cachedModeloPDF;
       
-      // Tentar carregar do IndexedDB
       try {
         const db = await initOfflineDB();
         const tx = db.transaction(STORE_MODELO_PDF, 'readonly');
@@ -484,12 +541,10 @@
         console.warn('Erro ao ler IndexedDB:', e);
       }
       
-      // Se não está em cache e está offline, erro
       if (!navigator.onLine) {
-        throw new Error('Modelo PDF não está em cache e você está offline. Clique em "Preparar Modo Offline" quando tiver internet.');
+        throw new Error('Modelo PDF não está em cache e você está offline. Aguarde a sincronização automática quando a internet voltar.');
       }
       
-      // Baixar da rede
       try {
         console.log('📥 Baixando modelo PDF do Supabase...');
         const response = await fetch(MODELO_PDF_URL);
@@ -497,7 +552,6 @@
         const buffer = await response.arrayBuffer();
         cachedModeloPDF = buffer;
         
-        // Salvar no IndexedDB
         const db = await initOfflineDB();
         const tx = db.transaction(STORE_MODELO_PDF, 'readwrite');
         const store = tx.objectStore(STORE_MODELO_PDF);
@@ -735,39 +789,6 @@
         } catch (error) { console.error(`❌ Erro ao sincronizar inspeção:`, error); }
       }
       return sucessos;
-    }
-
-    async function sincronizarTudo() {
-      const isReallyOnline = await testarConexao();
-      if (!isReallyOnline) { console.log('Offline - sincronização aguardando'); return false; }
-      
-      const loader = document.getElementById('fullscreenLoader');
-      loader.classList.add('active');
-      let mensagens = [];
-      let hasUpdates = false;
-      
-      try {
-        const itensSincronizados = await sincronizarItensPendentes();
-        if (itensSincronizados > 0) {
-          mensagens.push(`${itensSincronizados} item(ns) sincronizado(s)`);
-          hasUpdates = true;
-        }
-        
-        const inspSincronizadas = await sincronizarInspecoesPendentes();
-        if (inspSincronizadas > 0) {
-          mensagens.push(`${inspSincronizadas} inspeção(ões) sincronizada(s)`);
-          hasUpdates = true;
-        }
-        
-        if (hasUpdates) {
-          await limparPendentesAposSincronizacao();
-          await refreshData();
-          alert(`✅ Sincronização concluída!\n${mensagens.join('\n')}`);
-          return true;
-        }
-        return false;
-      } catch (error) { console.error('Erro na sincronização:', error); return false;
-      } finally { loader.classList.remove('active'); }
     }
 
     function blobToBase64(blob) {
@@ -1107,10 +1128,9 @@
     }
 
     async function generateAndAttachPdf(itemId, category, monthName, formData, itemInfo, fotoFile) {
-      // Verificar se tem modelo PDF cacheado antes de tentar
       const temModelo = await isModeloCacheado();
       if (!temModelo && !navigator.onLine) {
-        alert('❌ Modo offline não disponível!\n\nO modelo PDF não está cacheado.\n\nConecte-se à internet e clique em "Preparar Modo Offline".');
+        alert('❌ Modo offline não disponível!\n\nO modelo PDF não está cacheado.\n\nAguarde a sincronização automática quando a internet voltar.');
         return;
       }
       
@@ -1120,7 +1140,6 @@
           loader.classList.add('active');
           console.log('Modo offline - iniciando salvamento local...');
           
-          // Verificar novamente se tem modelo
           if (!temModelo) {
             throw new Error('Modelo PDF não está cacheado para uso offline');
           }
@@ -1405,56 +1424,48 @@
     }
 
     document.getElementById('addItemBtn').addEventListener('click', openCreateModal);
-    document.getElementById('prepareOfflineBtn').addEventListener('click', forcarCacheModeloPDF);
+    document.getElementById('prepareOfflineBtn').addEventListener('click', async () => {
+      await rotinaCompletaSincronizacao();
+      alert('✅ Rotina de sincronização e preparação offline concluída!');
+    });
     document.getElementById('clearCacheBtn').addEventListener('click', limparCacheOffline);
     document.getElementById('searchInput').addEventListener('input', (e) => renderCards(e.target.value));
     const monthContainer = document.getElementById('monthButtonsContainer');
     monthNames.forEach((month, idx) => { const btn = document.createElement('button'); btn.className = 'month-btn'; btn.textContent = month; btn.addEventListener('click', () => downloadMonthPDFs(monthKeys[idx], month)); monthContainer.appendChild(btn); });
     
-    // ==================== INICIALIZAÇÃO ====================
+    // ==================== INICIALIZAÇÃO COM ROTINA AUTOMÁTICA ====================
+    let inicializacaoCompleta = false;
+    
     window.addEventListener('DOMContentLoaded', async () => {
       console.log('🚀 Inicializando TENDEX...');
       await initOfflineDB();
       await limparDadosSincronizados();
       
-      const modeloCacheado = await isModeloCacheado();
-      if (modeloCacheado) {
-        console.log('✅ Modelo PDF já está cacheado para uso offline');
-        await updateCacheStatus();
-      } else if (navigator.onLine) {
-        console.log('📥 Modelo PDF não cacheado. Baixando...');
-        try { 
-          await carregarModeloPDF(); 
-          console.log('✅ Modelo PDF cacheado com sucesso!');
-          await updateCacheStatus();
-        } catch (error) { 
-          console.error('❌ Erro ao cachear modelo:', error); 
-          alert('⚠️ Não foi possível preparar o modo offline. Clique no botão "Preparar Modo Offline" quando estiver com internet.'); 
-        }
-      } else { 
-        console.warn('⚠️ Sem modelo PDF cacheado e sem internet.'); 
-        alert('⚠️ Você está offline e o modelo PDF não está disponível.\nClique em "Preparar Modo Offline" quando tiver internet.'); 
-      }
-      
+      // Carregar dados primeiro
       await refreshData();
-      if (navigator.onLine) await sincronizarTudo();
+      
+      // Executar rotina completa de sincronização e preparação offline
+      console.log('🔄 Executando rotina automática de sincronização...');
+      await rotinaCompletaSincronizacao();
+      
+      inicializacaoCompleta = true;
       console.log('✅ Inicialização concluída!');
+      showSyncStatus('✅ Sistema pronto!', false);
     });
     
+    // Detectar quando voltar online e executar rotina automática
     let syncScheduled = false;
     window.addEventListener('online', async () => {
-      console.log('Conexão detectada, aguardando estabilização...');
+      if (!inicializacaoCompleta) return;
+      
+      console.log('🌐 Conexão detectada, aguardando estabilização...');
+      showSyncStatus('🔄 Verificando conexão...');
       await new Promise(resolve => setTimeout(resolve, 3000));
-      if (navigator.onLine) { 
-        try { 
-          await carregarModeloPDF(); 
-          await updateCacheStatus();
-        } catch(e) {} 
-      }
+      
       if (await testarConexao() && !syncScheduled) { 
         syncScheduled = true; 
-        console.log('Conexão estável! Sincronizando...'); 
-        await sincronizarTudo(); 
+        console.log('📡 Conexão estável! Executando rotina automática...');
+        await rotinaCompletaSincronizacao();
         syncScheduled = false; 
       }
     });
