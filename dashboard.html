@@ -33,6 +33,7 @@
     .status-badge { display: inline-block; padding: 0.2rem 0.5rem; border-radius: 2rem; font-size: 0.7rem; font-weight: 600; margin-top: 0.5rem; }
     .status-active { background: #d1fae5; color: #065f46; }
     .status-inactive { background: #fee2e2; color: #991b1b; }
+    .pending-badge { background: #fef3c7; color: #92400e; }
     .empty-state { text-align: center; color: #6c86a3; margin-top: 3rem; }
     .fab { position: fixed; bottom: 2rem; right: 2rem; background: linear-gradient(135deg, #0f2b3d, #1e4a76); color: white; width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; box-shadow: 0 8px 16px rgba(0,0,0,0.2); cursor: pointer; border: none; z-index: 10; }
     .fab:hover { transform: scale(1.05); }
@@ -55,11 +56,19 @@
     .btn-warning:hover { background: #d97706; }
     .btn-danger { background: #ef4444; color: white; border: none; padding: 0.5rem 1.5rem; border-radius: 2rem; cursor: pointer; font-weight: 600; margin: 0.25rem; }
     .btn-danger:hover { background: #dc2626; }
+    .btn-success { background: #10b981; color: white; border: none; padding: 0.5rem 1.5rem; border-radius: 2rem; cursor: pointer; font-weight: 600; margin: 0.25rem; }
+    .btn-success:hover { background: #059669; }
     .user-modal-section { margin: 1rem 0; padding: 1rem; background: #f8fafc; border-radius: 1rem; }
     .user-modal-section h4 { color: #1e4a76; margin-bottom: 0.5rem; font-size: 0.9rem; }
     .cache-info { display: inline-block; padding: 0.2rem 0.8rem; border-radius: 2rem; font-size: 0.7rem; font-weight: 600; margin-top: 0.5rem; }
     .cache-ok { background: #d1fae5; color: #065f46; }
     .cache-missing { background: #fee2e2; color: #991b1b; }
+    .pending-list { max-height: 300px; overflow-y: auto; margin: 1rem 0; }
+    .pending-item { background: #fef3c7; padding: 0.5rem; margin: 0.25rem 0; border-radius: 0.5rem; font-size: 0.8rem; display: flex; justify-content: space-between; align-items: center; }
+    .pending-item-success { background: #d1fae5; }
+    .pending-item-error { background: #fee2e2; }
+    .progress-bar { width: 100%; height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden; margin: 1rem 0; }
+    .progress-fill { height: 100%; background: #10b981; width: 0%; transition: width 0.3s; }
     .item-detail-title { background: #f1f5f9; padding: 0.8rem; border-radius: 1rem; margin-bottom: 1.2rem; }
     .pdf-group { margin-bottom: 1.2rem; }
     .pdf-group-title { font-weight: 600; font-size: 0.9rem; border-left: 3px solid #3b82f6; padding-left: 0.6rem; margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center; }
@@ -118,6 +127,8 @@
     .offline-badge { background: #f59e0b; color: white; padding: 0.2rem 0.8rem; border-radius: 2rem; font-size: 0.7rem; font-weight: 600; margin-left: 1rem; }
     .online-badge { background: #10b981; color: white; padding: 0.2rem 0.8rem; border-radius: 2rem; font-size: 0.7rem; font-weight: 600; margin-left: 1rem; }
     .sync-status { position: fixed; top: 10px; right: 10px; background: rgba(0,0,0,0.7); color: white; padding: 4px 8px; border-radius: 20px; font-size: 10px; z-index: 10; display: none; }
+    .sync-pending-badge { background: #f59e0b; color: white; border-radius: 20px; padding: 2px 8px; font-size: 10px; margin-left: 8px; cursor: pointer; }
+    .sync-pending-badge:hover { background: #d97706; }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
@@ -131,11 +142,12 @@
   </div>
   <div style="display: flex; gap: 1rem; align-items: center;">
     <div class="user-info" id="userInfoDisplay">👤 Carregando...</div>
+    <div id="syncPendingBadge" class="sync-pending-badge" style="display: none;">📤 Pendente</div>
     <div id="connectionStatus" class="online-badge">🟢 Online</div>
   </div>
 </div>
 
-<!-- MODAL DO USUÁRIO (COM BOTÕES DE MANUTENÇÃO) -->
+<!-- MODAL DO USUÁRIO -->
 <div id="userModal" class="modal">
   <div class="modal-content logout-modal-content">
     <div class="modal-header">
@@ -149,9 +161,19 @@
     </div>
     
     <div class="user-modal-section">
+      <h4>📤 Itens Pendentes de Sincronização</h4>
+      <div id="pendingItemsList" class="pending-list">
+        <p style="color: #64748b; text-align: center;">Carregando...</p>
+      </div>
+      <div class="progress-bar" id="syncProgressBar" style="display: none;">
+        <div class="progress-fill" id="syncProgressFill"></div>
+      </div>
+    </div>
+    
+    <div class="user-modal-section">
       <h4>🛠️ Manutenção</h4>
       <button class="btn-primary" id="userModalPrepareBtn">📥 Preparar Modo Offline</button>
-      <button class="btn-warning" id="userModalSyncBtn">🔄 Sincronizar Agora</button>
+      <button class="btn-success" id="userModalSyncBtn">🔄 Sincronizar Agora</button>
       <button class="btn-danger" id="userModalClearCacheBtn">🗑️ Limpar Cache Offline</button>
     </div>
     
@@ -163,6 +185,25 @@
     
     <div class="logout-buttons">
       <button class="btn-cancel-logout" id="cancelUserModalBtn">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DE SINCRONIZAÇÃO DETALHADA -->
+<div id="syncModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>🔄 Sincronização de Dados</h2>
+      <button class="close-modal" id="closeSyncModalBtn">&times;</button>
+    </div>
+    <div id="syncModalContent">
+      <div class="progress-bar">
+        <div class="progress-fill" id="syncModalProgress"></div>
+      </div>
+      <div id="syncModalList" class="pending-list"></div>
+      <div class="modal-buttons">
+        <button class="btn-cancel" id="cancelSyncModalBtn">Fechar</button>
+      </div>
     </div>
   </div>
 </div>
@@ -272,14 +313,14 @@
           resolve(dbInstance);
           return;
         }
-        const request = indexedDB.open(DB_NAME_OFFLINE, 16);
+        const request = indexedDB.open(DB_NAME_OFFLINE, 17);
         request.onerror = (event) => {
           console.error('IndexedDB erro:', event);
           reject(request.error);
         };
         request.onsuccess = (event) => {
           dbInstance = request.result;
-          console.log('IndexedDB aberto com sucesso - versão 16');
+          console.log('IndexedDB aberto com sucesso - versão 17');
           resolve(dbInstance);
         };
         request.onupgradeneeded = (event) => {
@@ -305,6 +346,237 @@
           }
         };
       });
+    }
+
+    // ==================== ATUALIZAR BADGE DE PENDENTES ====================
+    async function updatePendingBadge() {
+      const badge = document.getElementById('syncPendingBadge');
+      const pendentesItems = await getPendingItems();
+      const pendentesInsp = await getPendingInspections();
+      const total = pendentesItems.length + pendentesInsp.length;
+      
+      if (total > 0) {
+        badge.style.display = 'inline-block';
+        badge.textContent = `📤 ${total} pendente${total > 1 ? 's' : ''}`;
+      } else {
+        badge.style.display = 'none';
+      }
+      return total;
+    }
+
+    // ==================== LISTAR PENDENTES NO MODAL ====================
+    async function listarPendentesNoModal() {
+      const container = document.getElementById('pendingItemsList');
+      const pendentesItems = await getPendingItems();
+      const pendentesInsp = await getPendingInspections();
+      
+      if (pendentesItems.length === 0 && pendentesInsp.length === 0) {
+        container.innerHTML = '<p style="color: #10b981; text-align: center;">✅ Nenhum item pendente de sincronização</p>';
+        return;
+      }
+      
+      let html = '';
+      
+      if (pendentesItems.length > 0) {
+        html += `<p><strong>📦 Itens (${pendentesItems.length}):</strong></p>`;
+        for (const item of pendentesItems) {
+          html += `<div class="pending-item">
+            <span>🏷️ ${escapeHtml(item.name)} (${escapeHtml(item.code)})</span>
+            <span style="font-size: 0.7rem; color: #92400e;">Aguardando sincronização</span>
+          </div>`;
+        }
+      }
+      
+      if (pendentesInsp.length > 0) {
+        html += `<p style="margin-top: 1rem;"><strong>📋 Inspeções (${pendentesInsp.length}):</strong></p>`;
+        for (const insp of pendentesInsp) {
+          html += `<div class="pending-item">
+            <span>📄 Inspeção - ${escapeHtml(insp.monthName)} (Item ID: ${insp.itemId})</span>
+            <span style="font-size: 0.7rem; color: #92400e;">Aguardando sincronização</span>
+          </div>`;
+        }
+      }
+      
+      container.innerHTML = html;
+    }
+
+    // ==================== MODAL DE SINCRONIZAÇÃO DETALHADA ====================
+    async function mostrarModalSincronizacao() {
+      const syncModal = document.getElementById('syncModal');
+      const syncModalList = document.getElementById('syncModalList');
+      const syncModalProgress = document.getElementById('syncModalProgress');
+      
+      const pendentesItems = await getPendingItems();
+      const pendentesInsp = await getPendingInspections();
+      const total = pendentesItems.length + pendentesInsp.length;
+      
+      if (total === 0) {
+        alert('✅ Nenhum item pendente para sincronizar!');
+        return;
+      }
+      
+      syncModal.style.display = 'flex';
+      syncModalProgress.style.width = '0%';
+      
+      let html = `<p><strong>📊 Total de itens a sincronizar: ${total}</strong></p>`;
+      html += `<div style="margin: 1rem 0;"><strong>📦 Itens (${pendentesItems.length}):</strong></div>`;
+      
+      for (const item of pendentesItems) {
+        html += `<div class="pending-item" id="sync-item-${item.id}">
+          <span>🏷️ ${escapeHtml(item.name)} (${escapeHtml(item.code)})</span>
+          <span style="color: #f59e0b;">⏳ Aguardando...</span>
+        </div>`;
+      }
+      
+      html += `<div style="margin: 1rem 0;"><strong>📋 Inspeções (${pendentesInsp.length}):</strong></div>`;
+      
+      for (const insp of pendentesInsp) {
+        html += `<div class="pending-item" id="sync-insp-${insp.id}">
+          <span>📄 Inspeção - ${escapeHtml(insp.monthName)}</span>
+          <span style="color: #f59e0b;">⏳ Aguardando...</span>
+        </div>`;
+      }
+      
+      syncModalList.innerHTML = html;
+      
+      // Iniciar sincronização
+      await sincronizarComProgresso();
+      
+      setTimeout(() => {
+        syncModal.style.display = 'none';
+      }, 2000);
+    }
+
+    // ==================== SINCRONIZAR COM PROGRESSO ====================
+    async function sincronizarComProgresso() {
+      const syncModalProgress = document.getElementById('syncModalProgress');
+      const pendentesItems = await getPendingItems();
+      const pendentesInsp = await getPendingInspections();
+      const total = pendentesItems.length + pendentesInsp.length;
+      let concluidos = 0;
+      
+      function atualizarProgresso(sucesso) {
+        concluidos++;
+        const percent = (concluidos / total) * 100;
+        syncModalProgress.style.width = `${percent}%`;
+      }
+      
+      // Sincronizar itens
+      for (const item of pendentesItems) {
+        try {
+          const element = document.getElementById(`sync-item-${item.id}`);
+          if (element) {
+            element.querySelector('span:last-child').innerHTML = '<span style="color: #f59e0b;">🔄 Sincronizando...</span>';
+          }
+          
+          const { data: existing, error: checkError } = await supabase.from('items').select('id').eq('code', item.code).maybeSingle();
+          if (checkError) throw checkError;
+          
+          if (existing) {
+            await removerItemPending(item.id);
+            if (element) {
+              element.querySelector('span:last-child').innerHTML = '<span style="color: #10b981;">✅ Já existe no servidor</span>';
+              element.style.background = '#d1fae5';
+            }
+            atualizarProgresso(true);
+            continue;
+          }
+          
+          const { data, error } = await supabase.from('items').insert({
+            name: item.name, sub_localizacao: item.sub_localizacao, tamanho: item.tamanho,
+            code: item.code, status: 'active'
+          }).select().single();
+          
+          if (error) throw error;
+          await removerItemPending(item.id);
+          
+          if (element) {
+            element.querySelector('span:last-child').innerHTML = '<span style="color: #10b981;">✅ Sincronizado!</span>';
+            element.style.background = '#d1fae5';
+          }
+          atualizarProgresso(true);
+        } catch (error) {
+          console.error(`Erro ao sincronizar item:`, error);
+          const element = document.getElementById(`sync-item-${item.id}`);
+          if (element) {
+            element.querySelector('span:last-child').innerHTML = `<span style="color: #ef4444;">❌ Erro: ${error.message}</span>`;
+            element.style.background = '#fee2e2';
+          }
+          atualizarProgresso(false);
+        }
+      }
+      
+      // Sincronizar inspeções
+      for (const insp of pendentesInsp) {
+        try {
+          const element = document.getElementById(`sync-insp-${insp.id}`);
+          if (element) {
+            element.querySelector('span:last-child').innerHTML = '<span style="color: #f59e0b;">🔄 Sincronizando...</span>';
+          }
+          
+          const pdfBlob = base64ToBlob(insp.pdfBase64, 'application/pdf');
+          const pdfFile = new File([pdfBlob], `checklist_${insp.monthName}_${Date.now()}.pdf`, { type: 'application/pdf' });
+          
+          let fotoFile = null;
+          if (insp.fotoBase64) {
+            const fotoBlob = base64ToBlob(insp.fotoBase64, 'image/jpeg');
+            fotoFile = new File([fotoBlob], `foto_${Date.now()}.jpg`, { type: 'image/jpeg' });
+          }
+          
+          await addFileToItem(insp.itemId, insp.category, pdfFile, insp.formData.data_inspecao);
+          await removerInspecaoPending(insp.id);
+          
+          if (element) {
+            element.querySelector('span:last-child').innerHTML = '<span style="color: #10b981;">✅ Sincronizado!</span>';
+            element.style.background = '#d1fae5';
+          }
+          atualizarProgresso(true);
+        } catch (error) {
+          console.error(`Erro ao sincronizar inspeção:`, error);
+          const element = document.getElementById(`sync-insp-${insp.id}`);
+          if (element) {
+            element.querySelector('span:last-child').innerHTML = `<span style="color: #ef4444;">❌ Erro: ${error.message}</span>`;
+            element.style.background = '#fee2e2';
+          }
+          atualizarProgresso(false);
+        }
+      }
+      
+      // Recarregar dados e atualizar UI
+      await refreshData();
+      await updatePendingBadge();
+      await listarPendentesNoModal();
+      await updateUserModalCacheStatus();
+      
+      showSyncStatus(`✅ Sincronização concluída! ${concluidos}/${total} itens processados.`);
+    }
+
+    // ==================== VERIFICAR E SINCRONIZAR PERSISTENTE ====================
+    let verificadorAtivo = false;
+    
+    async function verificarESincronizar() {
+      if (!navigator.onLine) return;
+      if (verificadorAtivo) return;
+      
+      verificadorAtivo = true;
+      
+      try {
+        const pendentesItems = await getPendingItems();
+        const pendentesInsp = await getPendingInspections();
+        const total = pendentesItems.length + pendentesInsp.length;
+        
+        if (total > 0) {
+          console.log(`🔍 Detectados ${total} itens pendentes. Iniciando sincronização...`);
+          showSyncStatus(`🔄 Sincronizando ${total} itens...`);
+          await sincronizarComProgresso();
+          await refreshData();
+          showSyncStatus(`✅ Sincronização concluída!`);
+        }
+      } catch (error) {
+        console.error('Erro na verificação persistente:', error);
+      } finally {
+        verificadorAtivo = false;
+      }
     }
 
     // ==================== UPDATE CACHE STATUS NO MODAL ====================
@@ -340,7 +612,7 @@
       statusDiv.style.background = isError ? '#ef4444' : '#10b981';
       setTimeout(() => {
         statusDiv.style.display = 'none';
-      }, 3000);
+      }, 4000);
     }
 
     // ==================== LIMPAR CACHE COMPLETO ====================
@@ -385,37 +657,6 @@
       }
     }
 
-    // ==================== LIMPAR APENAS PENDENTES APÓS SINCRONIZAÇÃO ====================
-    async function limparPendentesAposSincronizacao() {
-      try {
-        const db = await initOfflineDB();
-        
-        const tx1 = db.transaction(STORE_PENDING_ITEMS, 'readwrite');
-        await new Promise((resolve, reject) => {
-          const req = tx1.objectStore(STORE_PENDING_ITEMS).clear();
-          req.onsuccess = () => resolve();
-          req.onerror = () => reject(req.error);
-        });
-        
-        const tx2 = db.transaction(STORE_PENDING_INSPECTIONS, 'readwrite');
-        await new Promise((resolve, reject) => {
-          const req = tx2.objectStore(STORE_PENDING_INSPECTIONS).clear();
-          req.onsuccess = () => resolve();
-          req.onerror = () => reject(req.error);
-        });
-        
-        const tx3 = db.transaction(STORE_SYNC_LOG, 'readwrite');
-        tx3.objectStore(STORE_SYNC_LOG).add({
-          timestamp: new Date().toISOString(),
-          type: 'sync_completed'
-        });
-        
-        console.log('✅ Pendentes removidos após sincronização');
-      } catch (e) {
-        console.warn('Erro ao limpar pendentes:', e);
-      }
-    }
-
     // ==================== PREPARAR MODO OFFLINE ====================
     async function forcarCacheModeloPDF() {
       const loader = document.getElementById('fullscreenLoader');
@@ -457,93 +698,6 @@
       } finally {
         loader.classList.remove('active');
       }
-    }
-
-    // ==================== ROTINA DE SINCRONIZAÇÃO ====================
-    async function sincronizarItensPendentes() {
-      const pendentes = await getPendingItems();
-      if (pendentes.length === 0) return 0;
-      
-      console.log(`📤 Sincronizando ${pendentes.length} itens pendentes...`);
-      let sucessos = 0;
-      
-      for (const item of pendentes) {
-        try {
-          const { data: existing, error: checkError } = await supabase.from('items').select('id').eq('code', item.code).maybeSingle();
-          if (checkError) throw checkError;
-          
-          if (existing) {
-            await removerItemPending(item.id);
-            continue;
-          }
-          
-          const { data, error } = await supabase.from('items').insert({
-            name: item.name, sub_localizacao: item.sub_localizacao, tamanho: item.tamanho,
-            code: item.code, status: 'active'
-          }).select().single();
-          
-          if (error) throw error;
-          await removerItemPending(item.id);
-          sucessos++;
-          console.log(`✅ Item ${item.name} sincronizado`);
-        } catch (error) { console.error(`❌ Erro ao sincronizar item:`, error); }
-      }
-      return sucessos;
-    }
-
-    async function sincronizarInspecoesPendentes() {
-      const pendentes = await getPendingInspections();
-      if (pendentes.length === 0) return 0;
-      
-      console.log(`📤 Sincronizando ${pendentes.length} inspeções pendentes...`);
-      let sucessos = 0;
-      
-      for (const item of pendentes) {
-        try {
-          const pdfBlob = base64ToBlob(item.pdfBase64, 'application/pdf');
-          const pdfFile = new File([pdfBlob], `checklist_${item.monthName}_${Date.now()}.pdf`, { type: 'application/pdf' });
-          
-          let fotoFile = null;
-          if (item.fotoBase64) {
-            const fotoBlob = base64ToBlob(item.fotoBase64, 'image/jpeg');
-            fotoFile = new File([fotoBlob], `foto_${Date.now()}.jpg`, { type: 'image/jpeg' });
-          }
-          
-          await addFileToItem(item.itemId, item.category, pdfFile, item.formData.data_inspecao);
-          await removerInspecaoPending(item.id);
-          sucessos++;
-          console.log(`✅ Inspeção ${item.id} sincronizada`);
-        } catch (error) { console.error(`❌ Erro ao sincronizar inspeção:`, error); }
-      }
-      return sucessos;
-    }
-
-    async function rotinaSincronizacao() {
-      if (!navigator.onLine) {
-        console.log('📡 Offline - pulando sincronização');
-        return false;
-      }
-      
-      const loader = document.getElementById('fullscreenLoader');
-      loader.classList.add('active');
-      let mensagens = [];
-      
-      try {
-        const itensSincronizados = await sincronizarItensPendentes();
-        if (itensSincronizados > 0) mensagens.push(`${itensSincronizados} item(ns) sincronizado(s)`);
-        
-        const inspSincronizadas = await sincronizarInspecoesPendentes();
-        if (inspSincronizadas > 0) mensagens.push(`${inspSincronizadas} inspeção(ões) sincronizada(s)`);
-        
-        if (mensagens.length > 0) {
-          await limparPendentesAposSincronizacao();
-          await refreshData();
-          showSyncStatus(`✅ ${mensagens.join(', ')}`);
-          return true;
-        }
-        return false;
-      } catch (error) { console.error('Erro na sincronização:', error); return false;
-      } finally { loader.classList.remove('active'); }
     }
 
     // ==================== VERIFICAR SE MODELO ESTÁ CACHEADO ====================
@@ -838,11 +992,16 @@
     const userModalSyncBtn = document.getElementById('userModalSyncBtn');
     const userModalClearCacheBtn = document.getElementById('userModalClearCacheBtn');
     const userModalLogoutBtn = document.getElementById('userModalLogoutBtn');
+    const syncPendingBadge = document.getElementById('syncPendingBadge');
 
-    // Abrir modal ao clicar no usuário
     userInfoDisplay.addEventListener('click', async () => {
       await updateUserModalCacheStatus();
+      await listarPendentesNoModal();
       userModal.style.display = 'flex';
+    });
+    
+    syncPendingBadge.addEventListener('click', async () => {
+      await mostrarModalSincronizacao();
     });
 
     function closeUserModal() { userModal.style.display = 'none'; }
@@ -850,7 +1009,6 @@
     cancelUserModalBtn.addEventListener('click', closeUserModal);
     userModal.addEventListener('click', (e) => { if (e.target === userModal) closeUserModal(); });
 
-    // Botões do modal
     userModalPrepareBtn.addEventListener('click', async () => {
       closeUserModal();
       await forcarCacheModeloPDF();
@@ -858,10 +1016,7 @@
 
     userModalSyncBtn.addEventListener('click', async () => {
       closeUserModal();
-      showSyncStatus('🔄 Sincronizando...');
-      await rotinaSincronizacao();
-      await refreshData();
-      showSyncStatus('✅ Sincronização concluída!');
+      await mostrarModalSincronizacao();
     });
 
     userModalClearCacheBtn.addEventListener('click', () => {
@@ -873,6 +1028,14 @@
       localStorage.removeItem('tendex_current_user');
       window.location.href = 'index.html';
     });
+
+    const closeSyncModalBtn = document.getElementById('closeSyncModalBtn');
+    const cancelSyncModalBtn = document.getElementById('cancelSyncModalBtn');
+    const syncModal = document.getElementById('syncModal');
+    
+    if (closeSyncModalBtn) closeSyncModalBtn.addEventListener('click', () => syncModal.style.display = 'none');
+    if (cancelSyncModalBtn) cancelSyncModalBtn.addEventListener('click', () => syncModal.style.display = 'none');
+    if (syncModal) syncModal.addEventListener('click', (e) => { if (e.target === syncModal) syncModal.style.display = 'none'; });
 
     const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
     const monthKeys = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
@@ -946,10 +1109,6 @@
       } else {
         items = await carregarItemsLocal();
         files = await carregarFilesLocal();
-        if (items.length === 0) {
-          console.warn('Nenhum item em cache local. Conecte-se à internet para carregar os dados.');
-          return [];
-        }
       }
       
       const filesByItem = {};
@@ -1021,6 +1180,7 @@
         items.push(newItem);
         await salvarItemsLocal(items);
         await refreshData();
+        await updatePendingBadge();
         alert('⚠️ Você está offline. O item foi salvo localmente e será sincronizado quando a internet voltar.');
         return newId;
       }
@@ -1061,6 +1221,7 @@
       const allFiles = await supabase.from('files').select('*');
       await salvarItemsLocal(allItems.data || []);
       await salvarFilesLocal(allFiles.data || []);
+      await updatePendingBadge();
       return itemIdFinal;
     }
 
@@ -1171,6 +1332,7 @@
           const pendingData = { type: 'inspecao', itemId, category, monthName, formData, itemInfo: { code: itemInfo.code, tamanho: itemInfo.tamanho, name: itemInfo.name }, pdfBase64, fotoBase64, timestamp: new Date().toISOString() };
           await salvarInspecaoPending(pendingData);
           loader.classList.remove('active');
+          await updatePendingBadge();
           alert('⚠️ Você está offline. O PDF foi salvo localmente e será enviado automaticamente quando a internet voltar.');
           return;
         } catch (error) {
@@ -1317,7 +1479,11 @@
     
     function formatarData(dataString) { if (!dataString) return ''; const partes = dataString.split('-'); if (partes.length === 3) return `${partes[2]}/${partes[1]}/${partes[0]}`; return dataString; }
     function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;'); }
-    async function refreshData() { currentItems = await getAllItemsWithFiles(); renderCards(document.getElementById('searchInput').value); }
+    async function refreshData() { 
+      currentItems = await getAllItemsWithFiles(); 
+      renderCards(document.getElementById('searchInput').value);
+      await updatePendingBadge();
+    }
 
     const detailModalElem = document.getElementById('detailModal');
     const detailContent = document.getElementById('detailContent');
@@ -1468,13 +1634,18 @@
         } catch(e) { console.error('Erro ao baixar modelo:', e); }
       }
       
-      // Sincronizar pendentes se estiver online
-      if (navigator.onLine) {
-        await rotinaSincronizacao();
-      }
+      // Verificar pendentes e sincronizar se necessário
+      await verificarESincronizar();
       
       inicializacaoCompleta = true;
       console.log('✅ Inicialização concluída!');
+      
+      // Configurar verificação periódica (a cada 30 segundos)
+      setInterval(async () => {
+        if (navigator.onLine && inicializacaoCompleta) {
+          await verificarESincronizar();
+        }
+      }, 30000);
     });
     
     // Detectar quando voltar online
@@ -1483,13 +1654,12 @@
       if (!inicializacaoCompleta) return;
       
       console.log('🌐 Conexão detectada!');
-      showSyncStatus('🔄 Sincronizando...');
+      showSyncStatus('🔄 Verificando pendentes...');
       await new Promise(resolve => setTimeout(resolve, 2000));
       
       if (!syncScheduled) { 
         syncScheduled = true; 
-        await rotinaSincronizacao();
-        await updateUserModalCacheStatus();
+        await verificarESincronizar();
         syncScheduled = false; 
       }
     });
