@@ -311,24 +311,24 @@
     // ==================== INICIALIZAR INDEXEDDB ====================
     function initOfflineDB() {
       return new Promise((resolve, reject) => {
-        if (dbInstance && dbInstance.version >= 25) {
+        if (dbInstance && dbInstance.version >= 26) {
           resolve(dbInstance);
           return;
         }
-        const request = indexedDB.open(DB_NAME_OFFLINE, 25);
+        const request = indexedDB.open(DB_NAME_OFFLINE, 26);
         request.onerror = (event) => {
           console.error('IndexedDB erro:', event);
           reject(request.error);
         };
         request.onsuccess = (event) => {
           dbInstance = request.result;
-          console.log('IndexedDB aberto com sucesso - versão 25');
+          console.log('IndexedDB aberto com sucesso - versão 26');
           verificarPersistenciaDados();
           resolve(dbInstance);
         };
         request.onupgradeneeded = (event) => {
           const db = event.target.result;
-          console.log('Criando stores versão 25...');
+          console.log('Criando stores versão 26...');
           
           const storesToRemove = ['items_cache', 'files_cache', 'pending_items', 'pending_inspections', 'modelo_pdf', 'sync_log'];
           for (const store of storesToRemove) {
@@ -531,7 +531,7 @@
       });
     }
 
-    // ==================== LIMPAR DADOS SINCRONIZADOS (APENAS ONLINE) ====================
+    // ==================== LIMPAR DADOS SINCRONIZADOS ====================
     async function limparDadosSincronizadosOnline() {
       if (!navigator.onLine) {
         console.log('📡 Offline - mantendo dados pendentes');
@@ -560,7 +560,7 @@
       }
     }
 
-    // ==================== PREPARAR CACHE OFFLINE (ATUALIZAR PDF) ====================
+    // ==================== PREPARAR CACHE OFFLINE ====================
     async function prepararCacheOffline() {
       if (!navigator.onLine) {
         console.log('📡 Offline - não é possível preparar cache agora');
@@ -600,54 +600,6 @@
       }
     }
 
-    // ==================== ROTINA COMPLETA ONLINE ====================
-    async function rotinaCompletaOnline() {
-      if (!navigator.onLine) {
-        console.log('📡 Offline - pulando rotina online');
-        return;
-      }
-      
-      console.log('🚀 INICIANDO ROTINA COMPLETA ONLINE...');
-      const loader = document.getElementById('fullscreenLoader');
-      loader.classList.add('active');
-      
-      try {
-        // 1. Verificar e sincronizar dados pendentes
-        const pendentesItems = await getPendingItems();
-        const pendentesInsp = await getPendingInspections();
-        const totalPendentes = pendentesItems.length + pendentesInsp.length;
-        
-        if (totalPendentes > 0) {
-          console.log(`🔄 Sincronizando ${totalPendentes} itens pendentes...`);
-          showSyncStatus(`🔄 Sincronizando ${totalPendentes} itens...`);
-          await sincronizarComProgresso();
-          console.log('✅ Sincronização concluída!');
-        } else {
-          console.log('✅ Nenhum item pendente para sincronizar');
-        }
-        
-        // 2. Limpar dados já sincronizados
-        await limparDadosSincronizadosOnline();
-        console.log('✅ Dados sincronizados removidos');
-        
-        // 3. Preparar novo modo offline (atualizar PDF)
-        await prepararCacheOffline();
-        console.log('✅ Modo offline preparado');
-        
-        // 4. Recarregar dados
-        await refreshData();
-        
-        showSyncStatus('✅ Sistema sincronizado e pronto para offline!');
-        console.log('🎯 ROTINA COMPLETA FINALIZADA!');
-        
-      } catch (error) {
-        console.error('❌ Erro na rotina online:', error);
-        showSyncStatus('❌ Erro na sincronização', true);
-      } finally {
-        loader.classList.remove('active');
-      }
-    }
-
     // ==================== GET ALL ITEMS WITH FILES ====================
     async function getAllItemsWithFiles() {
       let items = [];
@@ -656,12 +608,10 @@
       const itemsLocal = await carregarItemsLocal();
       const filesLocal = await carregarFilesLocal();
       const pendentesItems = await getPendingItems();
-      const pendentesInsp = await getPendingInspections();
       
       console.log(`📊 ESTADO COMPLETO DO CACHE:`);
       console.log(`   - Itens no cache local: ${itemsLocal.length}`);
       console.log(`   - Itens pendentes: ${pendentesItems.length}`);
-      console.log(`   - Inspeções pendentes: ${pendentesInsp.length}`);
       
       if (pendentesItems.length > 0) {
         console.log(`📋 Itens pendentes detalhados:`);
@@ -675,6 +625,7 @@
       if (!isOnline) {
         console.log('📡 Modo OFFLINE - usando apenas cache local');
         
+        // Incluir itens pendentes na exibição
         const pendentesComoItens = pendentesItems.map(p => ({
           id: p.id,
           name: p.name,
@@ -699,7 +650,7 @@
         items = uniqueItems;
         files = filesLocal;
         
-        console.log(`✅ Total de itens para exibição OFFLINE: ${items.length}`);
+        console.log(`✅ Total de itens para exibição OFFLINE: ${items.length} (${itemsLocal.length} cache + ${pendentesItems.length} pendentes)`);
       } else {
         // MODO ONLINE - buscar dados do servidor
         try {
@@ -720,6 +671,9 @@
           } else {
             files = filesLocal;
           }
+          
+          // Após sincronizar, limpar pendentes
+          await limparDadosSincronizadosOnline();
           
         } catch (error) {
           console.warn('Erro ao buscar online:', error);
@@ -750,11 +704,11 @@
         tamanho: item.tamanho || '', 
         code: item.code || 'SEM-CODIGO', 
         status: item.status || 'active',
-        pending: false,
+        pending: item.pending || false,
         files: filesByItem[item.id] || [] 
       }));
       
-      console.log(`🎯 RESULTADO FINAL: ${result.length} itens para exibição`);
+      console.log(`🎯 RESULTADO FINAL: ${result.length} itens para exibição (${result.filter(i => i.pending).length} pendentes)`);
       return result;
     }
 
@@ -1104,6 +1058,7 @@
             element.querySelector('span:last-child').innerHTML = '<span style="color: #f59e0b;">🔄 Sincronizando...</span>';
           }
           
+          // Buscar o ID real do item
           let itemIdReal = mapaIds[insp.itemInfo?.code];
           
           if (!itemIdReal) {
@@ -1152,42 +1107,60 @@
         }
       }
       
+      // Limpar pendentes após sincronização
+      await limparDadosSincronizadosOnline();
+      
       const sucessos = concluidos - erros;
       console.log(`✅ Sincronização concluída: ${sucessos}/${total} itens processados`);
       
       return { concluidos, erros };
     }
 
-    // ==================== VERIFICAR E SINCRONIZAR ====================
-    let verificadorAtivo = false;
-    
-    async function verificarESincronizar() {
+    // ==================== ROTINA COMPLETA ONLINE ====================
+    async function rotinaCompletaOnline() {
       if (!navigator.onLine) {
-        console.log('📡 Offline - mantendo dados locais');
-        return false;
+        console.log('📡 Offline - pulando rotina online');
+        return;
       }
-      if (verificadorAtivo) return false;
       
-      verificadorAtivo = true;
+      console.log('🚀 INICIANDO ROTINA COMPLETA ONLINE...');
+      const loader = document.getElementById('fullscreenLoader');
+      loader.classList.add('active');
       
       try {
+        // 1. Verificar e sincronizar dados pendentes
         const pendentesItems = await getPendingItems();
         const pendentesInsp = await getPendingInspections();
-        const total = pendentesItems.length + pendentesInsp.length;
+        const totalPendentes = pendentesItems.length + pendentesInsp.length;
         
-        if (total > 0) {
-          console.log(`🔍 Detectados ${total} itens pendentes. Iniciando sincronização...`);
-          showSyncStatus(`🔄 Sincronizando ${total} itens...`);
+        if (totalPendentes > 0) {
+          console.log(`🔄 Sincronizando ${totalPendentes} itens pendentes...`);
+          showSyncStatus(`🔄 Sincronizando ${totalPendentes} itens...`);
           await sincronizarComProgresso();
-          showSyncStatus(`✅ Sincronização concluída!`);
-          return true;
+          console.log('✅ Sincronização concluída!');
+        } else {
+          console.log('✅ Nenhum item pendente para sincronizar');
         }
-        return false;
+        
+        // 2. Limpar dados já sincronizados
+        await limparDadosSincronizadosOnline();
+        console.log('✅ Dados sincronizados removidos');
+        
+        // 3. Preparar novo modo offline (atualizar PDF)
+        await prepararCacheOffline();
+        console.log('✅ Modo offline preparado');
+        
+        // 4. Recarregar dados
+        await refreshData();
+        
+        showSyncStatus('✅ Sistema sincronizado e pronto para offline!');
+        console.log('🎯 ROTINA COMPLETA FINALIZADA!');
+        
       } catch (error) {
-        console.error('Erro na verificação persistente:', error);
-        return false;
+        console.error('❌ Erro na rotina online:', error);
+        showSyncStatus('❌ Erro na sincronização', true);
       } finally {
-        verificadorAtivo = false;
+        loader.classList.remove('active');
       }
     }
 
@@ -1437,7 +1410,7 @@
       currentItems = novosItems;
       renderCards(document.getElementById('searchInput').value);
       await updatePendingBadge();
-      console.log(`🔄 Refresh concluído - ${currentItems.length} itens exibidos`);
+      console.log(`🔄 Refresh concluído - ${currentItems.length} itens exibidos (${currentItems.filter(i => i.pending).length} pendentes)`);
     }
 
     // ==================== FUNÇÕES DE ARQUIVO ====================
@@ -1661,7 +1634,8 @@
         } else inspecaoMsg = `<p style="color: #f59e0b; font-size: 0.7rem; margin-top: 0.3rem;">⚠️ Inspeção ${mesAtualNome}: pendente</p>`;
         const statusClass = item.status === 'active' ? 'status-active' : 'status-inactive';
         const statusText = item.status === 'active' ? 'Ativo' : 'Inativo';
-        return `<div class="item-card" data-id="${item.id}"><div><h3>${escapeHtml(item.name)}</h3><p>TAG: ${escapeHtml(item.code)}</p>${item.sub_localizacao ? `<p>📍 ${escapeHtml(item.sub_localizacao)}</p>` : ''}${item.tamanho ? `<p>📏 ${escapeHtml(item.tamanho)}</p>` : ''}<div><span class="status-badge ${statusClass}">${statusText}</span></div>${inspecaoMsg}</div></div>`;
+        const pendingIcon = item.pending ? '<span style="background: #fef3c7; color: #92400e; padding: 2px 6px; border-radius: 12px; font-size: 0.6rem; margin-left: 8px;">⏳ Pendente</span>' : '';
+        return `<div class="item-card" data-id="${item.id}"><div><h3>${escapeHtml(item.name)}${pendingIcon}</h3><p>TAG: ${escapeHtml(item.code)}</p>${item.sub_localizacao ? `<p>📍 ${escapeHtml(item.sub_localizacao)}</p>` : ''}${item.tamanho ? `<p>📏 ${escapeHtml(item.tamanho)}</p>` : ''}<div><span class="status-badge ${statusClass}">${statusText}</span></div>${inspecaoMsg}</div></div>`;
       }).join('');
       
       document.querySelectorAll('.item-card').forEach(card => { card.addEventListener('click', () => openDetailModal(parseInt(card.dataset.id))); });
@@ -1692,7 +1666,7 @@
       const monthlyFiles = monthKeys.map(key => files.find(f => f.category === key));
       const isActive = item.status === 'active';
       
-      let html = `<div class="status-container"><span style="font-weight: 500;">Status:</span><label class="toggle-switch"><input type="checkbox" id="statusToggle" ${isActive ? 'checked' : ''}><span class="slider"></span></label><span class="status-text" id="statusText">${isActive ? 'Ativo' : 'Inativo'}</span></div>${!isActive ? '<div class="inactive-message">⚠️ Item inativo. Não é possível anexar PDFs ou gerar formulários.</div>' : ''}<div class="item-detail-title"><strong>${escapeHtml(item.name)}</strong><br>${item.sub_localizacao ? `Sub. Localização: ${escapeHtml(item.sub_localizacao)}<br>` : ''}${item.tamanho ? `Tamanho: ${escapeHtml(item.tamanho)}<br>` : ''}ID: ${escapeHtml(item.code)}</div><div class="pdf-group"><div class="pdf-group-title">📄 Memorial de Cálculo</div>${renderDetailPdfRow('memorial', 'Memorial', memorialFile, item.id, isActive)}</div><div class="pdf-group"><div class="pdf-group-title">📅 Documentos Mensais</div>${monthNames.map((month, idx) => renderDetailPdfRow(monthKeys[idx], month, monthlyFiles[idx], item.id, isActive, true)).join('')}</div><button class="delete-item-btn" id="deleteItemFromDetailBtn">🗑️ Excluir este item</button><div class="notice">* Clique nos botões + para anexar/substituir PDFs. Clique em 📝 para preencher formulário e gerar PDF.</div>`;
+      let html = `<div class="status-container"><span style="font-weight: 500;">Status:</span><label class="toggle-switch"><input type="checkbox" id="statusToggle" ${isActive ? 'checked' : ''}><span class="slider"></span></label><span class="status-text" id="statusText">${isActive ? 'Ativo' : 'Inativo'}</span></div>${!isActive ? '<div class="inactive-message">⚠️ Item inativo. Não é possível anexar PDFs ou gerar formulários.</div>' : ''}<div class="item-detail-title"><strong>${escapeHtml(item.name)}</strong><br>${item.sub_localizacao ? `Sub. Localização: ${escapeHtml(item.sub_localizacao)}<br>` : ''}${item.tamanho ? `Tamanho: ${escapeHtml(item.tamanho)}<br>` : ''}ID: ${escapeHtml(item.code)}${item.pending ? '<br><span style="background: #fef3c7; color: #92400e; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem;">⏳ Pendente de sincronização</span>' : ''}</div><div class="pdf-group"><div class="pdf-group-title">📄 Memorial de Cálculo</div>${renderDetailPdfRow('memorial', 'Memorial', memorialFile, item.id, isActive)}</div><div class="pdf-group"><div class="pdf-group-title">📅 Documentos Mensais</div>${monthNames.map((month, idx) => renderDetailPdfRow(monthKeys[idx], month, monthlyFiles[idx], item.id, isActive, true)).join('')}</div><button class="delete-item-btn" id="deleteItemFromDetailBtn">🗑️ Excluir este item</button><div class="notice">* Clique nos botões + para anexar/substituir PDFs. Clique em 📝 para preencher formulário e gerar PDF.</div>`;
       detailContent.innerHTML = html;
       
       const toggle = document.getElementById('statusToggle');
@@ -2066,7 +2040,6 @@
         await prepararCacheOffline();
       }
       
-      // Executar rotina completa se estiver online
       if (navigator.onLine) {
         console.log('🌐 Sistema online - executando rotina completa...');
         await rotinaCompletaOnline();
@@ -2090,7 +2063,7 @@
       }, 30000);
     });
     
-    // Detectar quando voltar online e executar rotina completa
+    // Detectar quando voltar online
     let rotinaAgendada = false;
     window.addEventListener('online', async () => {
       if (!inicializacaoCompleta) return;
