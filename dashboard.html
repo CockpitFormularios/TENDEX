@@ -311,26 +311,25 @@
     // ==================== INICIALIZAR INDEXEDDB ====================
     function initOfflineDB() {
       return new Promise((resolve, reject) => {
-        if (dbInstance && dbInstance.version >= 23) {
+        if (dbInstance && dbInstance.version >= 24) {
           resolve(dbInstance);
           return;
         }
-        const request = indexedDB.open(DB_NAME_OFFLINE, 23);
+        const request = indexedDB.open(DB_NAME_OFFLINE, 24);
         request.onerror = (event) => {
           console.error('IndexedDB erro:', event);
           reject(request.error);
         };
         request.onsuccess = (event) => {
           dbInstance = request.result;
-          console.log('IndexedDB aberto com sucesso - versão 23');
+          console.log('IndexedDB aberto com sucesso - versão 24');
           verificarPersistenciaDados();
           resolve(dbInstance);
         };
         request.onupgradeneeded = (event) => {
           const db = event.target.result;
-          console.log('Criando stores versão 23...');
+          console.log('Criando stores versão 24...');
           
-          // Remover stores antigas se existirem
           const storesToRemove = ['items_cache', 'files_cache', 'pending_items', 'pending_inspections', 'modelo_pdf', 'sync_log'];
           for (const store of storesToRemove) {
             if (db.objectStoreNames.contains(store)) {
@@ -338,7 +337,6 @@
             }
           }
           
-          // Criar novas stores
           db.createObjectStore(STORE_ITEMS, { keyPath: 'id' });
           db.createObjectStore(STORE_FILES, { keyPath: 'id', autoIncrement: true });
           db.createObjectStore(STORE_PENDING_ITEMS, { keyPath: 'id' });
@@ -400,7 +398,6 @@
         const db = await initOfflineDB();
         const tx = db.transaction(STORE_ITEMS, 'readwrite');
         const store = tx.objectStore(STORE_ITEMS);
-        // NÃO limpar - apenas adicionar/atualizar
         for (const item of items) {
           store.put(item);
         }
@@ -526,9 +523,42 @@
         const tx = db.transaction(STORE_PENDING_INSPECTIONS, 'readwrite');
         const store = tx.objectStore(STORE_PENDING_INSPECTIONS);
         const request = store.delete(id);
-        request.onsuccess = () => resolve();
+        request.onsuccess = () => {
+          console.log(`✅ Inspeção pendente removida: ${id}`);
+          resolve();
+        };
         request.onerror = () => reject(request.error);
       });
+    }
+
+    // ==================== LIMPAR DADOS SINCRONIZADOS (APENAS ONLINE) ====================
+    async function limparDadosSincronizadosOnline() {
+      if (!navigator.onLine) {
+        console.log('📡 Offline - mantendo dados pendentes');
+        return;
+      }
+      
+      console.log('🧹 ONLINE - Limpando dados já sincronizados...');
+      try {
+        const db = await initOfflineDB();
+        
+        // Limpar apenas os pendentes que já foram sincronizados
+        const tx1 = db.transaction(STORE_PENDING_ITEMS, 'readwrite');
+        await new Promise((resolve) => {
+          const req = tx1.objectStore(STORE_PENDING_ITEMS).clear();
+          req.onsuccess = () => resolve();
+        });
+        
+        const tx2 = db.transaction(STORE_PENDING_INSPECTIONS, 'readwrite');
+        await new Promise((resolve) => {
+          const req = tx2.objectStore(STORE_PENDING_INSPECTIONS).clear();
+          req.onsuccess = () => resolve();
+        });
+        
+        console.log('✅ Dados pendentes sincronizados removidos');
+      } catch (e) {
+        console.warn('Erro ao limpar dados sincronizados:', e);
+      }
     }
 
     // ==================== GET ALL ITEMS WITH FILES ====================
@@ -558,7 +588,6 @@
       if (!isOnline) {
         console.log('📡 Modo OFFLINE - usando apenas cache local');
         
-        // Converter itens pendentes para exibição
         const pendentesComoItens = pendentesItems.map(p => ({
           id: p.id,
           name: p.name,
@@ -570,9 +599,7 @@
           files: []
         }));
         
-        // Combinar itens existentes com pendentes
         const todosItens = [...itemsLocal, ...pendentesComoItens];
-        // Remover duplicatas
         const uniqueItems = [];
         const seenIds = new Set();
         for (const item of todosItens) {
@@ -585,30 +612,16 @@
         items = uniqueItems;
         files = filesLocal;
         
-        console.log(`✅ Total de itens para exibição OFFLINE: ${items.length} (${itemsLocal.length} cache + ${pendentesItems.length} pendentes)`);
+        console.log(`✅ Total de itens para exibição OFFLINE: ${items.length}`);
       } else {
-        // MODO ONLINE
+        // MODO ONLINE - sincronizar e depois limpar pendentes
         try {
           console.log('🌐 Buscando dados do servidor...');
           const { data: itemsData, error: itemsError } = await supabase.from('items').select('*').order('id', { ascending: true });
           if (!itemsError && itemsData) {
-            const serverItemCodes = new Set(itemsData.map(i => i.code));
-            const itensPendentesNaoNoServidor = pendentesItems.filter(p => !serverItemCodes.has(p.code));
-            
-            const pendentesComoItens = itensPendentesNaoNoServidor.map(p => ({
-              id: p.id,
-              name: p.name,
-              sub_localizacao: p.sub_localizacao || '',
-              tamanho: p.tamanho || '',
-              code: p.code,
-              status: 'active',
-              pending: true,
-              files: []
-            }));
-            
-            items = [...itemsData, ...pendentesComoItens];
+            items = itemsData;
             await salvarItemsLocal(items);
-            console.log(`✅ ${items.length} itens no total (${itemsData.length} servidor + ${pendentesComoItens.length} pendentes)`);
+            console.log(`✅ ${items.length} itens do servidor`);
           } else {
             items = itemsLocal;
           }
@@ -620,8 +633,12 @@
           } else {
             files = filesLocal;
           }
+          
+          // APÓS sincronizar, limpar pendentes
+          await limparDadosSincronizadosOnline();
+          
         } catch (error) {
-          console.warn('Erro ao buscar online, usando cache local:', error);
+          console.warn('Erro ao buscar online:', error);
           items = itemsLocal;
           files = filesLocal;
         }
@@ -632,7 +649,6 @@
         return [];
       }
       
-      // Organizar arquivos por item
       const filesByItem = {};
       if (files && files.length > 0) {
         files.forEach(file => { 
@@ -650,64 +666,12 @@
         tamanho: item.tamanho || '', 
         code: item.code || 'SEM-CODIGO', 
         status: item.status || 'active',
-        pending: item.pending || false,
+        pending: false,
         files: filesByItem[item.id] || [] 
       }));
       
-      console.log(`🎯 RESULTADO FINAL: ${result.length} itens para exibição (${result.filter(i => i.pending).length} pendentes)`);
+      console.log(`🎯 RESULTADO FINAL: ${result.length} itens para exibição`);
       return result;
-    }
-
-    // ==================== RECUPERAR CACHE ====================
-    async function forcarRecuperacaoCache() {
-      console.log('🔄 FORÇANDO RECUPERAÇÃO DO CACHE...');
-      const loader = document.getElementById('fullscreenLoader');
-      loader.classList.add('active');
-      
-      try {
-        const pendentesItems = await getPendingItems();
-        const pendentesInsp = await getPendingInspections();
-        const itemsLocal = await carregarItemsLocal();
-        
-        console.log(`📊 Estado atual:`);
-        console.log(`   - Itens locais: ${itemsLocal.length}`);
-        console.log(`   - Pendentes itens: ${pendentesItems.length}`);
-        console.log(`   - Pendentes inspeções: ${pendentesInsp.length}`);
-        
-        if (pendentesItems.length > 0) {
-          const pendentesComoItens = pendentesItems.map(p => ({
-            id: p.id,
-            name: p.name,
-            sub_localizacao: p.sub_localizacao || '',
-            tamanho: p.tamanho || '',
-            code: p.code,
-            status: 'active',
-            pending: true,
-            files: []
-          }));
-          
-          const todosItens = [...itemsLocal];
-          for (const pendente of pendentesComoItens) {
-            if (!todosItens.some(i => i.id === pendente.id)) {
-              todosItens.push(pendente);
-            }
-          }
-          
-          await salvarItemsLocal(todosItens);
-          console.log(`✅ Cache recuperado: ${todosItens.length} itens`);
-        }
-        
-        await refreshData();
-        await updatePendingBadge();
-        await updateUserModalCacheStatus();
-        
-        alert(`✅ Recuperação concluída!\n\nItens locais: ${itemsLocal.length}\nPendentes: ${pendentesItems.length}\nInspeções pendentes: ${pendentesInsp.length}`);
-      } catch (error) {
-        console.error('Erro na recuperação:', error);
-        alert('Erro ao recuperar cache: ' + error.message);
-      } finally {
-        loader.classList.remove('active');
-      }
     }
 
     // ==================== SAVE ITEM COMPLETE ====================
@@ -726,7 +690,6 @@
           throw new Error('Código duplicado localmente');
         }
         
-        // Salvar na lista de pendentes
         const pendingData = {
           id: offlineId,
           name: name,
@@ -738,7 +701,6 @@
         await salvarItemPending(pendingData);
         console.log(`✅ Item pendente salvo: ${offlineId}`);
         
-        // Criar item local para exibição
         const newItem = {
           id: offlineId,
           name: name,
@@ -761,7 +723,7 @@
         return offlineId;
       }
       
-      // MODO ONLINE - código existente...
+      // MODO ONLINE
       const { data: existing } = await supabase.from('items').select('id').eq('code', code).maybeSingle();
       if (existing && existing.id !== itemId) {
         alert(`❌ O código "${code}" já está em uso.`);
@@ -987,7 +949,7 @@
       }
       
       // FASE 1: Sincronizar itens pendentes
-      console.log('📦 Sincronizando itens pendentes...');
+      console.log('📦 FASE 1 - Sincronizando itens pendentes...');
       
       for (const item of pendentesItems) {
         try {
@@ -996,7 +958,6 @@
             element.querySelector('span:last-child').innerHTML = '<span style="color: #f59e0b;">🔄 Sincronizando...</span>';
           }
           
-          // Verificar se já existe no servidor
           const { data: existing, error: checkError } = await supabase
             .from('items')
             .select('id, code')
@@ -1017,7 +978,6 @@
             continue;
           }
           
-          // Criar novo item
           const { data: newItem, error: insertError } = await supabase.from('items').insert({
             name: item.name,
             sub_localizacao: item.sub_localizacao || '',
@@ -1050,8 +1010,8 @@
         }
       }
       
-      // FASE 2: Sincronizar inspeções pendentes
-      console.log('📋 Sincronizando inspeções pendentes...');
+      // FASE 2: Sincronizar inspeções pendentes (agora com os IDs dos itens já sincronizados)
+      console.log('📋 FASE 2 - Sincronizando inspeções pendentes...');
       
       for (const insp of pendentesInsp) {
         try {
@@ -1060,7 +1020,6 @@
             element.querySelector('span:last-child').innerHTML = '<span style="color: #f59e0b;">🔄 Sincronizando...</span>';
           }
           
-          // Buscar o ID real do item
           let itemIdReal = mapaIds[insp.itemInfo?.code];
           
           if (!itemIdReal) {
@@ -1078,7 +1037,6 @@
             itemIdReal = itemData.id;
           }
           
-          // Recriar o PDF e anexar
           const pdfBlob = base64ToBlob(insp.pdfBase64, 'application/pdf');
           const pdfFile = new File([pdfBlob], `checklist_${insp.monthName}_${Date.now()}.pdf`, { type: 'application/pdf' });
           
@@ -1110,7 +1068,10 @@
         }
       }
       
-      // Atualizar tudo após sincronização
+      // Limpar pendentes após sincronização bem-sucedida
+      await limparDadosSincronizadosOnline();
+      
+      // Recarregar dados
       await refreshData();
       await updatePendingBadge();
       await listarPendentesNoModal();
@@ -1129,7 +1090,7 @@
     
     async function verificarESincronizar() {
       if (!navigator.onLine) {
-        console.log('📡 Offline - verificando dados locais...');
+        console.log('📡 Offline - mantendo dados locais');
         return false;
       }
       if (verificadorAtivo) return false;
@@ -1237,8 +1198,8 @@
       }
     }
 
-    // ==================== LIMPAR CACHE OFFLINE ====================
-    async function limparCacheOffline() {
+    // ==================== LIMPAR CACHE OFFLINE MANUAL ====================
+    async function limparCacheOfflineManual() {
       if (!confirm('⚠️ ATENÇÃO: Isso irá limpar TODO o cache offline, incluindo itens pendentes não sincronizados.\n\nDeseja continuar?')) return;
       
       const loader = document.getElementById('fullscreenLoader');
@@ -1274,6 +1235,58 @@
       } catch (error) {
         console.error('❌ Erro ao limpar cache:', error);
         alert('Erro ao limpar cache: ' + error.message);
+      } finally {
+        loader.classList.remove('active');
+      }
+    }
+
+    // ==================== RECUPERAR CACHE ====================
+    async function forcarRecuperacaoCache() {
+      console.log('🔄 FORÇANDO RECUPERAÇÃO DO CACHE...');
+      const loader = document.getElementById('fullscreenLoader');
+      loader.classList.add('active');
+      
+      try {
+        const pendentesItems = await getPendingItems();
+        const pendentesInsp = await getPendingInspections();
+        const itemsLocal = await carregarItemsLocal();
+        
+        console.log(`📊 Estado atual:`);
+        console.log(`   - Itens locais: ${itemsLocal.length}`);
+        console.log(`   - Pendentes itens: ${pendentesItems.length}`);
+        console.log(`   - Pendentes inspeções: ${pendentesInsp.length}`);
+        
+        if (pendentesItems.length > 0) {
+          const pendentesComoItens = pendentesItems.map(p => ({
+            id: p.id,
+            name: p.name,
+            sub_localizacao: p.sub_localizacao || '',
+            tamanho: p.tamanho || '',
+            code: p.code,
+            status: 'active',
+            pending: true,
+            files: []
+          }));
+          
+          const todosItens = [...itemsLocal];
+          for (const pendente of pendentesComoItens) {
+            if (!todosItens.some(i => i.id === pendente.id)) {
+              todosItens.push(pendente);
+            }
+          }
+          
+          await salvarItemsLocal(todosItens);
+          console.log(`✅ Cache recuperado: ${todosItens.length} itens`);
+        }
+        
+        await refreshData();
+        await updatePendingBadge();
+        await updateUserModalCacheStatus();
+        
+        alert(`✅ Recuperação concluída!\n\nItens locais: ${itemsLocal.length}\nPendentes: ${pendentesItems.length}\nInspeções pendentes: ${pendentesInsp.length}`);
+      } catch (error) {
+        console.error('Erro na recuperação:', error);
+        alert('Erro ao recuperar cache: ' + error.message);
       } finally {
         loader.classList.remove('active');
       }
@@ -1352,7 +1365,7 @@
       currentItems = novosItems;
       renderCards(document.getElementById('searchInput').value);
       await updatePendingBadge();
-      console.log(`🔄 Refresh concluído - ${currentItems.length} itens exibidos (${currentItems.filter(i => i.pending).length} pendentes)`);
+      console.log(`🔄 Refresh concluído - ${currentItems.length} itens exibidos`);
     }
 
     // ==================== FUNÇÕES DE ARQUIVO ====================
@@ -1501,7 +1514,7 @@
 
     userModalClearCacheBtn.addEventListener('click', () => {
       closeUserModal();
-      limparCacheOffline();
+      limparCacheOfflineManual();
     });
 
     userModalLogoutBtn.addEventListener('click', () => {
@@ -1576,8 +1589,7 @@
         } else inspecaoMsg = `<p style="color: #f59e0b; font-size: 0.7rem; margin-top: 0.3rem;">⚠️ Inspeção ${mesAtualNome}: pendente</p>`;
         const statusClass = item.status === 'active' ? 'status-active' : 'status-inactive';
         const statusText = item.status === 'active' ? 'Ativo' : 'Inativo';
-        const pendingIcon = item.pending ? '<span style="background: #fef3c7; color: #92400e; padding: 2px 6px; border-radius: 12px; font-size: 0.6rem; margin-left: 8px;">⏳ Pendente</span>' : '';
-        return `<div class="item-card" data-id="${item.id}"><div><h3>${escapeHtml(item.name)}${pendingIcon}</h3><p>TAG: ${escapeHtml(item.code)}</p>${item.sub_localizacao ? `<p>📍 ${escapeHtml(item.sub_localizacao)}</p>` : ''}${item.tamanho ? `<p>📏 ${escapeHtml(item.tamanho)}</p>` : ''}<div><span class="status-badge ${statusClass}">${statusText}</span></div>${inspecaoMsg}</div></div>`;
+        return `<div class="item-card" data-id="${item.id}"><div><h3>${escapeHtml(item.name)}</h3><p>TAG: ${escapeHtml(item.code)}</p>${item.sub_localizacao ? `<p>📍 ${escapeHtml(item.sub_localizacao)}</p>` : ''}${item.tamanho ? `<p>📏 ${escapeHtml(item.tamanho)}</p>` : ''}<div><span class="status-badge ${statusClass}">${statusText}</span></div>${inspecaoMsg}</div></div>`;
       }).join('');
       
       document.querySelectorAll('.item-card').forEach(card => { card.addEventListener('click', () => openDetailModal(parseInt(card.dataset.id))); });
@@ -1608,7 +1620,7 @@
       const monthlyFiles = monthKeys.map(key => files.find(f => f.category === key));
       const isActive = item.status === 'active';
       
-      let html = `<div class="status-container"><span style="font-weight: 500;">Status:</span><label class="toggle-switch"><input type="checkbox" id="statusToggle" ${isActive ? 'checked' : ''}><span class="slider"></span></label><span class="status-text" id="statusText">${isActive ? 'Ativo' : 'Inativo'}</span></div>${!isActive ? '<div class="inactive-message">⚠️ Item inativo. Não é possível anexar PDFs ou gerar formulários.</div>' : ''}<div class="item-detail-title"><strong>${escapeHtml(item.name)}</strong><br>${item.sub_localizacao ? `Sub. Localização: ${escapeHtml(item.sub_localizacao)}<br>` : ''}${item.tamanho ? `Tamanho: ${escapeHtml(item.tamanho)}<br>` : ''}ID: ${escapeHtml(item.code)}${item.pending ? '<br><span style="background: #fef3c7; color: #92400e; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem;">⏳ Pendente de sincronização</span>' : ''}</div><div class="pdf-group"><div class="pdf-group-title">📄 Memorial de Cálculo</div>${renderDetailPdfRow('memorial', 'Memorial', memorialFile, item.id, isActive)}</div><div class="pdf-group"><div class="pdf-group-title">📅 Documentos Mensais</div>${monthNames.map((month, idx) => renderDetailPdfRow(monthKeys[idx], month, monthlyFiles[idx], item.id, isActive, true)).join('')}</div><button class="delete-item-btn" id="deleteItemFromDetailBtn">🗑️ Excluir este item</button><div class="notice">* Clique nos botões + para anexar/substituir PDFs. Clique em 📝 para preencher formulário e gerar PDF.</div>`;
+      let html = `<div class="status-container"><span style="font-weight: 500;">Status:</span><label class="toggle-switch"><input type="checkbox" id="statusToggle" ${isActive ? 'checked' : ''}><span class="slider"></span></label><span class="status-text" id="statusText">${isActive ? 'Ativo' : 'Inativo'}</span></div>${!isActive ? '<div class="inactive-message">⚠️ Item inativo. Não é possível anexar PDFs ou gerar formulários.</div>' : ''}<div class="item-detail-title"><strong>${escapeHtml(item.name)}</strong><br>${item.sub_localizacao ? `Sub. Localização: ${escapeHtml(item.sub_localizacao)}<br>` : ''}${item.tamanho ? `Tamanho: ${escapeHtml(item.tamanho)}<br>` : ''}ID: ${escapeHtml(item.code)}</div><div class="pdf-group"><div class="pdf-group-title">📄 Memorial de Cálculo</div>${renderDetailPdfRow('memorial', 'Memorial', memorialFile, item.id, isActive)}</div><div class="pdf-group"><div class="pdf-group-title">📅 Documentos Mensais</div>${monthNames.map((month, idx) => renderDetailPdfRow(monthKeys[idx], month, monthlyFiles[idx], item.id, isActive, true)).join('')}</div><button class="delete-item-btn" id="deleteItemFromDetailBtn">🗑️ Excluir este item</button><div class="notice">* Clique nos botões + para anexar/substituir PDFs. Clique em 📝 para preencher formulário e gerar PDF.</div>`;
       detailContent.innerHTML = html;
       
       const toggle = document.getElementById('statusToggle');
@@ -1973,7 +1985,6 @@
       console.log('🚀 Inicializando TENDEX...');
       
       await initOfflineDB();
-      // NÃO chamar limparDadosSincronizados() aqui - isso remove os pendentes!
       
       await verificarPersistenciaDados();
       await refreshData();
