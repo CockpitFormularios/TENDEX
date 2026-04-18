@@ -63,6 +63,9 @@
     .cache-info { display: inline-block; padding: 0.2rem 0.8rem; border-radius: 2rem; font-size: 0.7rem; font-weight: 600; margin-top: 0.5rem; }
     .cache-ok { background: #d1fae5; color: #065f46; }
     .cache-missing { background: #fee2e2; color: #991b1b; }
+    .signature-status { display: inline-block; padding: 0.2rem 0.8rem; border-radius: 2rem; font-size: 0.7rem; font-weight: 600; margin-top: 0.5rem; }
+    .signature-ok { background: #d1fae5; color: #065f46; }
+    .signature-missing { background: #fee2e2; color: #991b1b; }
     .pending-list { max-height: 300px; overflow-y: auto; margin: 1rem 0; }
     .pending-item { background: #fef3c7; padding: 0.5rem; margin: 0.25rem 0; border-radius: 0.5rem; font-size: 0.8rem; display: flex; justify-content: space-between; align-items: center; }
     .pending-item-success { background: #d1fae5; }
@@ -158,6 +161,11 @@
     <div class="user-modal-section">
       <h4>📊 Status do Cache</h4>
       <div id="userModalCacheStatus" class="cache-info cache-missing">Verificando...</div>
+    </div>
+    
+    <div class="user-modal-section">
+      <h4>🖊️ Status da Assinatura</h4>
+      <div id="userModalSignatureStatus" class="signature-status signature-missing">Verificando...</div>
     </div>
     
     <div class="user-modal-section">
@@ -301,38 +309,40 @@
     const STORE_PENDING_INSPECTIONS = 'pending_inspections';
     const STORE_MODELO_PDF = 'modelo_pdf';
     const STORE_SYNC_LOG = 'sync_log';
+    const STORE_SIGNATURE = 'signature_cache';
 
     let dbInstance = null;
     let cachedModeloPDF = null;
     let isInitialized = false;
     let currentItems = [];
     let currentUser = null;
+    let cachedSignature = null;
 
     const MODELO_PDF_URL = "https://jklcvyuxwxgsfczrfaco.supabase.co/storage/v1/object/public/pdfs/modelo_checklist_com_campos%20(3).pdf";
 
     // ==================== INICIALIZAR INDEXEDDB ====================
     function initOfflineDB() {
       return new Promise((resolve, reject) => {
-        if (dbInstance && dbInstance.version >= 30) {
+        if (dbInstance && dbInstance.version >= 31) {
           resolve(dbInstance);
           return;
         }
-        const request = indexedDB.open(DB_NAME_OFFLINE, 30);
+        const request = indexedDB.open(DB_NAME_OFFLINE, 31);
         request.onerror = (event) => {
           console.error('IndexedDB erro:', event);
           reject(request.error);
         };
         request.onsuccess = (event) => {
           dbInstance = request.result;
-          console.log('IndexedDB aberto com sucesso - versão 30');
+          console.log('IndexedDB aberto com sucesso - versão 31');
           verificarPersistenciaDados();
           resolve(dbInstance);
         };
         request.onupgradeneeded = (event) => {
           const db = event.target.result;
-          console.log('Criando stores versão 30...');
+          console.log('Criando stores versão 31...');
           
-          const storesToRemove = ['items_cache', 'files_cache', 'pending_items', 'pending_inspections', 'modelo_pdf', 'sync_log'];
+          const storesToRemove = ['items_cache', 'files_cache', 'pending_items', 'pending_inspections', 'modelo_pdf', 'sync_log', 'signature_cache'];
           for (const store of storesToRemove) {
             if (db.objectStoreNames.contains(store)) {
               db.deleteObjectStore(store);
@@ -345,6 +355,7 @@
           db.createObjectStore(STORE_PENDING_INSPECTIONS, { keyPath: 'id' });
           db.createObjectStore(STORE_MODELO_PDF, { keyPath: 'id' });
           db.createObjectStore(STORE_SYNC_LOG, { keyPath: 'id', autoIncrement: true });
+          db.createObjectStore(STORE_SIGNATURE, { keyPath: 'id' });
         };
       });
     }
@@ -543,8 +554,8 @@
       
       try {
         const db = await initOfflineDB();
-        const tx = db.transaction(STORE_MODELO_PDF, 'readonly');
-        const store = tx.objectStore(STORE_MODELO_PDF);
+        const tx = db.transaction(STORE_SIGNATURE, 'readonly');
+        const store = tx.objectStore(STORE_SIGNATURE);
         const cached = await new Promise((resolve) => {
           const request = store.get(cacheKey);
           request.onsuccess = () => resolve(request.result);
@@ -552,6 +563,8 @@
         
         if (cached && cached.data) {
           console.log('✅ Assinatura carregada do cache');
+          cachedSignature = cached.data;
+          updateSignatureStatus(true);
           return cached.data;
         }
         
@@ -559,18 +572,37 @@
           const response = await fetch(assinaturaUrl);
           if (response.ok) {
             const imageBytes = await response.arrayBuffer();
-            const tx2 = db.transaction(STORE_MODELO_PDF, 'readwrite');
-            const store2 = tx2.objectStore(STORE_MODELO_PDF);
+            const tx2 = db.transaction(STORE_SIGNATURE, 'readwrite');
+            const store2 = tx2.objectStore(STORE_SIGNATURE);
             store2.put({ id: cacheKey, data: imageBytes });
+            cachedSignature = imageBytes;
             console.log('✅ Assinatura cacheada com sucesso');
+            updateSignatureStatus(true);
             return imageBytes;
+          } else {
+            console.warn('⚠️ Assinatura não encontrada no servidor');
+            updateSignatureStatus(false);
           }
         }
       } catch (error) {
         console.warn('Erro ao cachear assinatura:', error);
+        updateSignatureStatus(false);
       }
       
       return null;
+    }
+
+    async function updateSignatureStatus(isCached) {
+      const statusDiv = document.getElementById('userModalSignatureStatus');
+      if (statusDiv) {
+        if (isCached) {
+          statusDiv.innerHTML = '✅ Assinatura cacheada';
+          statusDiv.className = 'signature-status signature-ok';
+        } else {
+          statusDiv.innerHTML = '⚠️ Assinatura não disponível';
+          statusDiv.className = 'signature-status signature-missing';
+        }
+      }
     }
 
     // ==================== LIMPAR DADOS SINCRONIZADOS ====================
@@ -1186,6 +1218,9 @@
         await prepararCacheOffline();
         console.log('✅ Modo offline preparado');
         
+        await cachearAssinatura();
+        console.log('✅ Assinatura verificada');
+        
         await refreshData();
         
         showSyncStatus('✅ Sistema sincronizado e pronto para offline!');
@@ -1288,7 +1323,7 @@
       try {
         const db = await initOfflineDB();
         
-        const stores = [STORE_ITEMS, STORE_FILES, STORE_PENDING_ITEMS, STORE_PENDING_INSPECTIONS, STORE_SYNC_LOG];
+        const stores = [STORE_ITEMS, STORE_FILES, STORE_PENDING_ITEMS, STORE_PENDING_INSPECTIONS, STORE_SYNC_LOG, STORE_SIGNATURE];
         for (const store of stores) {
           const tx = db.transaction(store, 'readwrite');
           await new Promise((resolve, reject) => {
@@ -1306,6 +1341,7 @@
         });
         
         cachedModeloPDF = null;
+        cachedSignature = null;
         
         console.log('✅ Cache offline limpo completamente');
         showSyncStatus('✅ Cache limpo! Recarregando...');
@@ -1359,6 +1395,7 @@
           console.log(`✅ Cache recuperado: ${todosItens.length} itens`);
         }
         
+        await cachearAssinatura();
         await refreshData();
         await updatePendingBadge();
         await updateUserModalCacheStatus();
@@ -1525,11 +1562,13 @@
         const posX = width - 210;
         let posY = 130;
         
+        // Adicionar ID e Tamanho
         pagina.drawText(`ID / TAG: ${itemCode}`, { x: posX, y: posY, size: 10, font: boldFont, color: rgb(0,0,0) });
         posY -= 18;
         pagina.drawText(`TAMANHO: ${itemTamanho || 'Não informado'}`, { x: posX, y: posY, size: 10, font: boldFont, color: rgb(0,0,0) });
         posY -= 25;
         
+        // Linha para assinatura
         pagina.drawLine({ 
           start: { x: posX - 10, y: posY + 8 }, 
           end: { x: width - 30, y: posY + 8 }, 
@@ -1544,62 +1583,58 @@
           color: rgb(0.5, 0.5, 0.5) 
         });
         
-        if (currentUser && currentUser.username) {
-          const nomeUsuario = currentUser.username.toLowerCase();
-          const assinaturaUrl = `https://jklcvyuxwxgsfczrfaco.supabase.co/storage/v1/object/public/assinaturas/${nomeUsuario}.png`;
-          const cacheKey = `assinatura_${nomeUsuario}`;
-          
+        // Adicionar a imagem da assinatura do usuário
+        if (cachedSignature) {
           try {
-            const db = await initOfflineDB();
-            const tx = db.transaction(STORE_MODELO_PDF, 'readonly');
-            const store = tx.objectStore(STORE_MODELO_PDF);
-            const cached = await new Promise((resolve) => {
-              const request = store.get(cacheKey);
-              request.onsuccess = () => resolve(request.result);
-            });
-            
-            let imageBytes = null;
-            
-            if (cached && cached.data) {
-              imageBytes = cached.data;
-            } else if (navigator.onLine) {
-              const response = await fetch(assinaturaUrl);
-              if (response.ok) {
-                imageBytes = await response.arrayBuffer();
-                const tx2 = db.transaction(STORE_MODELO_PDF, 'readwrite');
-                const store2 = tx2.objectStore(STORE_MODELO_PDF);
-                store2.put({ id: cacheKey, data: imageBytes });
+            let imagem;
+            try {
+              imagem = await pdfDoc.embedPng(cachedSignature);
+              console.log('✅ Assinatura carregada como PNG');
+            } catch (e) {
+              try {
+                imagem = await pdfDoc.embedJpg(cachedSignature);
+                console.log('✅ Assinatura carregada como JPG');
+              } catch (e2) {
+                console.warn('❌ Falha ao carregar imagem da assinatura:', e2);
               }
             }
             
-            if (imageBytes) {
-              let imagem;
-              try {
-                imagem = await pdfDoc.embedPng(imageBytes);
-              } catch {
-                imagem = await pdfDoc.embedJpg(imageBytes);
-              }
+            if (imagem) {
+              const areaMaxWidth = 180;
+              const areaMaxHeight = 80;
+              const scale = Math.min(areaMaxWidth / imagem.width, areaMaxHeight / imagem.height);
+              const finalW = imagem.width * scale;
+              const finalH = imagem.height * scale;
+              const imgX = width - finalW - 30;
+              const imgY = posY - finalH - 10;
               
-              if (imagem) {
-                const areaMaxWidth = 180;
-                const areaMaxHeight = 80;
-                const scale = Math.min(areaMaxWidth / imagem.width, areaMaxHeight / imagem.height);
-                const finalW = imagem.width * scale;
-                const finalH = imagem.height * scale;
-                const imgX = width - finalW - 30;
-                const imgY = posY - finalH - 10;
-                
-                pagina.drawImage(imagem, { 
-                  x: imgX, 
-                  y: imgY, 
-                  width: finalW, 
-                  height: finalH 
-                });
-              }
+              pagina.drawImage(imagem, { 
+                x: imgX, 
+                y: imgY, 
+                width: finalW, 
+                height: finalH 
+              });
+              console.log(`✅ Assinatura desenhada no PDF (${finalW}x${finalH})`);
             }
           } catch (error) {
-            console.warn('Erro ao carregar assinatura:', error);
+            console.error('❌ Erro ao desenhar assinatura:', error);
+            pagina.drawText(`(Erro ao carregar assinatura)`, { 
+              x: posX - 10, 
+              y: posY - 20, 
+              size: 8, 
+              font: font, 
+              color: rgb(0.8, 0.2, 0.2) 
+            });
           }
+        } else {
+          console.warn('⚠️ Nenhuma assinatura em cache');
+          pagina.drawText(`(Assinatura não disponível para ${currentUser?.username || 'usuário'})`, { 
+            x: posX - 10, 
+            y: posY - 20, 
+            size: 8, 
+            font: font, 
+            color: rgb(0.8, 0.2, 0.2) 
+          });
         }
         
         return pdfDoc;
@@ -1817,9 +1852,10 @@
       return; 
     }
 
+    // Cachear assinatura na inicialização
     cachearAssinatura();
 
-    // ==================== CONSTANTES (DECLARADAS ANTES DE USAR) ====================
+    // ==================== CONSTANTES ====================
     const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
     const monthKeys = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 
