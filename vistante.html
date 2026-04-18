@@ -70,13 +70,13 @@
     .item-link-info { background: #eef2ff; padding: 0.5rem; border-radius: 0.5rem; font-size: 0.7rem; word-break: break-all; margin: 0.5rem 0; }
     .general-qr-section { background: linear-gradient(135deg, #e0f2fe, #f1f5f9); border-radius: 1rem; padding: 1rem; margin-bottom: 1.5rem; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; }
     .general-qr-left { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
-    .general-qr-code { width: 80px; height: 80px; cursor: pointer; background: white; border-radius: 12px; padding: 5px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; }
+    .general-qr-code { width: 100px; height: 100px; cursor: pointer; background: white; border-radius: 12px; padding: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; transition: transform 0.2s; }
     .general-qr-code canvas { width: 100% !important; height: 100% !important; }
-    .general-qr-code:hover { transform: scale(1.02); }
-    .general-qr-info h4 { margin-bottom: 0.2rem; color: #0f172a; }
+    .general-qr-code:hover { transform: scale(1.02); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+    .general-qr-info h4 { margin-bottom: 0.2rem; color: #0f172a; font-size: 1rem; }
     .general-qr-info p { font-size: 0.75rem; color: #475569; }
     .test-link { font-size: 0.7rem; color: #3b82f6; margin-top: 0.5rem; word-break: break-all; }
-    @media (max-width: 640px) { body { padding: 1rem; } .dashboard-header h1 { font-size: 1.2rem; } .items-grid { grid-template-columns: 1fr; } }
+    @media (max-width: 640px) { body { padding: 1rem; } .dashboard-header h1 { font-size: 1.2rem; } .items-grid { grid-template-columns: 1fr; } .general-qr-code { width: 80px; height: 80px; } }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -92,7 +92,7 @@
   </div>
 </div>
 
-<!-- QR Code Geral da Página -->
+<!-- QR Code Geral da Página - TAMANHO 100x100 COM ALTA QUALIDADE -->
 <div class="general-qr-section">
   <div class="general-qr-left">
     <div id="generalQRCode" class="general-qr-code"></div>
@@ -103,7 +103,7 @@
     </div>
   </div>
   <div>
-    <button id="downloadGeneralQRBtn" class="btn-secondary" style="background: #1e4a76;">💾 Baixar QR Geral</button>
+    <button id="downloadGeneralQRBtn" class="btn-success" style="background: #1e4a76;">💾 Baixar QR Geral (PNG)</button>
   </div>
 </div>
 
@@ -200,19 +200,19 @@
     updateConnectionStatus();
     
     // ==================== FUNÇÕES DE QR CODE (USANDO QRCODE.JS) ====================
-    async function generateQRCode(element, text, size = 200) {
+    async function generateQRCode(element, text, size = 200, margin = 2) {
       if (!element) return;
       element.innerHTML = '';
       try {
-        // Usar a biblioteca QRCode.js que foi carregada
         const canvas = document.createElement('canvas');
         await QRCode.toCanvas(canvas, text, {
           width: size,
-          margin: 1,
+          margin: margin,
           color: {
             dark: '#000000',
             light: '#ffffff'
-          }
+          },
+          errorCorrectionLevel: 'H' // Alta correção de erro para melhor escaneamento
         });
         element.appendChild(canvas);
         return canvas;
@@ -223,24 +223,15 @@
       }
     }
     
-    // Função para gerar QR em elemento específico
-    async function generateQRInElement(elementId, text, size = 200) {
-      const element = document.getElementById(elementId);
-      if (element) {
-        return await generateQRCode(element, text, size);
-      }
-      return null;
-    }
-    
-    // ==================== GERAR QR CODE GERAL ====================
+    // ==================== GERAR QR CODE GERAL (100x100 com alta qualidade) ====================
     async function generateGeneralQRCode() {
       const generalUrl = BASE_URL;
       const generalQrDiv = document.getElementById('generalQRCode');
       if (generalQrDiv) {
-        const canvas = await generateQRCode(generalQrDiv, generalUrl, 80);
+        const canvas = await generateQRCode(generalQrDiv, generalUrl, 100, 2);
         if (canvas) {
           window.generalQRCanvas = canvas;
-          console.log('✅ QR Geral gerado:', generalUrl);
+          console.log('✅ QR Geral gerado em alta qualidade (100x100):', generalUrl);
         }
       }
     }
@@ -263,7 +254,6 @@
     
     // ==================== ABRIR MODAL POR HASH ====================
     async function openItemModalById(itemId) {
-      // Garantir que os dados estão carregados
       if (!currentItems.length) {
         const waitInterval = setInterval(() => {
           if (currentItems.length > 0) {
@@ -318,7 +308,7 @@
       const itemUrl = getItemDirectUrl(item.id);
       
       qrContainer.innerHTML = '';
-      const canvas = await generateQRCode(qrContainer, itemUrl, 250);
+      const canvas = await generateQRCode(qrContainer, itemUrl, 280, 2);
       if (canvas) currentQRCanvas = canvas;
       
       itemInfoDiv.innerHTML = `<strong>${escapeHtml(item.name)}</strong><br>TAG: ${escapeHtml(item.code)}<br><span style="font-size: 0.65rem;">Link: ${escapeHtml(itemUrl)}</span><br><span style="font-size: 0.65rem; color: #10b981;">✅ Escaneie para ver os detalhes</span>`;
@@ -376,7 +366,7 @@
       if (qrDiv && !qrDiv.hasAttribute('data-qr-generated')) {
         const itemUrl = getItemDirectUrl(itemId);
         qrDiv.setAttribute('data-qr-generated', 'true');
-        await generateQRCode(qrDiv, itemUrl, 40);
+        await generateQRCode(qrDiv, itemUrl, 45, 1);
       }
     }
     
@@ -485,16 +475,13 @@
         const id = card.dataset.id;
         const code = card.dataset.code;
         
-        // Evento de clique no card (abrir detalhes)
         card.addEventListener('click', (e) => {
           if (e.target.classList.contains('qr-code-mini') || e.target.closest('.qr-code-mini')) return;
           openDetailModal(id);
         });
         
-        // Gerar QR mini para cada card
         await generateMiniQRForCard(card, id, code);
         
-        // Evento para o botão QR
         const qrBtn = card.querySelector('.qr-code-mini');
         if (qrBtn) {
           qrBtn.addEventListener('click', (e) => {
@@ -533,7 +520,6 @@
                 <button id="showQRFromDetailBtn" class="btn-secondary" style="background:#1e4a76;">📱 Gerar QR Code deste item</button>
                </div>`;
       
-      // Memorial
       html += `<div class="pdf-group"><div class="pdf-group-title">📄 Memorial de Cálculo / Projeto</div>`;
       if (memorialFile) {
         html += `<div class="pdf-row"><span class="pdf-label">Memorial</span><div class="pdf-file-info"><a href="${memorialFile.file_url}" target="_blank">📄 ${escapeHtml(memorialFile.file_name)}</a></div><a href="${memorialFile.file_url}" target="_blank" class="btn-view-pdf">Visualizar</a></div>`;
@@ -542,7 +528,6 @@
       }
       html += `</div>`;
       
-      // Documentos mensais
       html += `<div class="pdf-group"><div class="pdf-group-title">📅 Inspeções Mensais (PDFs)</div>`;
       for (let i = 0; i < monthNames.length; i++) {
         const file = monthlyFiles[i];
@@ -631,7 +616,7 @@
       await fetchAllData();
       await renderCards('');
       checkHashForItem();
-      console.log('✅ Sistema inicializado com sucesso!');
+      console.log('✅ Sistema inicializado com sucesso! QR Geral em 100x100 alta qualidade');
     })();
     
   })();
