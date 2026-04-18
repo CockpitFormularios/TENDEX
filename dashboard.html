@@ -312,24 +312,24 @@
     // ==================== INICIALIZAR INDEXEDDB ====================
     function initOfflineDB() {
       return new Promise((resolve, reject) => {
-        if (dbInstance && dbInstance.version >= 27) {
+        if (dbInstance && dbInstance.version >= 28) {
           resolve(dbInstance);
           return;
         }
-        const request = indexedDB.open(DB_NAME_OFFLINE, 27);
+        const request = indexedDB.open(DB_NAME_OFFLINE, 28);
         request.onerror = (event) => {
           console.error('IndexedDB erro:', event);
           reject(request.error);
         };
         request.onsuccess = (event) => {
           dbInstance = request.result;
-          console.log('IndexedDB aberto com sucesso - versão 27');
+          console.log('IndexedDB aberto com sucesso - versão 28');
           verificarPersistenciaDados();
           resolve(dbInstance);
         };
         request.onupgradeneeded = (event) => {
           const db = event.target.result;
-          console.log('Criando stores versão 27...');
+          console.log('Criando stores versão 28...');
           
           const storesToRemove = ['items_cache', 'files_cache', 'pending_items', 'pending_inspections', 'modelo_pdf', 'sync_log'];
           for (const store of storesToRemove) {
@@ -1644,7 +1644,10 @@
         return `<div class="item-card" data-id="${item.id}"><div><h3>${escapeHtml(item.name)}${pendingIcon}</h3><p>TAG: ${escapeHtml(item.code)}</p>${item.sub_localizacao ? `<p>📍 ${escapeHtml(item.sub_localizacao)}</p>` : ''}${item.tamanho ? `<p>📏 ${escapeHtml(item.tamanho)}</p>` : ''}<div><span class="status-badge ${statusClass}">${statusText}</span></div>${inspecaoMsg}</div></div>`;
       }).join('');
       
-      document.querySelectorAll('.item-card').forEach(card => { card.addEventListener('click', () => openDetailModal(parseInt(card.dataset.id))); });
+      document.querySelectorAll('.item-card').forEach(card => { 
+        const id = card.dataset.id;
+        card.addEventListener('click', () => openDetailModal(id)); 
+      });
     }
 
     // ==================== MODAL DETALHE ====================
@@ -1655,10 +1658,10 @@
     detailModalElem.addEventListener('click', (e) => { if (e.target === detailModalElem) detailModalElem.style.display = 'none'; });
 
     async function openDetailModal(itemId) {
-      console.log(`🔍 Abrindo detalhes do item ID: ${itemId}`);
+      console.log(`🔍 Abrindo detalhes do item ID: ${itemId} (tipo: ${typeof itemId})`);
       
-      // Buscar o item em currentItems (que já inclui itens pendentes)
-      let item = currentItems.find(i => i.id == itemId);
+      // Buscar o item em currentItems
+      let item = currentItems.find(i => String(i.id) === String(itemId));
       
       // Se não encontrou, tentar buscar diretamente do cache
       if (!item) {
@@ -1667,11 +1670,11 @@
         const pendentesItems = await getPendingItems();
         
         // Buscar nos itens locais
-        item = itemsLocal.find(i => i.id == itemId);
+        item = itemsLocal.find(i => String(i.id) === String(itemId));
         
         // Se não encontrou, buscar nos pendentes
         if (!item && pendentesItems.length > 0) {
-          const pendente = pendentesItems.find(p => p.id == itemId);
+          const pendente = pendentesItems.find(p => String(p.id) === String(itemId));
           if (pendente) {
             item = {
               id: pendente.id,
@@ -1705,7 +1708,7 @@
       // Se não tem arquivos, tentar buscar
       if (filesDoItem.length === 0) {
         const allFiles = await carregarFilesLocal();
-        filesDoItem = allFiles.filter(f => f.item_id == itemId);
+        filesDoItem = allFiles.filter(f => String(f.item_id) === String(itemId));
       }
       
       renderItemDetailModal({
@@ -1727,9 +1730,9 @@
       const statusTextSpan = document.getElementById('statusText');
       if (toggle) toggle.addEventListener('change', async (e) => { const newStatus = e.target.checked ? 'active' : 'inactive'; statusTextSpan.innerText = newStatus === 'active' ? 'Ativo' : 'Inativo'; await toggleStatusFromDetail(item.id, newStatus); });
       
-      document.querySelectorAll('.upload-pdf-btn').forEach(btn => { btn.addEventListener('click', async (e) => { if (!isActive) { alert('Item inativo. Ative o item para anexar PDFs.'); return; } const itemId = Number(btn.dataset.itemid); const category = btn.dataset.category; const monthName = btn.dataset.monthname || ''; await uploadManualPDF(itemId, category, monthName); }); });
+      document.querySelectorAll('.upload-pdf-btn').forEach(btn => { btn.addEventListener('click', async (e) => { if (!isActive) { alert('Item inativo. Ative o item para anexar PDFs.'); return; } const itemId = btn.dataset.itemid; const category = btn.dataset.category; const monthName = btn.dataset.monthname || ''; await uploadManualPDF(itemId, category, monthName); }); });
       document.querySelectorAll('.remove-pdf-btn').forEach(btn => { btn.addEventListener('click', async (e) => { if (!isActive) { alert('Item inativo. Ative o item para remover PDFs.'); return; } if (confirm('Remover este PDF?')) { const loader = document.getElementById('fullscreenLoader'); loader.classList.add('active'); try { await deleteFileById(Number(btn.dataset.fileid)); await refreshData(); await openDetailModal(item.id); } finally { loader.classList.remove('active'); } } }); });
-      document.querySelectorAll('.fill-form-btn').forEach(btn => { btn.addEventListener('click', () => { if (!isActive) { alert('Item inativo. Ative o item para preencher o formulário.'); return; } openFormModal(Number(btn.dataset.itemid), btn.dataset.category, btn.dataset.monthname); }); });
+      document.querySelectorAll('.fill-form-btn').forEach(btn => { btn.addEventListener('click', () => { if (!isActive) { alert('Item inativo. Ative o item para preencher o formulário.'); return; } openFormModal(btn.dataset.itemid, btn.dataset.category, btn.dataset.monthname); }); });
       const deleteBtn = document.getElementById('deleteItemFromDetailBtn');
       if (deleteBtn) deleteBtn.addEventListener('click', async () => { if (confirm(`Excluir o item "${item.name}"?`)) { const loader = document.getElementById('fullscreenLoader'); loader.classList.add('active'); try { await deleteItemAndFiles(item.id); detailModalElem.style.display = 'none'; await refreshData(); } finally { loader.classList.remove('active'); } } });
     }
@@ -1743,7 +1746,7 @@
 
     // ==================== FUNÇÕES ADICIONAIS ====================
     async function toggleStatusFromDetail(itemId, newStatus) {
-      const item = currentItems.find(i => i.id == itemId);
+      const item = currentItems.find(i => String(i.id) === String(itemId));
       if (!item) return;
       if (newStatus === 'inactive') {
         if (confirm('Inativar este item? Os dados atuais serão salvos no histórico.')) {
@@ -1775,7 +1778,7 @@
       const newSub = document.getElementById('editSubLocalizacao').value.trim();
       const newTamanho = document.getElementById('editTamanho').value.trim();
       if (!newName) { alert("Localização é obrigatória."); return; }
-      const item = currentItems.find(i => i.id === reactivatingItemId);
+      const item = currentItems.find(i => String(i.id) === String(reactivatingItemId));
       if (!item) return;
       const loader = document.getElementById('fullscreenLoader');
       loader.classList.add('active');
@@ -1825,7 +1828,7 @@
 
     function openFormModal(itemId, category, monthName) {
       currentFormItemId = itemId; currentFormCategory = category; currentFormMonthName = monthName;
-      const itemAtual = currentItems.find(i => i.id == itemId);
+      const itemAtual = currentItems.find(i => String(i.id) === String(itemId));
       currentItemInfo = itemAtual || { name: '', code: '', tamanho: '' };
       document.getElementById('formModalTitle').innerText = `Formulário de Inspeção - ${monthName}`;
       let html = `<div class="form-row"><div class="form-group"><label>Unidade</label><input type="text" id="unidade" placeholder="Ex: Matriz" spellcheck="false"></div><div class="form-group"><label>Nome da Localidade</label><input type="text" id="localidade" spellcheck="false"></div></div><div class="form-row"><div class="form-group"><label>Responsável - Nome</label><input type="text" id="resp_nome" spellcheck="false"></div><div class="form-group"><label>Responsável - Matrícula</label><input type="text" id="resp_matricula" spellcheck="false"></div></div><div class="form-row"><div class="form-group"><label>Data da Inspeção</label><input type="date" id="data_inspecao"></div><div class="form-group"><label>Empresa</label><input type="text" id="empresa" spellcheck="false"></div></div><hr style="margin: 1rem 0;"><h3>Checklist de Inspeção</h3>`;
