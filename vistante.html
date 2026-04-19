@@ -18,9 +18,6 @@
     .logo { height: 50px; width: auto; object-fit: contain; }
     .guest-badge { background: #64748b; color: white; padding: 0.3rem 1rem; border-radius: 2rem; font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem; }
     .refresh-status { background: #e0f2fe; color: #0369a1; padding: 0.3rem 0.8rem; border-radius: 2rem; font-size: 0.7rem; display: flex; align-items: center; gap: 0.5rem; }
-    .refresh-status i { font-size: 0.8rem; }
-    .refresh-btn { background: none; border: none; cursor: pointer; font-size: 1rem; padding: 0.2rem 0.5rem; border-radius: 1rem; transition: 0.2s; }
-    .refresh-btn:hover { background: #cbd5e1; transform: rotate(180deg); }
     .search-area { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 1.5rem; background: white; padding: 0.5rem 1rem; border-radius: 2rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
     .search-icon { font-size: 1.2rem; color: #64748b; }
     .search-input { flex: 1; border: none; outline: none; font-size: 1rem; padding: 0.4rem 0; background: transparent; }
@@ -83,7 +80,74 @@
     .general-qr-info p { font-size: 0.75rem; color: #475569; }
     .clickable { cursor: pointer; }
     .last-update { font-size: 0.65rem; color: #64748b; margin-left: 0.5rem; }
-    .update-badge { background: #10b981; color: white; padding: 0.15rem 0.5rem; border-radius: 1rem; font-size: 0.6rem; margin-left: 0.5rem; }
+    
+    /* Estilos para impressão dos 12 QR Codes */
+    @media print {
+      body * { visibility: hidden; }
+      #printQRSheet, #printQRSheet * { visibility: visible; }
+      #printQRSheet { position: absolute; top: 0; left: 0; width: 100%; margin: 0; padding: 0; }
+      .no-print { display: none; }
+      .qr-grid { page-break-after: avoid; page-break-inside: avoid; }
+    }
+    
+    .print-sheet { 
+      display: none; 
+      background: white; 
+      width: 210mm; 
+      min-height: 297mm; 
+      margin: 0 auto; 
+      padding: 10mm;
+      font-family: Arial, sans-serif;
+    }
+    .print-sheet h2 { 
+      text-align: center; 
+      color: #1e4a76; 
+      margin-bottom: 10mm;
+      font-size: 18pt;
+    }
+    .qr-grid { 
+      display: grid; 
+      grid-template-columns: repeat(3, 1fr); 
+      gap: 8mm;
+      margin-top: 5mm;
+    }
+    .qr-item { 
+      text-align: center; 
+      border: 1px dashed #ccc;
+      padding: 5mm;
+      border-radius: 8px;
+      page-break-inside: avoid;
+    }
+    .qr-item canvas { 
+      width: 80px !important; 
+      height: 80px !important; 
+      margin: 0 auto;
+    }
+    .qr-item .qr-title { 
+      font-weight: bold; 
+      font-size: 10pt; 
+      margin-top: 3mm;
+      color: #1e4a76;
+    }
+    .qr-item .qr-sub { 
+      font-size: 8pt; 
+      color: #666; 
+      margin-top: 2mm;
+    }
+    .qr-item .qr-link { 
+      font-size: 6pt; 
+      color: #999; 
+      word-break: break-all;
+      margin-top: 2mm;
+    }
+    .footer-print { 
+      text-align: center; 
+      font-size: 8pt; 
+      color: #999; 
+      margin-top: 10mm;
+      padding-top: 5mm;
+      border-top: 1px solid #eee;
+    }
     @media (max-width: 640px) { body { padding: 1rem; } .dashboard-header h1 { font-size: 1.2rem; } .items-grid { grid-template-columns: 1fr; } .general-qr-code { width: 80px; height: 80px; } }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -119,8 +183,9 @@
       <p style="font-size: 0.7rem; color: #3b82f6;">Clique no QR para ampliar, baixar ou imprimir</p>
     </div>
   </div>
-  <div>
-    <button id="downloadGeneralQRBtn" class="btn-success" style="background: #1e4a76;">💾 Baixar QR Geral (PNG)</button>
+  <div style="display: flex; gap: 0.5rem;">
+    <button id="downloadGeneralQRBtn" class="btn-success" style="background: #1e4a76;">💾 Baixar QR Geral</button>
+    <button id="printMultipleQRBtn" class="btn-primary" style="background: #f59e0b;">🖨️ Imprimir 12 QR Codes</button>
   </div>
 </div>
 
@@ -181,14 +246,24 @@
     <div class="qr-actions">
       <button id="downloadGeneralQRModalBtn" class="btn-primary">💾 Baixar QR Geral (PNG)</button>
       <button id="printGeneralQRBtn" class="btn-secondary">🖨️ Imprimir QR Geral</button>
+      <button id="printMultipleQRFromModalBtn" class="btn-primary" style="background: #f59e0b;">🖨️ Imprimir 12 QR Codes</button>
     </div>
     <p class="notice-guest" style="margin-top: 1rem;">📌 Cole este QR Code na entrada do canteiro para acesso rápido dos visitantes à lista de tendas.</p>
   </div>
 </div>
 
+<!-- Folha para impressão de 12 QR Codes -->
+<div id="printQRSheet" class="print-sheet" style="display: none;">
+  <h2>📱 TENDEX - Sistema de Inspeção</h2>
+  <div id="qrGridContainer" class="qr-grid"></div>
+  <div class="footer-print">
+    TENDEX - Inspeção de Tendas | Escaneie o QR Code para acessar a lista completa de tendas
+  </div>
+</div>
+
 <div id="fullscreenLoader" style="display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); align-items: center; justify-content: center; z-index: 9999;">
   <div style="width: 50px; height: 50px; border: 5px solid rgba(255,255,255,0.3); border-top-color: #3b82f6; border-radius: 50%; animation: spin 1s linear infinite;"></div>
-  <div style="color: white; margin-top: 1rem;">Atualizando dados...</div>
+  <div style="color: white; margin-top: 1rem;">Gerando QR Codes...</div>
 </div>
 
 <div id="connectionStatus" class="connection-status online-badge">🟢 Online</div>
@@ -197,7 +272,6 @@
   @keyframes spin { to { transform: rotate(360deg); } }
   .fullscreen-loader.active { display: flex !important; }
   .clickable { cursor: pointer; }
-  .spin { animation: spin 0.5s linear; }
 </style>
 
 <script>
@@ -277,6 +351,86 @@
       }
     }
     
+    // Função para gerar QR Code e retornar o canvas
+    async function generateQRCodeCanvas(text, size = 150, margin = 2) {
+      try {
+        const canvas = document.createElement('canvas');
+        await QRCode.toCanvas(canvas, text, {
+          width: size,
+          margin: margin,
+          color: {
+            dark: '#000000',
+            light: '#ffffff'
+          },
+          errorCorrectionLevel: 'H'
+        });
+        return canvas;
+      } catch (error) {
+        console.error('Erro ao gerar QR Code:', error);
+        return null;
+      }
+    }
+    
+    // ==================== IMPRIMIR 12 QR CODES ====================
+    async function printMultipleQRCodes() {
+      showLoader(true);
+      const generalUrl = BASE_URL;
+      const container = document.getElementById('qrGridContainer');
+      container.innerHTML = '';
+      
+      // Gerar 12 QR Codes
+      const qrCodes = [];
+      for (let i = 0; i < 12; i++) {
+        const canvas = await generateQRCodeCanvas(generalUrl, 100, 2);
+        if (canvas) {
+          qrCodes.push(canvas);
+        }
+      }
+      
+      // Criar os 12 itens na grid
+      for (let i = 0; i < qrCodes.length; i++) {
+        const qrItem = document.createElement('div');
+        qrItem.className = 'qr-item';
+        
+        const canvasContainer = document.createElement('div');
+        canvasContainer.appendChild(qrCodes[i]);
+        
+        const title = document.createElement('div');
+        title.className = 'qr-title';
+        title.textContent = 'TENDEX';
+        
+        const sub = document.createElement('div');
+        sub.className = 'qr-sub';
+        sub.textContent = 'Acesse as inspeções';
+        
+        const link = document.createElement('div');
+        link.className = 'qr-link';
+        link.textContent = generalUrl.length > 40 ? generalUrl.substring(0, 37) + '...' : generalUrl;
+        
+        qrItem.appendChild(canvasContainer);
+        qrItem.appendChild(title);
+        qrItem.appendChild(sub);
+        qrItem.appendChild(link);
+        
+        container.appendChild(qrItem);
+      }
+      
+      showLoader(false);
+      
+      // Mostrar a folha de impressão e imprimir
+      const printSheet = document.getElementById('printQRSheet');
+      printSheet.style.display = 'block';
+      
+      setTimeout(() => {
+        window.print();
+        
+        // Ocultar após impressão
+        setTimeout(() => {
+          printSheet.style.display = 'none';
+        }, 500);
+      }, 100);
+    }
+    
     // ==================== BUSCAR DADOS DO SERVIDOR ====================
     async function fetchAllData(forceRefresh = false, showLoadingIndicator = true) {
       if (isRefreshing) return currentItems;
@@ -315,7 +469,6 @@
           files: filesByItem[item.id] || []
         }));
         
-        // Verificar se houve mudanças
         const oldIds = new Set(currentItems.map(i => i.id));
         const newIds = new Set(newItems.map(i => i.id));
         const hasChanges = oldIds.size !== newIds.size || 
@@ -329,7 +482,6 @@
           updateLastUpdateDisplay();
           saveToLocalCache();
           
-          // Recarregar a interface
           const searchValue = document.getElementById('searchInput').value;
           await renderCards(searchValue);
           
@@ -364,7 +516,6 @@
     
     function showRefreshNotification() {
       const refreshStatus = document.getElementById('refreshStatus');
-      const originalBg = refreshStatus.style.background;
       refreshStatus.style.background = '#d1fae5';
       refreshStatus.style.color = '#065f46';
       setTimeout(() => {
@@ -760,11 +911,10 @@
     function startAutoRefresh() {
       if (autoRefreshInterval) clearInterval(autoRefreshInterval);
       
-      // Atualizar a cada 30 segundos se estiver online
       autoRefreshInterval = setInterval(async () => {
         if (navigator.onLine && !isRefreshing) {
           console.log('🔄 Atualização automática programada...');
-          await fetchAllData(false, false); // Não mostrar loader nas atualizações automáticas
+          await fetchAllData(false, false);
         }
       }, 30000);
     }
@@ -785,7 +935,6 @@
       refreshBtn.innerHTML = originalText;
       refreshBtn.disabled = false;
       
-      // Mostrar mensagem de sucesso
       const statusDiv = document.getElementById('refreshStatus');
       statusDiv.style.background = '#d1fae5';
       statusDiv.style.color = '#065f46';
@@ -802,6 +951,8 @@
     const printQRBtn = document.getElementById('printQRBtn');
     const downloadGeneralQRBtn = document.getElementById('downloadGeneralQRBtn');
     const manualRefreshBtn = document.getElementById('manualRefreshBtn');
+    const printMultipleQRBtn = document.getElementById('printMultipleQRBtn');
+    const printMultipleQRFromModalBtn = document.getElementById('printMultipleQRFromModalBtn');
     
     const qrGeneralModal = document.getElementById('qrGeneralModal');
     const closeQRGeneralModalBtn = document.getElementById('closeQRGeneralModalBtn');
@@ -815,6 +966,8 @@
     
     if (downloadGeneralQRBtn) downloadGeneralQRBtn.addEventListener('click', downloadGeneralQRDirect);
     if (manualRefreshBtn) manualRefreshBtn.addEventListener('click', manualRefresh);
+    if (printMultipleQRBtn) printMultipleQRBtn.addEventListener('click', printMultipleQRCodes);
+    if (printMultipleQRFromModalBtn) printMultipleQRFromModalBtn.addEventListener('click', printMultipleQRCodes);
     
     closeQRGeneralModalBtn.addEventListener('click', () => qrGeneralModal.style.display = 'none');
     qrGeneralModal.addEventListener('click', (e) => { if (e.target === qrGeneralModal) qrGeneralModal.style.display = 'none'; });
@@ -838,8 +991,6 @@
     
     window.addEventListener('hashchange', checkHashForItem);
     
-    // DETECTAR ATUALIZAÇÃO DA PÁGINA (F5/RELOAD)
-    // Isso faz com que toda vez que a página for recarregada, os dados sejam atualizados
     window.addEventListener('load', async function() {
       console.log('🔄 Página recarregada - buscando dados atualizados...');
       if (navigator.onLine) {
@@ -851,14 +1002,12 @@
       initMonthButtons();
       generateGeneralQRCode();
       
-      // Tentar carregar do cache primeiro para exibir rapidamente
       loadFromLocalCache();
       if (currentItems.length > 0) {
         await renderCards('');
         updateLastUpdateDisplay();
       }
       
-      // Depois buscar dados atualizados do servidor (forçando atualização)
       if (navigator.onLine) {
         await fetchAllData(true, true);
       }
@@ -867,9 +1016,7 @@
       startAutoRefresh();
       
       console.log('✅ Sistema inicializado com sucesso!');
-      console.log('✅ Atualização automática a cada 30 segundos');
-      console.log('✅ Atualização ao recarregar a página (F5)');
-      console.log('✅ Clique em "Atualizar Agora" para forçar sincronização manual');
+      console.log('✅ Botão "Imprimir 12 QR Codes" disponível para o QR Geral');
     })();
     
   })();
