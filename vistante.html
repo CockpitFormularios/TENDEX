@@ -89,6 +89,10 @@
       margin: 0 auto; 
       padding: 15mm;
       font-family: Arial, sans-serif;
+      position: fixed;
+      top: 0;
+      left: 0;
+      z-index: 9999;
     }
     .print-sheet h2 { 
       text-align: center; 
@@ -225,14 +229,8 @@
   </div>
 </div>
 
-<!-- Folha para impressão de 12 QR Codes (NÃO USA MODAL, IMPRIME DIRETO) -->
-<div id="printQRSheet" class="print-sheet">
-  <h2>📱 TENDEX - Sistema de Inspeção</h2>
-  <div id="qrGridContainer" class="qr-grid"></div>
-  <div class="footer-print">
-    TENDEX - Inspeção de Tendas | Escaneie o QR Code para acessar a lista completa de tendas
-  </div>
-</div>
+<!-- Folha para impressão de 12 QR Codes (inicialmente vazia e escondida) -->
+<div id="printQRSheet" class="print-sheet"></div>
 
 <div id="fullscreenLoader" style="display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); align-items: center; justify-content: center; z-index: 9999;">
   <div style="width: 50px; height: 50px; border: 5px solid rgba(255,255,255,0.3); border-top-color: #3b82f6; border-radius: 50%; animation: spin 1s linear infinite;"></div>
@@ -297,13 +295,23 @@
       return null;
     }
     
-    // ==================== IMPRIMIR 12 QR CODES (NÃO USA MODAL, IMPRIME DIRETO) ====================
+    // ==================== IMPRIMIR 12 QR CODES (GERA APENAS QUANDO CLICADO) ====================
     async function printMultipleQRCodes() {
       showLoader(true);
       try {
         const generalUrl = BASE_URL;
+        const printSheet = document.getElementById('printQRSheet');
+        
+        // Criar o conteúdo da folha de impressão dinamicamente
+        printSheet.innerHTML = `
+          <h2>📱 TENDEX - Sistema de Inspeção</h2>
+          <div id="qrGridContainer" class="qr-grid"></div>
+          <div class="footer-print">
+            TENDEX - Inspeção de Tendas | Escaneie o QR Code para acessar a lista completa de tendas
+          </div>
+        `;
+        
         const container = document.getElementById('qrGridContainer');
-        container.innerHTML = '';
         
         // Gerar 12 QR Codes
         const qrCodes = [];
@@ -339,7 +347,6 @@
         }
         
         // Mostrar a folha de impressão
-        const printSheet = document.getElementById('printQRSheet');
         printSheet.style.display = 'block';
         
         // Fechar o loader antes de imprimir
@@ -349,9 +356,10 @@
         setTimeout(() => {
           window.print();
           
-          // Esconder após impressão ou cancelamento
+          // Esconder após impressão ou cancelamento e limpar conteúdo
           setTimeout(() => {
             printSheet.style.display = 'none';
+            printSheet.innerHTML = ''; // Limpar para não acumular
           }, 500);
         }, 200);
         
@@ -736,9 +744,6 @@
     
     window.addEventListener('hashchange', checkHashForItem);
     window.addEventListener('load', async () => { if (navigator.onLine) await fetchAllData(true); });
-    
-    // Esconder a folha de impressão inicialmente
-    document.getElementById('printQRSheet').style.display = 'none';
     
     (async function init() {
       await generateGeneralQRCode();
