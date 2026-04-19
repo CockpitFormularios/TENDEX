@@ -79,27 +79,13 @@
     .general-qr-info p { font-size: 0.75rem; color: #475569; }
     .clickable { cursor: pointer; }
     
-    /* Estilos para impressão */
+    /* Estilos para impressão dos 12 QR Codes */
     @media print {
       body * { visibility: hidden; }
-      #printArea, #printArea * { visibility: visible; }
-      #printArea { position: absolute; top: 0; left: 0; width: 100%; margin: 0; padding: 20px; }
+      .print-sheet, .print-sheet * { visibility: visible; }
+      .print-sheet { position: absolute; top: 0; left: 0; width: 100%; margin: 0; padding: 15mm; background: white; }
       .no-print { display: none; }
     }
-    
-    .print-card { 
-      text-align: center; 
-      border: 1px solid #ccc; 
-      padding: 20px; 
-      border-radius: 12px; 
-      width: 320px; 
-      margin: 0 auto;
-      background: white;
-    }
-    .print-card img { width: 200px; height: 200px; }
-    .print-card h3 { margin: 10px 0; }
-    .print-card p { margin: 5px 0; color: #555; font-size: 12px; }
-    .print-card .footer { margin-top: 15px; font-size: 10px; color: gray; }
     
     .print-sheet { 
       display: none; 
@@ -107,7 +93,7 @@
       width: 210mm; 
       min-height: 297mm; 
       margin: 0 auto; 
-      padding: 10mm;
+      padding: 15mm;
       font-family: Arial, sans-serif;
     }
     .print-sheet h2 { 
@@ -119,7 +105,7 @@
     .qr-grid { 
       display: grid; 
       grid-template-columns: repeat(3, 1fr); 
-      gap: 8mm;
+      gap: 10mm;
       margin-top: 5mm;
     }
     .qr-item { 
@@ -129,26 +115,26 @@
       border-radius: 8px;
       page-break-inside: avoid;
     }
-    .qr-item canvas, .qr-item img { 
-      width: 80px !important; 
-      height: 80px !important; 
+    .qr-item canvas { 
+      width: 85px !important; 
+      height: 85px !important; 
       margin: 0 auto;
     }
     .qr-item .qr-title { 
       font-weight: bold; 
-      font-size: 10pt; 
+      font-size: 11pt; 
       margin-top: 3mm;
       color: #1e4a76;
     }
     .qr-item .qr-sub { 
-      font-size: 8pt; 
-      color: #666; 
+      font-size: 9pt; 
+      color: #555; 
       margin-top: 2mm;
     }
     .footer-print { 
       text-align: center; 
-      font-size: 8pt; 
-      color: #999; 
+      font-size: 9pt; 
+      color: #888; 
       margin-top: 10mm;
       padding-top: 5mm;
       border-top: 1px solid #eee;
@@ -256,11 +242,8 @@
   </div>
 </div>
 
-<!-- Área para impressão -->
-<div id="printArea" style="display: none;"></div>
-
 <!-- Folha para impressão de 12 QR Codes -->
-<div id="printQRSheet" class="print-sheet" style="display: none;">
+<div id="printQRSheet" class="print-sheet">
   <h2>📱 TENDEX - Sistema de Inspeção</h2>
   <div id="qrGridContainer" class="qr-grid"></div>
   <div class="footer-print">
@@ -270,7 +253,7 @@
 
 <div id="fullscreenLoader" style="display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); align-items: center; justify-content: center; z-index: 9999;">
   <div style="width: 50px; height: 50px; border: 5px solid rgba(255,255,255,0.3); border-top-color: #3b82f6; border-radius: 50%; animation: spin 1s linear infinite;"></div>
-  <div style="color: white; margin-top: 1rem;">Processando...</div>
+  <div style="color: white; margin-top: 1rem;">Gerando 12 QR Codes...</div>
 </div>
 
 <div id="connectionStatus" class="connection-status online-badge">🟢 Online</div>
@@ -331,7 +314,7 @@
       return null;
     }
     
-    // ==================== IMPRIMIR QR GERAL (APENAS UM) - CORRIGIDO ====================
+    // ==================== IMPRIMIR QR GERAL (APENAS UM) ====================
     async function printSingleQRCode() {
       showLoader(true);
       try {
@@ -383,7 +366,7 @@
       }
     }
     
-    // ==================== IMPRIMIR 12 QR CODES ====================
+    // ==================== IMPRIMIR 12 QR CODES (CORRIGIDO) ====================
     async function printMultipleQRCodes() {
       showLoader(true);
       try {
@@ -394,12 +377,11 @@
         // Gerar 12 QR Codes
         const qrCodes = [];
         for (let i = 0; i < 12; i++) {
-          const canvas = await generateQRCodeCanvas(generalUrl, 100, 2);
+          const canvas = await generateQRCodeCanvas(generalUrl, 90, 2);
           if (canvas) {
             qrCodes.push(canvas);
           }
-          // Pequena pausa para não sobrecarregar
-          await new Promise(r => setTimeout(r, 10));
+          await new Promise(r => setTimeout(r, 20));
         }
         
         // Criar os 12 itens na grid
@@ -418,14 +400,9 @@
           sub.className = 'qr-sub';
           sub.textContent = 'Acesse as inspeções';
           
-          const link = document.createElement('div');
-          link.className = 'qr-link';
-          link.textContent = generalUrl.length > 40 ? generalUrl.substring(0, 37) + '...' : generalUrl;
-          
           qrItem.appendChild(canvasContainer);
           qrItem.appendChild(title);
           qrItem.appendChild(sub);
-          qrItem.appendChild(link);
           
           container.appendChild(qrItem);
         }
@@ -434,16 +411,19 @@
         const printSheet = document.getElementById('printQRSheet');
         printSheet.style.display = 'block';
         
+        // Forçar um pequeno delay para o DOM atualizar
         setTimeout(() => {
           window.print();
+          
+          // Esconder após impressão ou cancelamento
           setTimeout(() => {
             printSheet.style.display = 'none';
-          }, 500);
-        }, 200);
+          }, 1000);
+        }, 300);
+        
       } catch (error) {
         console.error('Erro ao gerar múltiplos QR Codes:', error);
         alert('Erro ao gerar impressão: ' + error.message);
-      } finally {
         showLoader(false);
       }
     }
@@ -843,6 +823,9 @@
     
     window.addEventListener('hashchange', checkHashForItem);
     window.addEventListener('load', async () => { if (navigator.onLine) await fetchAllData(true); });
+    
+    // Esconder a folha de impressão inicialmente
+    document.getElementById('printQRSheet').style.display = 'none';
     
     (async function init() {
       initMonthButtons();
