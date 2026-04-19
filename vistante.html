@@ -20,11 +20,6 @@
     .search-area { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 1.5rem; background: white; padding: 0.5rem 1rem; border-radius: 2rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
     .search-icon { font-size: 1.2rem; color: #64748b; }
     .search-input { flex: 1; border: none; outline: none; font-size: 1rem; padding: 0.4rem 0; background: transparent; }
-    .download-section { background: white; border-radius: 1rem; padding: 1rem; margin-bottom: 2rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-    .download-section h3 { font-size: 1rem; margin-bottom: 0.8rem; color: #1e4a76; }
-    .month-buttons { display: flex; flex-wrap: wrap; gap: 0.5rem; }
-    .month-btn { background: #e2e8f0; border: none; padding: 0.4rem 0.9rem; border-radius: 2rem; font-size: 0.8rem; cursor: pointer; transition: 0.2s; }
-    .month-btn:hover { background: #cbd5e1; transform: scale(0.96); }
     .items-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.2rem; margin-top: 1rem; }
     .item-card { background: white; border-radius: 1rem; padding: 1rem; cursor: pointer; transition: 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid #e2edff; position: relative; }
     .item-card:hover { transform: translateY(-2px); box-shadow: 0 8px 16px rgba(0,0,0,0.08); background: #fafcff; }
@@ -84,7 +79,6 @@
       body * { visibility: hidden; }
       .print-sheet, .print-sheet * { visibility: visible; }
       .print-sheet { position: absolute; top: 0; left: 0; width: 100%; margin: 0; padding: 15mm; background: white; }
-      .no-print { display: none; }
     }
     
     .print-sheet { 
@@ -170,24 +164,14 @@
     <div class="general-qr-info">
       <h4>📱 QR Code Geral da Página</h4>
       <p>Escaneie para acessar a lista completa de tendas</p>
-      <p style="font-size: 0.7rem; color: #3b82f6;">Clique no QR para ampliar, baixar ou imprimir</p>
+      <p style="font-size: 0.7rem; color: #3b82f6;">Clique no QR para ampliar</p>
     </div>
-  </div>
-  <div style="display: flex; gap: 0.5rem;">
-    <button id="downloadGeneralQRBtn" class="btn-success" style="background: #1e4a76;">💾 Baixar QR Geral</button>
-    <button id="printMultipleQRBtn" class="btn-primary" style="background: #f59e0b;">🖨️ Imprimir 12 QR Codes</button>
   </div>
 </div>
 
 <div class="search-area">
   <span class="search-icon">🔍</span>
   <input type="text" id="searchInput" class="search-input" placeholder="Filtrar por nome, TAG, localização ou tamanho..." spellcheck="false">
-</div>
-
-<div class="download-section">
-  <h3>📥 Relatórios Consolidados</h3>
-  <div class="month-buttons" id="monthButtonsContainer"></div>
-  <p class="notice-guest" style="margin-top: 0.8rem;">🔍 Cada item possui um QR Code próprio. Escaneie com o celular para acessar diretamente os detalhes da tenda.</p>
 </div>
 
 <div id="itemsContainer" class="items-grid"></div>
@@ -235,14 +219,13 @@
     </div>
     <div class="qr-actions">
       <button id="downloadGeneralQRModalBtn" class="btn-primary">💾 Baixar QR Geral (PNG)</button>
-      <button id="printGeneralQRBtn" class="btn-secondary">🖨️ Imprimir QR Geral</button>
       <button id="printMultipleQRFromModalBtn" class="btn-primary" style="background: #f59e0b;">🖨️ Imprimir 12 QR Codes</button>
     </div>
     <p class="notice-guest" style="margin-top: 1rem;">📌 Cole este QR Code na entrada do canteiro para acesso rápido dos visitantes à lista de tendas.</p>
   </div>
 </div>
 
-<!-- Folha para impressão de 12 QR Codes -->
+<!-- Folha para impressão de 12 QR Codes (NÃO USA MODAL, IMPRIME DIRETO) -->
 <div id="printQRSheet" class="print-sheet">
   <h2>📱 TENDEX - Sistema de Inspeção</h2>
   <div id="qrGridContainer" class="qr-grid"></div>
@@ -314,59 +297,7 @@
       return null;
     }
     
-    // ==================== IMPRIMIR QR GERAL (APENAS UM) ====================
-    async function printSingleQRCode() {
-      showLoader(true);
-      try {
-        const generalUrl = BASE_URL;
-        const canvas = await generateQRCodeCanvas(generalUrl, 250, 2);
-        
-        if (!canvas) {
-          alert('Erro ao gerar QR Code');
-          showLoader(false);
-          return;
-        }
-        
-        const imgData = canvas.toDataURL('image/png');
-        
-        const printWindow = window.open('', '_blank');
-        printWindow.document.write(`
-          <html>
-            <head>
-              <title>QR Code Geral - TENDEX</title>
-              <style>
-                body { font-family: Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background: white; }
-                .card { text-align: center; border: 1px solid #ccc; padding: 20px; border-radius: 12px; width: 350px; }
-                img { width: 250px; height: 250px; }
-                h3 { margin: 10px 0; color: #1e4a76; }
-                p { margin: 5px 0; color: #555; font-size: 12px; }
-                .footer { margin-top: 15px; font-size: 10px; color: gray; }
-              </style>
-            </head>
-            <body>
-              <div class="card">
-                <h3>📱 TENDEX - Sistema de Inspeção</h3>
-                <p>QR Code Geral de Acesso</p>
-                <img src="${imgData}" />
-                <p>Escaneie para acessar a lista completa de tendas</p>
-                <div class="footer">TENDEX - Inspeção de Tendas</div>
-              </div>
-              <script>
-                window.onload = function() { window.print(); setTimeout(function() { window.close(); }, 500); };
-              <\/script>
-            </body>
-          </html>
-        `);
-        printWindow.document.close();
-      } catch (error) {
-        console.error('Erro ao imprimir:', error);
-        alert('Erro ao gerar impressão: ' + error.message);
-      } finally {
-        showLoader(false);
-      }
-    }
-    
-    // ==================== IMPRIMIR 12 QR CODES (CORRIGIDO) ====================
+    // ==================== IMPRIMIR 12 QR CODES (NÃO USA MODAL, IMPRIME DIRETO) ====================
     async function printMultipleQRCodes() {
       showLoader(true);
       try {
@@ -411,15 +342,18 @@
         const printSheet = document.getElementById('printQRSheet');
         printSheet.style.display = 'block';
         
-        // Forçar um pequeno delay para o DOM atualizar
+        // Fechar o loader antes de imprimir
+        showLoader(false);
+        
+        // Forçar um pequeno delay para o DOM atualizar e imprimir
         setTimeout(() => {
           window.print();
           
           // Esconder após impressão ou cancelamento
           setTimeout(() => {
             printSheet.style.display = 'none';
-          }, 1000);
-        }, 300);
+          }, 500);
+        }, 200);
         
       } catch (error) {
         console.error('Erro ao gerar múltiplos QR Codes:', error);
@@ -512,7 +446,7 @@
     }
     
     function downloadGeneralQR() {
-      const canvas = document.querySelector('#generalQRCode canvas');
+      const canvas = document.querySelector('#qrGeneralLargeContainer canvas');
       if (canvas) {
         const link = document.createElement('a');
         link.download = 'qrcode_tendex_geral.png';
@@ -601,10 +535,10 @@
           </html>
         `);
         printWindow.document.close();
+        showLoader(false);
       } catch (error) {
         console.error('Erro ao imprimir:', error);
         alert('Erro ao gerar impressão');
-      } finally {
         showLoader(false);
       }
     }
@@ -758,21 +692,6 @@
     }
     
     // ==================== INICIALIZAR ====================
-    function initMonthButtons() {
-      const container = document.getElementById('monthButtonsContainer');
-      container.innerHTML = '';
-      monthNames.forEach((month, idx) => {
-        const btn = document.createElement('button');
-        btn.className = 'month-btn';
-        btn.textContent = month;
-        btn.addEventListener('click', () => {
-          const count = currentItems.filter(item => item.files.some(f => f.category === monthKeys[idx])).length;
-          alert(`📊 ${month}: ${count} inspeção(ões) registrada(s).`);
-        });
-        container.appendChild(btn);
-      });
-    }
-    
     async function manualRefresh() {
       if (!navigator.onLine) {
         alert('⚠️ Você está offline. Não é possível buscar atualizações.');
@@ -791,26 +710,20 @@
     const closeQRModalBtn = document.getElementById('closeQRModalBtn');
     const downloadQRBtn = document.getElementById('downloadQRBtn');
     const printQRBtn = document.getElementById('printQRBtn');
-    const downloadGeneralQRBtn = document.getElementById('downloadGeneralQRBtn');
+    const downloadGeneralQRModalBtn = document.getElementById('downloadGeneralQRModalBtn');
     const manualRefreshBtn = document.getElementById('manualRefreshBtn');
-    const printMultipleQRBtn = document.getElementById('printMultipleQRBtn');
     const printMultipleQRFromModalBtn = document.getElementById('printMultipleQRFromModalBtn');
-    const printGeneralQRBtn = document.getElementById('printGeneralQRBtn');
     
     const qrGeneralModal = document.getElementById('qrGeneralModal');
     const closeQRGeneralModalBtn = document.getElementById('closeQRGeneralModalBtn');
-    const downloadGeneralQRModalBtn = document.getElementById('downloadGeneralQRModalBtn');
     
     closeQRModalBtn.addEventListener('click', () => qrModal.style.display = 'none');
     downloadQRBtn.addEventListener('click', downloadQRCode);
     printQRBtn.addEventListener('click', printItemQRCode);
     
-    downloadGeneralQRBtn.addEventListener('click', downloadGeneralQR);
     if (downloadGeneralQRModalBtn) downloadGeneralQRModalBtn.addEventListener('click', downloadGeneralQR);
     manualRefreshBtn.addEventListener('click', manualRefresh);
-    printMultipleQRBtn.addEventListener('click', printMultipleQRCodes);
     if (printMultipleQRFromModalBtn) printMultipleQRFromModalBtn.addEventListener('click', printMultipleQRCodes);
-    if (printGeneralQRBtn) printGeneralQRBtn.addEventListener('click', printSingleQRCode);
     
     closeQRGeneralModalBtn.addEventListener('click', () => qrGeneralModal.style.display = 'none');
     qrGeneralModal.addEventListener('click', (e) => { if (e.target === qrGeneralModal) qrGeneralModal.style.display = 'none'; });
@@ -828,7 +741,6 @@
     document.getElementById('printQRSheet').style.display = 'none';
     
     (async function init() {
-      initMonthButtons();
       await generateGeneralQRCode();
       await fetchAllData(true);
       checkHashForItem();
