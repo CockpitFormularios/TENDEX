@@ -210,6 +210,7 @@
     let currentItems = [];
     let lastUpdateTime = null;
     let isRefreshing = false;
+    let isFirstLoad = true;
     
     const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
     const monthKeys = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
@@ -276,17 +277,16 @@
       }
     }
     
-    // ==================== BUSCAR DADOS DO SERVIDOR COM VERIFICAÇÃO ====================
-    async function fetchAllData(forceRefresh = false) {
+    // ==================== BUSCAR DADOS DO SERVIDOR ====================
+    async function fetchAllData(forceRefresh = false, showLoadingIndicator = true) {
       if (isRefreshing) return currentItems;
       
       isRefreshing = true;
-      showLoader(true);
+      if (showLoadingIndicator) showLoader(true);
       
       try {
         console.log('🔄 Buscando dados do servidor...');
         
-        // Buscar itens
         const { data: itemsData, error: itemsError } = await supabase
           .from('items')
           .select('*')
@@ -294,14 +294,9 @@
         
         if (itemsError) throw itemsError;
         
-        // Buscar arquivos (PDFs anexados)
-        const { data: filesData, error: filesError } = await supabase
-          .from('files')
-          .select('*');
-        
+        const { data: filesData, error: filesError } = await supabase.from('files').select('*');
         if (filesError) throw filesError;
         
-        // Organizar arquivos por item
         const filesByItem = {};
         if (filesData) {
           filesData.forEach(file => {
@@ -327,7 +322,7 @@
           JSON.stringify(currentItems.map(i => ({id: i.id, code: i.code, name: i.name}))) !== 
           JSON.stringify(newItems.map(i => ({id: i.id, code: i.code, name: i.name})));
         
-        if (hasChanges || forceRefresh) {
+        if (hasChanges || forceRefresh || isFirstLoad) {
           console.log('📦 Dados atualizados detectados!', newItems.length, 'itens carregados');
           currentItems = newItems;
           lastUpdateTime = new Date();
@@ -338,8 +333,11 @@
           const searchValue = document.getElementById('searchInput').value;
           await renderCards(searchValue);
           
-          // Mostrar notificação de atualização
-          showRefreshNotification();
+          if (!isFirstLoad) {
+            showRefreshNotification();
+          }
+          
+          isFirstLoad = false;
         } else {
           console.log('✅ Nenhuma mudança detectada nos dados');
         }
@@ -347,23 +345,26 @@
         return currentItems;
       } catch (error) {
         console.error('Erro ao carregar dados:', error);
-        const cached = localStorage.getItem('tendex_guest_cache');
-        if (cached && currentItems.length === 0) {
-          try {
-            currentItems = JSON.parse(cached);
-            console.log('📦 Usando cache local:', currentItems.length, 'itens');
-            await renderCards(document.getElementById('searchInput').value);
-          } catch(e) {}
+        if (currentItems.length === 0) {
+          const cached = localStorage.getItem('tendex_guest_cache');
+          if (cached) {
+            try {
+              currentItems = JSON.parse(cached);
+              console.log('📦 Usando cache local:', currentItems.length, 'itens');
+              await renderCards(document.getElementById('searchInput').value);
+            } catch(e) {}
+          }
         }
         return currentItems;
       } finally {
-        showLoader(false);
+        if (showLoadingIndicator) showLoader(false);
         isRefreshing = false;
       }
     }
     
     function showRefreshNotification() {
       const refreshStatus = document.getElementById('refreshStatus');
+      const originalBg = refreshStatus.style.background;
       refreshStatus.style.background = '#d1fae5';
       refreshStatus.style.color = '#065f46';
       setTimeout(() => {
@@ -753,7 +754,7 @@
       });
     }
     
-    // ==================== SISTEMA DE ATUALIZAÇÃO AUTOMÁTICA ====================
+    // ==================== SISTEMA DE ATUALIZAÇÃO ====================
     let autoRefreshInterval = null;
     
     function startAutoRefresh() {
@@ -763,9 +764,9 @@
       autoRefreshInterval = setInterval(async () => {
         if (navigator.onLine && !isRefreshing) {
           console.log('🔄 Atualização automática programada...');
-          await fetchAllData(false);
+          await fetchAllData(false, false); // Não mostrar loader nas atualizações automáticas
         }
-      }, 30000); // 30 segundos
+      }, 30000);
     }
     
     async function manualRefresh() {
@@ -775,12 +776,13 @@
       }
       
       const refreshBtn = document.getElementById('manualRefreshBtn');
+      const originalText = refreshBtn.innerHTML;
       refreshBtn.innerHTML = '⏳ Atualizando...';
       refreshBtn.disabled = true;
       
-      await fetchAllData(true);
+      await fetchAllData(true, true);
       
-      refreshBtn.innerHTML = '🔄 Atualizar Agora';
+      refreshBtn.innerHTML = originalText;
       refreshBtn.disabled = false;
       
       // Mostrar mensagem de sucesso
@@ -830,11 +832,20 @@
     
     window.addEventListener('online', async () => {
       updateConnectionStatus();
-      await fetchAllData(false);
+      await fetchAllData(true, false);
       renderCards(searchInput.value);
     });
     
     window.addEventListener('hashchange', checkHashForItem);
+    
+    // DETECTAR ATUALIZAÇÃO DA PÁGINA (F5/RELOAD)
+    // Isso faz com que toda vez que a página for recarregada, os dados sejam atualizados
+    window.addEventListener('load', async function() {
+      console.log('🔄 Página recarregada - buscando dados atualizados...');
+      if (navigator.onLine) {
+        await fetchAllData(true, true);
+      }
+    });
     
     (async function init() {
       initMonthButtons();
@@ -847,9 +858,9 @@
         updateLastUpdateDisplay();
       }
       
-      // Depois buscar dados atualizados do servidor
+      // Depois buscar dados atualizados do servidor (forçando atualização)
       if (navigator.onLine) {
-        await fetchAllData(false);
+        await fetchAllData(true, true);
       }
       
       checkHashForItem();
@@ -857,7 +868,8 @@
       
       console.log('✅ Sistema inicializado com sucesso!');
       console.log('✅ Atualização automática a cada 30 segundos');
-      console.log('✅ Clique em "Atualizar Agora" para forçar sincronização');
+      console.log('✅ Atualização ao recarregar a página (F5)');
+      console.log('✅ Clique em "Atualizar Agora" para forçar sincronização manual');
     })();
     
   })();
