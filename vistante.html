@@ -75,7 +75,7 @@
     .general-qr-code:hover { transform: scale(1.02); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
     .general-qr-info h4 { margin-bottom: 0.2rem; color: #0f172a; font-size: 1rem; }
     .general-qr-info p { font-size: 0.75rem; color: #475569; }
-    .test-link { font-size: 0.7rem; color: #3b82f6; margin-top: 0.5rem; word-break: break-all; }
+    .clickable { cursor: pointer; }
     @media (max-width: 640px) { body { padding: 1rem; } .dashboard-header h1 { font-size: 1.2rem; } .items-grid { grid-template-columns: 1fr; } .general-qr-code { width: 80px; height: 80px; } }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -92,14 +92,14 @@
   </div>
 </div>
 
-<!-- QR Code Geral da Página - TAMANHO 100x100 COM ALTA QUALIDADE -->
+<!-- QR Code Geral da Página - CLICÁVEL -->
 <div class="general-qr-section">
   <div class="general-qr-left">
-    <div id="generalQRCode" class="general-qr-code"></div>
+    <div id="generalQRCode" class="general-qr-code clickable" title="Clique para ampliar QR Code"></div>
     <div class="general-qr-info">
       <h4>📱 QR Code Geral da Página</h4>
       <p>Escaneie para acessar a lista completa de tendas</p>
-      <p style="font-size: 0.7rem; color: #3b82f6;">Cole este QR na entrada do canteiro</p>
+      <p style="font-size: 0.7rem; color: #3b82f6;">Clique no QR para ampliar, baixar ou imprimir</p>
     </div>
   </div>
   <div>
@@ -132,7 +132,7 @@
   </div>
 </div>
 
-<!-- Modal de Exibição do QR Code Grande -->
+<!-- Modal de Exibição do QR Code Grande do Item -->
 <div id="qrModal" class="modal">
   <div class="modal-content qr-modal-content">
     <div class="modal-header">
@@ -149,6 +149,26 @@
   </div>
 </div>
 
+<!-- Modal de Exibição do QR Code Geral (Ampliado) -->
+<div id="qrGeneralModal" class="modal">
+  <div class="modal-content qr-modal-content">
+    <div class="modal-header">
+      <h2>📱 QR Code Geral - Acesso Rápido</h2>
+      <button class="close-modal" id="closeQRGeneralModalBtn">&times;</button>
+    </div>
+    <div id="qrGeneralLargeContainer" class="qr-large"></div>
+    <div id="qrGeneralInfo" class="item-link-info">
+      <strong>QR Code Geral do TENDEX</strong><br>
+      Escaneie para acessar a lista completa de tendas
+    </div>
+    <div class="qr-actions">
+      <button id="downloadGeneralQRModalBtn" class="btn-primary">💾 Baixar QR Geral (PNG)</button>
+      <button id="printGeneralQRBtn" class="btn-secondary">🖨️ Imprimir QR Geral</button>
+    </div>
+    <p class="notice-guest" style="margin-top: 1rem;">📌 Cole este QR Code na entrada do canteiro para acesso rápido dos visitantes à lista de tendas.</p>
+  </div>
+</div>
+
 <div id="fullscreenLoader" style="display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); align-items: center; justify-content: center; z-index: 9999;">
   <div style="width: 50px; height: 50px; border: 5px solid rgba(255,255,255,0.3); border-top-color: #3b82f6; border-radius: 50%; animation: spin 1s linear infinite;"></div>
   <div style="color: white; margin-top: 1rem;">Carregando...</div>
@@ -159,6 +179,7 @@
 <style>
   @keyframes spin { to { transform: rotate(360deg); } }
   .fullscreen-loader.active { display: flex !important; }
+  .clickable { cursor: pointer; }
 </style>
 
 <script>
@@ -199,7 +220,7 @@
     window.addEventListener('offline', updateConnectionStatus);
     updateConnectionStatus();
     
-    // ==================== FUNÇÕES DE QR CODE (USANDO QRCODE.JS) ====================
+    // ==================== FUNÇÕES DE QR CODE ====================
     async function generateQRCode(element, text, size = 200, margin = 2) {
       if (!element) return;
       element.innerHTML = '';
@@ -212,7 +233,7 @@
             dark: '#000000',
             light: '#ffffff'
           },
-          errorCorrectionLevel: 'H' // Alta correção de erro para melhor escaneamento
+          errorCorrectionLevel: 'H'
         });
         element.appendChild(canvas);
         return canvas;
@@ -223,24 +244,86 @@
       }
     }
     
-    // ==================== GERAR QR CODE GERAL (100x100 com alta qualidade) ====================
+    // ==================== QR CODE GERAL ====================
+    let generalQRCanvas = null;
+    
     async function generateGeneralQRCode() {
       const generalUrl = BASE_URL;
       const generalQrDiv = document.getElementById('generalQRCode');
       if (generalQrDiv) {
         const canvas = await generateQRCode(generalQrDiv, generalUrl, 100, 2);
         if (canvas) {
-          window.generalQRCanvas = canvas;
+          generalQRCanvas = canvas;
           console.log('✅ QR Geral gerado em alta qualidade (100x100):', generalUrl);
         }
       }
     }
     
-    function downloadGeneralQR() {
-      if (window.generalQRCanvas) {
+    // Função para abrir modal do QR Geral ampliado
+    let generalModalQRCanvas = null;
+    
+    async function openGeneralQRModal() {
+      const qrContainer = document.getElementById('qrGeneralLargeContainer');
+      const generalUrl = BASE_URL;
+      
+      qrContainer.innerHTML = '';
+      const canvas = await generateQRCode(qrContainer, generalUrl, 280, 2);
+      if (canvas) {
+        generalModalQRCanvas = canvas;
+      }
+      
+      document.getElementById('qrGeneralModal').style.display = 'flex';
+    }
+    
+    function downloadGeneralQRFromModal() {
+      if (generalModalQRCanvas) {
         const link = document.createElement('a');
-        link.download = `qrcode_tendex_geral.png`;
-        link.href = window.generalQRCanvas.toDataURL('image/png');
+        link.download = 'qrcode_tendex_geral.png';
+        link.href = generalModalQRCanvas.toDataURL('image/png');
+        link.click();
+      } else {
+        alert('Aguardando geração do QR Code...');
+      }
+    }
+    
+    function printGeneralQR() {
+      if (!generalModalQRCanvas) {
+        alert('Aguardando geração do QR Code...');
+        return;
+      }
+      const printWindow = window.open('', '_blank');
+      printWindow.document.write(`
+        <html>
+          <head><title>QR Code Geral - TENDEX</title>
+          <style>
+            body { font-family: Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background: white; }
+            .card { text-align: center; border: 1px solid #ccc; padding: 20px; border-radius: 12px; width: 350px; }
+            img { width: 250px; height: 250px; }
+            h3 { margin: 10px 0; }
+            p { margin: 5px 0; color: #555; font-size: 12px; }
+            .footer { margin-top: 15px; font-size: 10px; color: gray; }
+          </style>
+          </head>
+          <body>
+            <div class="card">
+              <h3>📱 TENDEX - Sistema de Inspeção</h3>
+              <p>QR Code Geral de Acesso</p>
+              <img src="${generalModalQRCanvas.toDataURL('image/png')}" />
+              <p>Escaneie para acessar a lista completa de tendas</p>
+              <div class="footer">TENDEX - Inspeção de Tendas</div>
+            </div>
+          </body>
+        </html>
+      `);
+      printWindow.document.close();
+      printWindow.print();
+    }
+    
+    function downloadGeneralQRDirect() {
+      if (generalQRCanvas) {
+        const link = document.createElement('a');
+        link.download = 'qrcode_tendex_geral.png';
+        link.href = generalQRCanvas.toDataURL('image/png');
         link.click();
       } else {
         alert('Aguardando geração do QR Code...');
@@ -263,7 +346,6 @@
               openDetailModal(item.id);
             } else {
               console.warn('Item não encontrado:', itemId);
-              alert('Item não encontrado. Verifique se o QR Code está atualizado.');
             }
           }
         }, 100);
@@ -276,7 +358,6 @@
         openDetailModal(item.id);
       } else {
         console.warn('Item não encontrado:', itemId);
-        alert('Item não encontrado. Verifique se o QR Code está atualizado.');
       }
     }
     
@@ -469,7 +550,6 @@
                 </div>`;
       }).join('');
       
-      // Adicionar eventos
       const cards = document.querySelectorAll('.item-card');
       for (const card of cards) {
         const id = card.dataset.id;
@@ -592,11 +672,31 @@
     const printQRBtn = document.getElementById('printQRBtn');
     const downloadGeneralQRBtn = document.getElementById('downloadGeneralQRBtn');
     
+    // Eventos do modal QR Geral
+    const qrGeneralModal = document.getElementById('qrGeneralModal');
+    const closeQRGeneralModalBtn = document.getElementById('closeQRGeneralModalBtn');
+    const downloadGeneralQRModalBtn = document.getElementById('downloadGeneralQRModalBtn');
+    const printGeneralQRBtn = document.getElementById('printGeneralQRBtn');
+    
     closeQRModalBtn.addEventListener('click', () => qrModal.style.display = 'none');
     qrModal.addEventListener('click', (e) => { if (e.target === qrModal) qrModal.style.display = 'none'; });
     downloadQRBtn.addEventListener('click', downloadQRCode);
     printQRBtn.addEventListener('click', printQRCode);
-    if (downloadGeneralQRBtn) downloadGeneralQRBtn.addEventListener('click', downloadGeneralQR);
+    
+    // Eventos do QR Geral
+    if (downloadGeneralQRBtn) downloadGeneralQRBtn.addEventListener('click', downloadGeneralQRDirect);
+    
+    // Eventos do modal QR Geral ampliado
+    closeQRGeneralModalBtn.addEventListener('click', () => qrGeneralModal.style.display = 'none');
+    qrGeneralModal.addEventListener('click', (e) => { if (e.target === qrGeneralModal) qrGeneralModal.style.display = 'none'; });
+    if (downloadGeneralQRModalBtn) downloadGeneralQRModalBtn.addEventListener('click', downloadGeneralQRFromModal);
+    if (printGeneralQRBtn) printGeneralQRBtn.addEventListener('click', printGeneralQR);
+    
+    // Clique no QR Geral para abrir modal ampliado
+    const generalQrElement = document.getElementById('generalQRCode');
+    if (generalQrElement) {
+      generalQrElement.addEventListener('click', openGeneralQRModal);
+    }
     
     // ==================== INICIALIZAÇÃO ====================
     const searchInput = document.getElementById('searchInput');
@@ -616,7 +716,8 @@
       await fetchAllData();
       await renderCards('');
       checkHashForItem();
-      console.log('✅ Sistema inicializado com sucesso! QR Geral em 100x100 alta qualidade');
+      console.log('✅ Sistema inicializado com sucesso!');
+      console.log('✅ Clique no QR Code Geral para ampliar, baixar ou imprimir');
     })();
     
   })();
