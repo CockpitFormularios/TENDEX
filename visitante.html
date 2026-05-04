@@ -52,9 +52,6 @@
     .btn-view-pdf:hover { background: #2563eb; }
     .btn-view-offline { background: #10b981; color: white; border: none; padding: 0.2rem 0.6rem; border-radius: 2rem; font-size: 0.7rem; cursor: pointer; margin-left: 0.3rem; display: inline-block; }
     .btn-view-offline:hover { background: #059669; }
-    .btn-select { background: #64748b; color: white; border: none; padding: 0.3rem 0.8rem; border-radius: 2rem; font-size: 0.7rem; cursor: pointer; margin: 0.1rem; }
-    .btn-select.selected { background: #10b981; }
-    .btn-select:hover { opacity: 0.9; }
     .view-only-badge { background: #fef9c3; color: #854d0e; padding: 0.2rem 0.8rem; border-radius: 2rem; font-size: 0.7rem; font-weight: 600; display: inline-block; margin-bottom: 1rem; }
     .notice-guest { font-size: 0.7rem; color: #5b6e8c; margin-top: 1rem; text-align: center; background: #f8fafc; padding: 0.5rem; border-radius: 1rem; }
     .connection-status { position: fixed; bottom: 1rem; right: 1rem; background: rgba(0,0,0,0.7); color: white; padding: 0.3rem 0.8rem; border-radius: 2rem; font-size: 0.7rem; z-index: 10; }
@@ -90,7 +87,10 @@
     .cache-item-info { flex: 1; min-width: 150px; }
     .cache-item-name { font-weight: 600; font-size: 0.85rem; }
     .cache-item-code { font-size: 0.7rem; color: #64748b; }
-    .cache-item-stats { font-size: 0.65rem; color: #10b981; }
+    .cache-item-stats { font-size: 0.65rem; padding: 0.2rem 0.4rem; border-radius: 1rem; background: #e2e8f0; }
+    .cache-item-stats.complete { background: #d1fae5; color: #065f46; }
+    .cache-item-stats.partial { background: #fef3c7; color: #92400e; }
+    .cache-item-stats.pending { background: #fee2e2; color: #991b1b; }
     .selection-info { background: #e0f2fe; padding: 0.5rem; border-radius: 0.5rem; margin-bottom: 1rem; font-size: 0.75rem; }
     @media print {
       body * { visibility: hidden; }
@@ -158,6 +158,7 @@
     <div id="selectionActions" style="display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap;">
       <button id="selectAllBtn" class="select-all-btn">✅ Selecionar Todos</button>
       <button id="deselectAllBtn" class="select-all-btn" style="background:#64748b;">❌ Desmarcar Todos</button>
+      <button id="refreshCacheStatusBtn" class="select-all-btn" style="background:#10b981;">🔄 Verificar Cache</button>
     </div>
     <div id="cacheItemsList" class="cache-item-list"></div>
     <div class="progress-bar">
@@ -192,9 +193,10 @@
   let lastUpdateTime = null;
   let db = null;
   let selectedItemsIds = new Set();
-  // Usando versão 34 para ser maior que a versão existente (33)
+  let itemCacheStatus = new Map(); // Armazena status de cache por item
+  
   const DB_NAME = 'TendexOfflineDB';
-  const DB_VERSION = 34;
+  const DB_VERSION = 35;
   const STORE_PDFS = 'pdf_cache';
   
   const monthNames = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
@@ -209,15 +211,19 @@
   // ==================== INDEXEDDB ====================
   function initDB() {
     return new Promise((resolve, reject) => {
-      if(db) { resolve(db); return; }
+      if(db && db.version === DB_VERSION) { resolve(db); return; }
       let req = indexedDB.open(DB_NAME, DB_VERSION);
       req.onerror = () => reject(req.error);
-      req.onsuccess = () => { db = req.result; resolve(db); };
+      req.onsuccess = () => { 
+        db = req.result; 
+        console.log('✅ DB aberto versão:', db.version);
+        resolve(db); 
+      };
       req.onupgradeneeded = (e) => {
         let dbEvent = e.target.result;
-        // Se a store já existe, não recriar (apenas usar a existente)
         if(!dbEvent.objectStoreNames.contains(STORE_PDFS)) {
           dbEvent.createObjectStore(STORE_PDFS, { keyPath: 'url' });
+          console.log('📦 Store criada');
         }
       };
     });
@@ -245,19 +251,6 @@
   
   async function isPDFCached(url) { return !!(await getCachedPDF(url)); }
   
-  async function getCachedCountForItem(itemId) {
-    await initDB();
-    return new Promise((resolve) => {
-      let tx = db.transaction(STORE_PDFS, 'readonly');
-      let req = tx.objectStore(STORE_PDFS).getAll();
-      req.onsuccess = () => {
-        let count = (req.result || []).filter(c => c.itemId == itemId).length;
-        resolve(count);
-      };
-      req.onerror = () => resolve(0);
-    });
-  }
-  
   async function getAllCachedPDFs() {
     await initDB();
     return new Promise((resolve) => {
@@ -266,6 +259,30 @@
       req.onsuccess = () => resolve(req.result || []);
       req.onerror = () => resolve([]);
     });
+  }
+  
+  async function getCacheStatusForItem(itemId) {
+    let allCached = await getAllCachedPDFs();
+    let itemCached = allCached.filter(c => c.itemId == itemId);
+    return itemCached.length;
+  }
+  
+  async function getItemCacheInfo(item) {
+    let allCached = await getAllCachedPDFs();
+    let itemCached = allCached.filter(c => c.itemId == item.id);
+    let totalFiles = item.files.filter(f => f.category === 'memorial' || monthKeys.includes(f.category)).length;
+    let cachedCount = itemCached.length;
+    let cachedUrls = itemCached.map(c => c.url);
+    
+    return {
+      totalFiles: totalFiles,
+      cachedCount: cachedCount,
+      isComplete: totalFiles > 0 && cachedCount === totalFiles,
+      isPartial: cachedCount > 0 && cachedCount < totalFiles,
+      isPending: cachedCount === 0 && totalFiles > 0,
+      hasNoFiles: totalFiles === 0,
+      cachedUrls: cachedUrls
+    };
   }
   
   async function clearCache() {
@@ -291,10 +308,10 @@
     for(let item of currentItems) {
       let card = document.querySelector(`.item-card[data-id="${item.id}"]`);
       if(card) {
-        let cachedCount = await getCachedCountForItem(item.id);
-        let totalFiles = item.files.filter(f => f.category === 'memorial' || monthKeys.includes(f.category)).length;
+        let info = await getItemCacheInfo(item);
         let badge = card.querySelector('.cache-status-indicator');
-        if(cachedCount > 0 && cachedCount === totalFiles && totalFiles > 0) {
+        
+        if(info.isComplete && info.totalFiles > 0) {
           if(!badge) {
             let indicator = document.createElement('span');
             indicator.className = 'cached-badge cache-status-indicator';
@@ -303,7 +320,9 @@
             let titleElem = card.querySelector('h3');
             if(titleElem) titleElem.appendChild(indicator);
           }
-        } else if(badge && (cachedCount !== totalFiles || totalFiles === 0)) { badge.remove(); }
+        } else if(badge && (!info.isComplete || info.totalFiles === 0)) { 
+          badge.remove(); 
+        }
       }
     }
   }
@@ -348,7 +367,6 @@
       let item = totalUrls[i];
       let progress = ((i+1)/totalUrls.length)*100;
       if(progressFill) progressFill.style.width = `${progress}%`;
-      showLoader(true);
       
       try {
         let response = await fetch(item.url);
@@ -356,7 +374,7 @@
           let blob = await response.blob();
           await cachePDF(item.url, blob, item.itemId);
           downloaded++;
-          showToast(`📄 ${item.fileName.substring(0, 20)}...`, 600);
+          showToast(`📄 ${item.fileName.substring(0, 25)}...`, 600);
         } else {
           errors++;
         }
@@ -368,8 +386,68 @@
     
     showLoader(false);
     await updateCacheStats();
-    alert(`✅ ${downloaded} documentos baixados!\n📦 ${selectedItemsIds.size} tenda(s) disponíveis para offline.\n${errors > 0 ? `⚠️ ${errors} erro(s)` : ''}`);
+    alert(`✅ ${downloaded} documentos baixados!\n📦 Itens atualizados.\n${errors > 0 ? `⚠️ ${errors} erro(s)` : ''}`);
     isDownloadingBatch = false;
+    
+    // Atualizar a lista do modal se estiver aberto
+    let cacheModal = document.getElementById('cacheModal');
+    if(cacheModal.style.display === 'flex') {
+      await loadCacheItemsList();
+    }
+  }
+  
+  async function loadCacheItemsList() {
+    let listContainer = document.getElementById('cacheItemsList');
+    let cached = await getAllCachedPDFs();
+    let totalSize = cached.reduce((s,i)=> s + (i.size||0), 0);
+    
+    let itemsHtml = '';
+    for(let item of currentItems) {
+      let info = await getItemCacheInfo(item);
+      let isSelected = selectedItemsIds.has(item.id);
+      let statusClass = '';
+      let statusText = '';
+      
+      if(info.hasNoFiles) {
+        statusClass = 'pending';
+        statusText = '📭 Sem documentos';
+      } else if(info.isComplete) {
+        statusClass = 'complete';
+        statusText = `✓ Completo (${info.cachedCount}/${info.totalFiles})`;
+      } else if(info.isPartial) {
+        statusClass = 'partial';
+        statusText = `⚠️ Parcial (${info.cachedCount}/${info.totalFiles})`;
+      } else {
+        statusClass = 'pending';
+        statusText = `⬜ Pendente (0/${info.totalFiles})`;
+      }
+      
+      itemsHtml += `<div class="cache-item" data-id="${item.id}">
+        <input type="checkbox" class="item-checkbox" data-id="${item.id}" ${isSelected ? 'checked' : ''}>
+        <div class="cache-item-info">
+          <div class="cache-item-name">${escapeHtml(item.name)}</div>
+          <div class="cache-item-code">TAG: ${escapeHtml(item.code)}</div>
+        </div>
+        <div class="cache-item-stats ${statusClass}">${statusText}</div>
+      </div>`;
+    }
+    
+    listContainer.innerHTML = itemsHtml;
+    
+    document.querySelectorAll('.item-checkbox').forEach(cb => {
+      cb.addEventListener('change', (e) => {
+        let id = cb.dataset.id;
+        if(cb.checked) selectedItemsIds.add(id);
+        else selectedItemsIds.delete(id);
+        updateSelectionInfo();
+      });
+    });
+    
+    updateSelectionInfo();
+    let statusDiv = document.getElementById('cacheStatusList');
+    if(statusDiv) statusDiv.innerHTML = `<p><strong>📊 Cache atual:</strong> ${cached.length} documentos | ${(totalSize/(1024*1024)).toFixed(1)} MB</p>`;
+    let progressFill = document.getElementById('cacheProgressFill');
+    if(progressFill) progressFill.style.width = '0%';
   }
   
   async function viewPDFOffline(url, name, itemId) {
@@ -604,44 +682,7 @@
   
   // ==================== MODAL CACHE SELETIVO ====================
   async function openCacheModal() {
-    let listContainer = document.getElementById('cacheItemsList');
-    let cached = await getAllCachedPDFs();
-    let totalSize = cached.reduce((s,i)=> s + (i.size||0), 0);
-    
-    listContainer.innerHTML = currentItems.map(item => {
-      let isSelected = selectedItemsIds.has(item.id);
-      let itemCached = cached.filter(c => c.itemId == item.id);
-      let totalFiles = item.files.filter(f => f.category === 'memorial' || monthKeys.includes(f.category)).length;
-      let cachedCount = itemCached.length;
-      let statusHtml = '';
-      if(cachedCount === totalFiles && totalFiles > 0) statusHtml = '<span class="cache-item-stats">✓ Completo</span>';
-      else if(cachedCount > 0) statusHtml = `<span class="cache-item-stats">📄 ${cachedCount}/${totalFiles}</span>`;
-      else if(totalFiles > 0) statusHtml = '<span class="cache-item-stats" style="color:#f59e0b;">⚡ Pendente</span>';
-      
-      return `<div class="cache-item" data-id="${item.id}">
-        <input type="checkbox" class="item-checkbox" data-id="${item.id}" ${isSelected ? 'checked' : ''}>
-        <div class="cache-item-info">
-          <div class="cache-item-name">${escapeHtml(item.name)}</div>
-          <div class="cache-item-code">TAG: ${escapeHtml(item.code)}</div>
-        </div>
-        <div class="cache-item-stats">${statusHtml}</div>
-      </div>`;
-    }).join('');
-    
-    document.querySelectorAll('.item-checkbox').forEach(cb => {
-      cb.addEventListener('change', (e) => {
-        let id = cb.dataset.id;
-        if(cb.checked) selectedItemsIds.add(id);
-        else selectedItemsIds.delete(id);
-        updateSelectionInfo();
-      });
-    });
-    
-    updateSelectionInfo();
-    let statusDiv = document.getElementById('cacheStatusList');
-    if(statusDiv) statusDiv.innerHTML = `<p><strong>📊 Cache atual:</strong> ${cached.length} documentos | ${(totalSize/(1024*1024)).toFixed(1)} MB</p>`;
-    let progressFill = document.getElementById('cacheProgressFill');
-    if(progressFill) progressFill.style.width = '0%';
+    await loadCacheItemsList();
     document.getElementById('cacheModal').style.display = 'flex';
   }
   
@@ -664,15 +705,27 @@
   }
   
   async function clearCacheManual() {
-    if(confirm('⚠️ Limpar todos os documentos do cache offline?')) {
+    if(confirm('⚠️ Limpar todos os documentos do cache offline?\n\nIsso removerá todos os PDFs baixados.')) {
       showLoader(true);
       await clearCache();
       selectedItemsIds.clear();
       await updateCacheStats();
       showLoader(false);
-      alert('Cache limpo!');
-      openCacheModal();
+      alert('✅ Cache limpo com sucesso!');
+      if(document.getElementById('cacheModal').style.display === 'flex') {
+        await loadCacheItemsList();
+      }
     }
+  }
+  
+  async function refreshCacheStatus() {
+    showLoader(true);
+    await updateCacheStats();
+    if(document.getElementById('cacheModal').style.display === 'flex') {
+      await loadCacheItemsList();
+    }
+    showLoader(false);
+    showToast('✅ Status do cache atualizado!', 1000);
   }
   
   // ==================== EVENTOS ====================
@@ -700,6 +753,8 @@
   if(selectAllBtnElem) selectAllBtnElem.onclick = selectAllItems;
   let deselectAllBtnElem = document.getElementById('deselectAllBtn');
   if(deselectAllBtnElem) deselectAllBtnElem.onclick = deselectAllItems;
+  let refreshCacheBtn = document.getElementById('refreshCacheStatusBtn');
+  if(refreshCacheBtn) refreshCacheBtn.onclick = refreshCacheStatus;
   let closeGenModalBtn = document.getElementById('closeQRGeneralModalBtn');
   if(closeGenModalBtn) closeGenModalBtn.onclick = () => document.getElementById('qrGeneralModal').style.display = 'none';
   let genModal = document.getElementById('qrGeneralModal');
@@ -726,7 +781,7 @@
     await generateGeneralQRCode();
     await fetchAllData();
     checkHash();
-    console.log('✅ Modo offline seletivo - baixe apenas as tendas da sua área!');
+    console.log('✅ Modo offline seletivo com verificação de cache!');
   })();
 })();
 </script>
