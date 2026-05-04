@@ -9,6 +9,8 @@
   <link rel="icon" type="image/png" sizes="192x192" href="https://jklcvyuxwxgsfczrfaco.supabase.co/storage/v1/object/public/assinaturas/icon-180.png">
   <link rel="apple-touch-icon" sizes="180x180" href="https://jklcvyuxwxgsfczrfaco.supabase.co/storage/v1/object/public/assinaturas/icon-180.png">
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+  <!-- PDF.js para compressão e otimização -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; font-family: system-ui, 'Segoe UI', 'Inter', sans-serif; }
     body { background: #f3f6fc; padding: 2rem 1.5rem; }
@@ -31,7 +33,6 @@
     .status-active { background: #d1fae5; color: #065f46; }
     .status-inactive { background: #fee2e2; color: #991b1b; }
     .cached-badge { display: inline-block; padding: 0.15rem 0.4rem; border-radius: 2rem; font-size: 0.6rem; font-weight: 600; background: #dbeafe; color: #1e40af; margin-left: 0.5rem; }
-    .cached-badge-green { background: #d1fae5; color: #065f46; }
     .qr-code-mini { position: absolute; bottom: 12px; right: 12px; width: 45px; height: 45px; cursor: pointer; background: white; border-radius: 8px; padding: 4px; transition: transform 0.2s; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
     .qr-code-mini:hover { transform: scale(1.05); background: #f1f5f9; }
     .qr-code-mini canvas { width: 100% !important; height: 100% !important; }
@@ -49,9 +50,9 @@
     .pdf-label { font-weight: 600; background: #e2e8f0; padding: 0.2rem 0.6rem; border-radius: 2rem; min-width: 85px; text-align: center; }
     .pdf-file-info { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .pdf-file-info a { text-decoration: none; color: #1e4a76; }
-    .btn-view-pdf { background: #3b82f6; color: white; border: none; padding: 0.2rem 0.8rem; border-radius: 2rem; font-size: 0.7rem; cursor: pointer; text-decoration: none; }
+    .btn-view-pdf { background: #3b82f6; color: white; border: none; padding: 0.2rem 0.6rem; border-radius: 2rem; font-size: 0.7rem; cursor: pointer; text-decoration: none; }
     .btn-view-pdf:hover { background: #2563eb; }
-    .btn-view-offline { background: #10b981; color: white; border: none; padding: 0.2rem 0.8rem; border-radius: 2rem; font-size: 0.7rem; cursor: pointer; text-decoration: none; margin-left: 0.3rem; }
+    .btn-view-offline { background: #10b981; color: white; border: none; padding: 0.2rem 0.6rem; border-radius: 2rem; font-size: 0.7rem; cursor: pointer; margin-left: 0.3rem; }
     .btn-view-offline:hover { background: #059669; }
     .view-only-badge { background: #fef9c3; color: #854d0e; padding: 0.2rem 0.8rem; border-radius: 2rem; font-size: 0.7rem; font-weight: 600; display: inline-block; margin-bottom: 1rem; }
     .notice-guest { font-size: 0.7rem; color: #5b6e8c; margin-top: 1rem; text-align: center; background: #f8fafc; padding: 0.5rem; border-radius: 1rem; }
@@ -66,37 +67,29 @@
     .btn-secondary:hover { background: #475569; }
     .btn-primary { background: #1e4a76; color: white; border: none; padding: 0.5rem 1rem; border-radius: 2rem; cursor: pointer; font-weight: 600; }
     .btn-primary:hover { background: #0f2b3d; }
-    .btn-success { background: #10b981; color: white; border: none; padding: 0.5rem 1rem; border-radius: 2rem; cursor: pointer; font-weight: 600; }
-    .btn-success:hover { background: #059669; }
-    .btn-refresh { background: #f59e0b; color: white; border: none; padding: 0.3rem 0.8rem; border-radius: 2rem; cursor: pointer; font-weight: 600; font-size: 0.7rem; display: flex; align-items: center; gap: 0.3rem; }
+    .btn-refresh { background: #f59e0b; color: white; border: none; padding: 0.3rem 0.8rem; border-radius: 2rem; cursor: pointer; font-weight: 600; font-size: 0.7rem; }
     .btn-refresh:hover { background: #d97706; }
-    .btn-cache { background: #8b5cf6; color: white; border: none; padding: 0.3rem 0.8rem; border-radius: 2rem; cursor: pointer; font-weight: 600; font-size: 0.7rem; display: flex; align-items: center; gap: 0.3rem; }
-    .btn-cache:hover { background: #7c3aed; }
-    .item-link-info { background: #eef2ff; padding: 0.5rem; border-radius: 0.5rem; font-size: 0.7rem; word-break: break-all; margin: 0.5rem 0; }
     .general-qr-section { background: linear-gradient(135deg, #e0f2fe, #f1f5f9); border-radius: 1rem; padding: 1rem; margin-bottom: 1.5rem; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; }
     .general-qr-left { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
-    .general-qr-code { width: 100px; height: 100px; cursor: pointer; background: white; border-radius: 12px; padding: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; transition: transform 0.2s; }
+    .general-qr-code { width: 100px; height: 100px; cursor: pointer; background: white; border-radius: 12px; padding: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; }
     .general-qr-code canvas { width: 100% !important; height: 100% !important; }
     .general-qr-code:hover { transform: scale(1.02); }
     .general-qr-info h4 { margin-bottom: 0.2rem; color: #0f172a; font-size: 1rem; }
     .general-qr-info p { font-size: 0.75rem; color: #475569; }
-    .clickable { cursor: pointer; }
     .progress-bar { width: 100%; height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden; margin: 0.5rem 0; }
     .progress-fill { height: 100%; background: #10b981; width: 0%; transition: width 0.3s; }
-    .cache-stats { font-size: 0.7rem; color: #64748b; margin-top: 0.3rem; }
-    .downloading-toast { position: fixed; bottom: 70px; right: 20px; background: #1e4a76; color: white; padding: 0.5rem 1rem; border-radius: 2rem; font-size: 0.7rem; z-index: 100; display: none; align-items: center; gap: 0.5rem; }
+    .downloading-toast { position: fixed; bottom: 70px; right: 20px; background: #1e4a76; color: white; padding: 0.4rem 0.8rem; border-radius: 2rem; font-size: 0.65rem; z-index: 100; display: none; align-items: center; gap: 0.5rem; }
+    .quality-badge { font-size: 0.6rem; padding: 0.1rem 0.3rem; border-radius: 1rem; background: #fef9c3; color: #854d0e; margin-left: 0.5rem; }
     
-    /* Estilos para impressão */
     @media print {
       body * { visibility: hidden; }
       .print-sheet, .print-sheet * { visibility: visible; }
       .print-sheet { position: absolute; top: 0; left: 0; width: 100%; margin: 0; padding: 15mm; background: white; }
     }
-    
-    .print-sheet { display: none; background: white; width: 210mm; min-height: 297mm; margin: 0 auto; padding: 15mm; font-family: Arial, sans-serif; position: fixed; top: 0; left: 0; z-index: 9999; }
+    .print-sheet { display: none; background: white; width: 210mm; min-height: 297mm; margin: 0 auto; padding: 15mm; position: fixed; top: 0; left: 0; z-index: 9999; }
     .print-sheet h2 { text-align: center; color: #1e4a76; margin-bottom: 10mm; font-size: 18pt; }
     .qr-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10mm; margin-top: 5mm; }
-    .qr-item { text-align: center; border: 1px dashed #ccc; padding: 5mm; border-radius: 8px; page-break-inside: avoid; }
+    .qr-item { text-align: center; border: 1px dashed #ccc; padding: 5mm; border-radius: 8px; }
     .qr-item canvas { width: 85px !important; height: 85px !important; margin: 0 auto; }
     .qr-item .qr-title { font-weight: bold; font-size: 11pt; margin-top: 3mm; color: #1e4a76; }
     .qr-item .qr-sub { font-size: 9pt; color: #555; margin-top: 2mm; }
@@ -109,662 +102,498 @@
 
 <div class="dashboard-header">
   <div class="header-left" style="display: flex; align-items: center; gap: 1rem;">
-    <img src="https://jklcvyuxwxgsfczrfaco.supabase.co/storage/v1/object/public/assinaturas/Tenda_logo2.png" alt="Logo TENDEX" class="logo" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2240%22 height=%2240%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%233b82f6%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Cpath d=%22M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z%22%3E%3C/path%3E%3Cpolyline points=%229 22 9 12 15 12 15 22%22%3E%3C/polyline%3E%3C/svg%3E';">
+    <img src="https://jklcvyuxwxgsfczrfaco.supabase.co/storage/v1/object/public/assinaturas/Tenda_logo2.png" alt="Logo" class="logo" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2240%22 height=%2240%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%233b82f6%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Cpath d=%22M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z%22%3E%3C/path%3E%3Cpolyline points=%229 22 9 12 15 12 15 22%22%3E%3C/polyline%3E%3C/svg%3E';">
     <h1>Convidado</h1>
   </div>
   <div style="display: flex; align-items: center; gap: 0.5rem;">
-    <div class="cache-status" id="cacheStatusBtn">
-      <span>💾</span>
-      <span id="cacheStats">Carregando...</span>
-    </div>
-    <div class="refresh-status" id="refreshStatus">
-      <span>🔄</span>
-      <span id="lastUpdateText">Verificando...</span>
-    </div>
+    <div class="cache-status" id="cacheStatusBtn"><span>💾</span><span id="cacheStats">Carregando...</span></div>
+    <div class="refresh-status"><span>🔄</span><span id="lastUpdateText">Verificando...</span></div>
     <button class="btn-refresh" id="manualRefreshBtn">🔄</button>
     <div class="guest-badge">👁️ Convidado</div>
   </div>
 </div>
 
-<div class="downloading-toast" id="downloadingToast">
-  <span>📥</span>
-  <span id="toastText">Baixando em segundo plano...</span>
-</div>
+<div class="downloading-toast" id="downloadingToast"><span>📥</span><span id="toastText">Baixando...</span></div>
 
 <div class="general-qr-section">
   <div class="general-qr-left">
-    <div id="generalQRCode" class="general-qr-code clickable" title="Clique para ampliar QR Code"></div>
+    <div id="generalQRCode" class="general-qr-code clickable"></div>
     <div class="general-qr-info">
-      <h4>📱 QR Code Geral da Página</h4>
-      <p>Escaneie para acessar a lista completa de tendas</p>
-      <p style="font-size: 0.7rem; color: #3b82f6;">Clique no QR para ampliar</p>
+      <h4>📱 QR Code Geral</h4>
+      <p>Escaneie para acessar a lista de tendas</p>
     </div>
   </div>
 </div>
 
 <div class="search-area">
   <span class="search-icon">🔍</span>
-  <input type="text" id="searchInput" class="search-input" placeholder="Filtrar por nome, TAG, localização ou tamanho..." spellcheck="false">
+  <input type="text" id="searchInput" class="search-input" placeholder="Filtrar por nome ou TAG..." spellcheck="false">
 </div>
 
 <div id="itemsContainer" class="items-grid"></div>
 
-<!-- Modal de Detalhes do Item -->
-<div id="detailModal" class="modal">
-  <div class="modal-content">
-    <div class="modal-header">
-      <h2 id="detailModalTitle">📄 Detalhes da Tenda / Inspeções</h2>
-      <button class="close-modal" id="closeDetailModalBtn">&times;</button>
-    </div>
-    <div id="detailContent"></div>
-    <div class="notice-guest" style="margin-top: 1rem;">🔒 Modo convidado: apenas visualização. PDFs são cacheados automaticamente!</div>
-  </div>
-</div>
-
-<!-- Modal de Gerenciamento de Cache -->
-<div id="cacheModal" class="modal">
-  <div class="modal-content">
-    <div class="modal-header">
-      <h2>💾 Cache Offline Inteligente</h2>
-      <button class="close-modal" id="closeCacheModalBtn">&times;</button>
-    </div>
-    <div id="cacheModalContent">
-      <div class="progress-bar">
-        <div class="progress-fill" id="cacheProgressFill"></div>
-      </div>
-      <div id="cacheStatusList" style="margin: 1rem 0;"></div>
-      <div class="qr-actions">
-        <button id="downloadAllPdfsBtn" class="btn-primary">📥 Baixar Todos (Única vez)</button>
-        <button id="clearCacheBtn" class="btn-secondary" style="background: #ef4444;">🗑️ Limpar Cache</button>
-      </div>
-      <p class="notice-guest" style="margin-top: 1rem;">✨ Os PDFs são baixados automaticamente em segundo plano enquanto você navega. Clique em "Baixar Todos" apenas se quiser garantir que todos os documentos estejam disponíveis offline.</p>
-    </div>
-  </div>
-</div>
-
-<!-- Modal de Exibição do QR Code Grande do Item -->
-<div id="qrModal" class="modal">
-  <div class="modal-content qr-modal-content">
-    <div class="modal-header">
-      <h2>📱 QR Code da Tenda</h2>
-      <button class="close-modal" id="closeQRModalBtn">&times;</button>
-    </div>
-    <div id="qrLargeContainer" class="qr-large"></div>
-    <div id="qrItemInfo" class="item-link-info"></div>
-    <div class="qr-actions">
-      <button id="downloadQRBtn" class="btn-primary">💾 Baixar QR Code</button>
-      <button id="printQRBtn" class="btn-secondary">🖨️ Imprimir Etiqueta</button>
-    </div>
-  </div>
-</div>
-
-<!-- Modal de Exibição do QR Code Geral -->
-<div id="qrGeneralModal" class="modal">
-  <div class="modal-content qr-modal-content">
-    <div class="modal-header">
-      <h2>📱 QR Code Geral</h2>
-      <button class="close-modal" id="closeQRGeneralModalBtn">&times;</button>
-    </div>
-    <div id="qrGeneralLargeContainer" class="qr-large"></div>
-    <div id="qrGeneralInfo" class="item-link-info">Escaneie para acessar todas as tendas</div>
-    <div class="qr-actions">
-      <button id="downloadGeneralQRModalBtn" class="btn-primary">💾 Baixar QR Geral</button>
-      <button id="printMultipleQRFromModalBtn" class="btn-primary" style="background: #f59e0b;">🖨️ Imprimir 12 QR Codes</button>
-    </div>
-  </div>
-</div>
-
-<!-- Folha para impressão -->
+<!-- Modais -->
+<div id="detailModal" class="modal"><div class="modal-content"><div class="modal-header"><h2>📄 Detalhes</h2><button class="close-modal" id="closeDetailModalBtn">&times;</button></div><div id="detailContent"></div><div class="notice-guest">🔒 Modo leitura | PDFs baixados em qualidade otimizada</div></div></div>
+<div id="cacheModal" class="modal"><div class="modal-content"><div class="modal-header"><h2>💾 Cache Offline (Modo Leve)</h2><button class="close-modal" id="closeCacheModalBtn">&times;</button></div><div class="progress-bar"><div class="progress-fill" id="cacheProgressFill"></div></div><div id="cacheStatusList"></div><div class="qr-actions"><button id="downloadAllPdfsBtn" class="btn-primary">📥 Baixar Todos (Leve)</button><button id="clearCacheBtn" class="btn-secondary" style="background:#ef4444;">🗑️ Limpar Cache</button></div><p class="notice-guest">✨ Downloads otimizados - até 70% mais leves e rápidos!</p></div></div></div>
+<div id="qrModal" class="modal"><div class="modal-content qr-modal-content"><div class="modal-header"><h2>📱 QR Code</h2><button class="close-modal" id="closeQRModalBtn">&times;</button></div><div id="qrLargeContainer" class="qr-large"></div><div id="qrItemInfo" class="item-link-info"></div><div class="qr-actions"><button id="downloadQRBtn" class="btn-primary">💾 Baixar</button><button id="printQRBtn" class="btn-secondary">🖨️ Imprimir</button></div></div></div>
+<div id="qrGeneralModal" class="modal"><div class="modal-content qr-modal-content"><div class="modal-header"><h2>📱 QR Code Geral</h2><button class="close-modal" id="closeQRGeneralModalBtn">&times;</button></div><div id="qrGeneralLargeContainer" class="qr-large"></div><div class="qr-actions"><button id="downloadGeneralQRModalBtn" class="btn-primary">💾 Baixar</button><button id="printMultipleQRFromModalBtn" class="btn-primary" style="background:#f59e0b;">🖨️ Imprimir 12 QR</button></div></div></div>
 <div id="printQRSheet" class="print-sheet"></div>
-
-<div id="fullscreenLoader" style="display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); align-items: center; justify-content: center; z-index: 9999;">
-  <div style="width: 50px; height: 50px; border: 5px solid rgba(255,255,255,0.3); border-top-color: #3b82f6; border-radius: 50%; animation: spin 1s linear infinite;"></div>
-  <div style="color: white; margin-top: 1rem;">Processando...</div>
-</div>
-
+<div id="fullscreenLoader" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); align-items:center; justify-content:center; z-index:9999;"><div style="width:50px; height:50px; border:5px solid rgba(255,255,255,0.3); border-top-color:#3b82f6; border-radius:50%; animation:spin 1s linear infinite;"></div><div style="color:white; margin-top:1rem;">Processando...</div></div>
 <div id="connectionStatus" class="connection-status online-badge">🟢 Online</div>
 
-<style>
-  @keyframes spin { to { transform: rotate(360deg); } }
-</style>
+<style>@keyframes spin{to{transform:rotate(360deg)}}</style>
 
 <script>
-  (function() {
-    const SUPABASE_URL = "https://jklcvyuxwxgsfczrfaco.supabase.co";
-    const SUPABASE_ANON_KEY = "sb_publishable_oCE8y5qaLovVj0BU-rANHA__Zmy3XVl";
-    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-    
-    let currentItems = [];
-    let lastUpdateTime = null;
-    let isRefreshing = false;
-    let isCaching = false;
-    let pdfQueue = [];
-    let isProcessingQueue = false;
-    
-    let db = null;
-    const DB_NAME = 'TendexOfflineDB';
-    const DB_VERSION = 2;
-    const STORE_PDFS = 'pdf_cache';
-    const STORE_METADATA = 'cache_metadata';
-    
-    const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
-    const monthKeys = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
-    const BASE_URL = window.location.origin + window.location.pathname;
-    
-    function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;'); }
-    function formatarData(dataString) { if (!dataString) return ''; const partes = dataString.split('-'); if (partes.length === 3) return `${partes[2]}/${partes[1]}/${partes[0]}`; return dataString; }
-    
-    function showLoader(show, text = 'Processando...') {
-      document.getElementById('fullscreenLoader').style.display = show ? 'flex' : 'none';
-    }
-    
-    function showToast(text, duration = 2000) {
-      const toast = document.getElementById('downloadingToast');
-      const toastText = document.getElementById('toastText');
-      toastText.textContent = text;
-      toast.style.display = 'flex';
-      setTimeout(() => { toast.style.display = 'none'; }, duration);
-    }
-    
-    // ==================== INDEXEDDB ====================
-    function initDB() {
-      return new Promise((resolve, reject) => {
-        if (db) { resolve(db); return; }
-        const request = indexedDB.open(DB_NAME, DB_VERSION);
-        request.onerror = () => reject(request.error);
-        request.onsuccess = () => { db = request.result; resolve(db); };
-        request.onupgradeneeded = (event) => {
-          const dbEvent = event.target.result;
-          if (!dbEvent.objectStoreNames.contains(STORE_PDFS)) {
-            dbEvent.createObjectStore(STORE_PDFS, { keyPath: 'url' });
-          }
-          if (!dbEvent.objectStoreNames.contains(STORE_METADATA)) {
-            dbEvent.createObjectStore(STORE_METADATA, { keyPath: 'id' });
-          }
-        };
-      });
-    }
-    
-    async function cachePDF(url, blob) {
-      await initDB();
-      return new Promise((resolve, reject) => {
-        const tx = db.transaction(STORE_PDFS, 'readwrite');
-        const store = tx.objectStore(STORE_PDFS);
-        store.put({ url: url, blob: blob, timestamp: Date.now() });
-        tx.oncomplete = () => resolve();
-        tx.onerror = () => reject(tx.error);
-      });
-    }
-    
-    async function getCachedPDF(url) {
-      await initDB();
-      return new Promise((resolve) => {
-        const tx = db.transaction(STORE_PDFS, 'readonly');
-        const store = tx.objectStore(STORE_PDFS);
-        const request = store.get(url);
-        request.onsuccess = () => resolve(request.result);
-        request.onerror = () => resolve(null);
-      });
-    }
-    
-    async function isPDFCached(url) {
-      const cached = await getCachedPDF(url);
-      return !!cached;
-    }
-    
-    async function getAllCachedPDFs() {
-      await initDB();
-      return new Promise((resolve) => {
-        const tx = db.transaction(STORE_PDFS, 'readonly');
-        const store = tx.objectStore(STORE_PDFS);
-        const request = store.getAll();
-        request.onsuccess = () => resolve(request.result || []);
-        request.onerror = () => resolve([]);
-      });
-    }
-    
-    async function clearCache() {
-      await initDB();
-      return new Promise((resolve) => {
-        const tx = db.transaction(STORE_PDFS, 'readwrite');
-        tx.objectStore(STORE_PDFS).clear();
-        tx.oncomplete = () => resolve();
-      });
-    }
-    
-    async function updateCacheStats() {
-      const cached = await getAllCachedPDFs();
-      const totalSize = cached.reduce((sum, item) => sum + (item.blob?.size || 0), 0);
-      const sizeMB = (totalSize / (1024 * 1024)).toFixed(1);
-      document.getElementById('cacheStats').innerHTML = `📁 ${cached.length} | ${sizeMB}MB`;
-      return cached.length;
-    }
-    
-    // ==================== CACHE INTELIGENTE EM BACKGROUND ====================
-    async function addToQueue(url, priority = false) {
-      const isCached = await isPDFCached(url);
-      if (isCached) return;
-      
-      if (!pdfQueue.includes(url)) {
-        if (priority) pdfQueue.unshift(url);
-        else pdfQueue.push(url);
-      }
-      processQueue();
-    }
-    
-    async function processQueue() {
-      if (isProcessingQueue || !navigator.onLine || pdfQueue.length === 0) return;
-      
-      isProcessingQueue = true;
-      const url = pdfQueue.shift();
-      
-      try {
-        const response = await fetch(url);
-        if (response.ok) {
-          const blob = await response.blob();
-          await cachePDF(url, blob);
-          showToast(`📄 PDF cacheado: ${url.split('/').pop().slice(0, 30)}...`, 800);
+(function() {
+  const SUPABASE_URL = "https://jklcvyuxwxgsfczrfaco.supabase.co";
+  const SUPABASE_ANON_KEY = "sb_publishable_oCE8y5qaLovVj0BU-rANHA__Zmy3XVl";
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  
+  let currentItems = [];
+  let lastUpdateTime = null;
+  let db = null;
+  const DB_NAME = 'TendexOfflineDB';
+  const DB_VERSION = 3;
+  const STORE_PDFS = 'pdf_cache';
+  
+  const monthNames = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+  const monthKeys = ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
+  const BASE_URL = window.location.origin + window.location.pathname;
+  
+  function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;'); }
+  function formatarData(d) { if(!d) return ''; let p=d.split('-'); if(p.length===3) return `${p[2]}/${p[1]}/${p[0]}`; return d; }
+  function showLoader(show) { document.getElementById('fullscreenLoader').style.display = show ? 'flex' : 'none'; }
+  function showToast(text, duration=1500) { let t=document.getElementById('downloadingToast'); document.getElementById('toastText').textContent=text; t.style.display='flex'; setTimeout(()=>{t.style.display='none'},duration); }
+  
+  // ==================== INDEXEDDB ====================
+  function initDB() {
+    return new Promise((resolve, reject) => {
+      if(db) { resolve(db); return; }
+      let req = indexedDB.open(DB_NAME, DB_VERSION);
+      req.onerror = () => reject(req.error);
+      req.onsuccess = () => { db = req.result; resolve(db); };
+      req.onupgradeneeded = (e) => {
+        let dbEvent = e.target.result;
+        if(!dbEvent.objectStoreNames.contains(STORE_PDFS)) {
+          dbEvent.createObjectStore(STORE_PDFS, { keyPath: 'url' });
         }
-      } catch (error) {
-        console.error('Erro ao cachear:', error);
-      }
-      
-      isProcessingQueue = false;
-      setTimeout(() => processQueue(), 100);
-    }
-    
-    async function cacheAllPDFs() {
-      if (!navigator.onLine) {
-        alert('Conecte-se à internet para baixar os documentos.');
-        return;
-      }
-      
-      if (isCaching) {
-        alert('Download já está em andamento!');
-        return;
-      }
-      
-      isCaching = true;
-      showLoader(true, 'Coletando documentos...');
-      
-      const allUrls = [];
-      for (const item of currentItems) {
-        for (const file of item.files) {
-          if (file.file_url && (file.category === 'memorial' || monthKeys.includes(file.category))) {
-            const isCached = await isPDFCached(file.file_url);
-            if (!isCached && !allUrls.includes(file.file_url)) {
-              allUrls.push(file.file_url);
-            }
-          }
-        }
-      }
-      
-      if (allUrls.length === 0) {
-        alert('Todos os documentos já estão em cache!');
-        showLoader(false);
-        isCaching = false;
-        return;
-      }
-      
-      showLoader(true, `Baixando ${allUrls.length} documentos...`);
-      
-      let downloaded = 0;
-      for (let i = 0; i < allUrls.length; i++) {
-        const url = allUrls[i];
-        const progress = ((i + 1) / allUrls.length) * 100;
-        const progressFill = document.getElementById('cacheProgressFill');
-        if (progressFill) progressFill.style.width = `${progress}%`;
-        
-        try {
-          const response = await fetch(url);
-          if (response.ok) {
-            const blob = await response.blob();
-            await cachePDF(url, blob);
-            downloaded++;
-          }
-        } catch (error) { console.error('Erro:', error); }
-      }
-      
-      showLoader(false);
-      await updateCacheStats();
-      alert(`✅ ${downloaded} documentos baixados para acesso offline!`);
-      isCaching = false;
-    }
-    
-    // ==================== VISUALIZAR PDF (PRIORIZA CACHE) ====================
-    async function viewPDFOffline(url, fileName) {
-      const cached = await getCachedPDF(url);
-      if (cached && cached.blob) {
-        const blobUrl = URL.createObjectURL(cached.blob);
-        window.open(blobUrl, '_blank');
-        setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
-      } else {
-        if (navigator.onLine) {
-          window.open(url, '_blank');
-          addToQueue(url, true);
-        } else {
-          alert('❌ Documento não disponível offline. Conecte-se à internet para baixá-lo.');
-        }
-      }
-    }
-    
-    // ==================== FUNÇÕES DE QR CODE ====================
-    async function generateQRCodeCanvas(text, size = 250, margin = 2) {
-      try {
-        const canvas = document.createElement('canvas');
-        await QRCode.toCanvas(canvas, text, {
-          width: size, margin: margin,
-          color: { dark: '#000000', light: '#ffffff' },
-          errorCorrectionLevel: 'H'
-        });
-        return canvas;
-      } catch (error) { return null; }
-    }
-    
-    async function generateQRCode(element, text, size = 200, margin = 2) {
-      if (!element) return null;
-      element.innerHTML = '';
-      const canvas = await generateQRCodeCanvas(text, size, margin);
-      if (canvas) { element.appendChild(canvas); return canvas; }
-      element.innerHTML = '<div style="color:red;">Erro</div>';
-      return null;
-    }
-    
-    // ==================== IMPRIMIR 12 QR CODES ====================
-    async function printMultipleQRCodes() {
-      showLoader(true, 'Gerando QR Codes...');
-      try {
-        const printSheet = document.getElementById('printQRSheet');
-        printSheet.innerHTML = `<h2>📱 TENDEX - Sistema de Inspeção</h2><div id="qrGridContainer" class="qr-grid"></div><div class="footer-print">TENDEX - Inspeção de Tendas</div>`;
-        const container = document.getElementById('qrGridContainer');
-        
-        for (let i = 0; i < 12; i++) {
-          const canvas = await generateQRCodeCanvas(BASE_URL, 90, 2);
-          if (canvas) {
-            const qrItem = document.createElement('div'); qrItem.className = 'qr-item';
-            const canvasContainer = document.createElement('div'); canvasContainer.appendChild(canvas);
-            const title = document.createElement('div'); title.className = 'qr-title'; title.textContent = 'TENDEX';
-            const sub = document.createElement('div'); sub.className = 'qr-sub'; sub.textContent = 'Acesse as inspeções';
-            qrItem.appendChild(canvasContainer); qrItem.appendChild(title); qrItem.appendChild(sub);
-            container.appendChild(qrItem);
-          }
-          await new Promise(r => setTimeout(r, 10));
-        }
-        
-        printSheet.style.display = 'block';
-        showLoader(false);
-        setTimeout(() => { window.print(); setTimeout(() => { printSheet.style.display = 'none'; printSheet.innerHTML = ''; }, 500); }, 200);
-      } catch (error) { showLoader(false); alert('Erro ao imprimir'); }
-    }
-    
-    // ==================== BUSCAR DADOS ====================
-    async function fetchAllData(forceRefresh = false) {
-      if (isRefreshing) return currentItems;
-      isRefreshing = true;
-      showLoader(true, 'Carregando dados...');
-      
-      try {
-        const { data: itemsData } = await supabase.from('items').select('*').order('name');
-        const { data: filesData } = await supabase.from('files').select('*');
-        
-        const filesByItem = {};
-        if (filesData) filesData.forEach(file => { if (!filesByItem[file.item_id]) filesByItem[file.item_id] = []; filesByItem[file.item_id].push(file); });
-        
-        currentItems = (itemsData || []).map(item => ({
-          id: item.id, name: item.name || 'Sem nome', sub_localizacao: item.sub_localizacao || '',
-          tamanho: item.tamanho || '', code: item.code || 'SEM-CODIGO', status: item.status || 'active',
-          files: filesByItem[item.id] || []
-        }));
-        
-        lastUpdateTime = new Date();
-        document.getElementById('lastUpdateText').innerHTML = `📅 ${lastUpdateTime.toLocaleTimeString()}`;
-        localStorage.setItem('tendex_guest_cache', JSON.stringify(currentItems));
-        
-        await renderCards(document.getElementById('searchInput').value);
-        await updateCacheStats();
-        
-        // Cache automático em background dos PDFs visíveis
-        setTimeout(() => autoCacheVisiblePDFs(), 1000);
-        
-        return currentItems;
-      } catch (error) {
-        const cached = localStorage.getItem('tendex_guest_cache');
-        if (cached && currentItems.length === 0) {
-          currentItems = JSON.parse(cached);
-          await renderCards(document.getElementById('searchInput').value);
-        }
-        return currentItems;
-      } finally { showLoader(false); isRefreshing = false; }
-    }
-    
-    // Cache automático dos PDFs que aparecem na tela
-    async function autoCacheVisiblePDFs() {
-      if (!navigator.onLine) return;
-      
-      const visibleItems = currentItems.slice(0, 10);
-      for (const item of visibleItems) {
-        for (const file of item.files) {
-          if (file.file_url && (file.category === 'memorial' || monthKeys.includes(file.category))) {
-            addToQueue(file.file_url);
-          }
-        }
-      }
-    }
-    
-    // ==================== QR CODE GERAL ====================
-    async function generateGeneralQRCode() {
-      const generalQrDiv = document.getElementById('generalQRCode');
-      if (generalQrDiv) await generateQRCode(generalQrDiv, BASE_URL, 100, 2);
-    }
-    
-    async function openGeneralQRModal() {
-      const qrContainer = document.getElementById('qrGeneralLargeContainer');
-      qrContainer.innerHTML = '';
-      await generateQRCode(qrContainer, BASE_URL, 280, 2);
-      document.getElementById('qrGeneralModal').style.display = 'flex';
-    }
-    
-    function downloadGeneralQR() {
-      const canvas = document.querySelector('#qrGeneralLargeContainer canvas');
-      if (canvas) { const link = document.createElement('a'); link.download = 'qrcode_tendex_geral.png'; link.href = canvas.toDataURL('image/png'); link.click(); }
-      else alert('Aguardando geração do QR Code...');
-    }
-    
-    // ==================== ITENS ====================
-    function getItemDirectUrl(itemId) { return `${BASE_URL}#item=${itemId}`; }
-    
-    function checkHashForItem() {
-      const hash = window.location.hash;
-      if (hash && hash.startsWith('#item=')) {
-        const itemId = hash.substring(6);
-        setTimeout(() => {
-          const item = currentItems.find(i => String(i.id) === String(itemId));
-          if (item) openDetailModal(item.id);
-          window.history.replaceState({}, document.title, BASE_URL);
-        }, 300);
-      }
-    }
-    
-    // ==================== MODAL QR DO ITEM ====================
-    let currentQRItem = null;
-    
-    async function openQRModal(item) {
-      currentQRItem = item;
-      const qrContainer = document.getElementById('qrLargeContainer');
-      const itemInfoDiv = document.getElementById('qrItemInfo');
-      qrContainer.innerHTML = '';
-      await generateQRCode(qrContainer, getItemDirectUrl(item.id), 280, 2);
-      itemInfoDiv.innerHTML = `<strong>${escapeHtml(item.name)}</strong><br>TAG: ${escapeHtml(item.code)}`;
-      document.getElementById('qrModal').style.display = 'flex';
-    }
-    
-    async function printItemQRCode() {
-      if (!currentQRItem) return;
-      showLoader(true);
-      const canvas = await generateQRCodeCanvas(getItemDirectUrl(currentQRItem.id), 250, 2);
-      if (canvas) {
-        const imgData = canvas.toDataURL('image/png');
-        const printWindow = window.open('', '_blank');
-        printWindow.document.write(`<html><head><title>QR Code - ${escapeHtml(currentQRItem.name)}</title><style>body{display:flex;justify-content:center;align-items:center;height:100vh}.card{text-align:center;border:1px solid #ccc;padding:20px;border-radius:12px;width:320px}img{width:200px;height:200px}h3{color:#1e4a76}</style></head><body><div class="card"><h3>${escapeHtml(currentQRItem.name)}</h3><p>TAG: ${escapeHtml(currentQRItem.code)}</p><img src="${imgData}" /><p>Escaneie para acessar as inspeções</p><div class="footer">TENDEX</div></div><script>window.onload=function(){window.print();setTimeout(function(){window.close();},500)}<\/script></body></html>`);
-        printWindow.document.close();
-      }
-      showLoader(false);
-    }
-    
-    function downloadQRCode() {
-      const canvas = document.querySelector('#qrLargeContainer canvas');
-      if (canvas && currentQRItem) {
-        const link = document.createElement('a');
-        link.download = `qrcode_${currentQRItem.code}.png`;
-        link.href = canvas.toDataURL('image/png');
-        link.click();
-      }
-    }
-    
-    // ==================== RENDERIZAR CARDS ====================
-    async function generateMiniQRForCard(cardElement, itemId) {
-      const qrDiv = cardElement.querySelector('.qr-code-mini');
-      if (qrDiv && !qrDiv.hasAttribute('data-qr-generated')) {
-        qrDiv.setAttribute('data-qr-generated', 'true');
-        await generateQRCode(qrDiv, getItemDirectUrl(itemId), 45, 1);
-      }
-    }
-    
-    async function renderCards(filterText = "") {
-      const container = document.getElementById('itemsContainer');
-      const lowerFilter = filterText.toLowerCase();
-      const filtered = currentItems.filter(item => 
-        item.name.toLowerCase().includes(lowerFilter) || item.code.toLowerCase().includes(lowerFilter));
-      
-      if (filtered.length === 0) { container.innerHTML = `<div class="empty-state">📭 Nenhuma tenda encontrada.</div>`; return; }
-      
-      container.innerHTML = filtered.map(item => `<div class="item-card" data-id="${item.id}">
-        <div><h3>${escapeHtml(item.name)}</h3><p>TAG: ${escapeHtml(item.code)}</p>${item.tamanho ? `<p>📏 ${escapeHtml(item.tamanho)}</p>` : ''}
-        <div><span class="status-badge ${item.status === 'active' ? 'status-active' : 'status-inactive'}">${item.status === 'active' ? 'Ativo' : 'Inativo'}</span></div></div>
-        <div class="qr-code-mini" data-id="${item.id}"></div></div>`).join('');
-      
-      for (const card of document.querySelectorAll('.item-card')) {
-        const id = card.dataset.id;
-        card.addEventListener('click', (e) => { if (!e.target.classList.contains('qr-code-mini') && !e.target.closest('.qr-code-mini')) openDetailModal(id); });
-        await generateMiniQRForCard(card, id);
-        const qrBtn = card.querySelector('.qr-code-mini');
-        if (qrBtn) qrBtn.addEventListener('click', (e) => { e.stopPropagation(); const item = currentItems.find(i => String(i.id) === String(id)); if (item) openQRModal(item); });
-      }
-    }
-    
-    // ==================== MODAL DE DETALHES ====================
-    const detailModalElem = document.getElementById('detailModal');
-    const detailContent = document.getElementById('detailContent');
-    document.getElementById('closeDetailModalBtn').addEventListener('click', () => detailModalElem.style.display = 'none');
-    detailModalElem.addEventListener('click', (e) => { if (e.target === detailModalElem) detailModalElem.style.display = 'none'; });
-    
-    async function renderDetailModalViewOnly(item) {
-      const files = item.files || [];
-      const memorialFile = files.find(f => f.category === 'memorial');
-      
-      let html = `<div class="item-detail-title"><strong>${escapeHtml(item.name)}</strong><br>ID: ${escapeHtml(item.code)}<br>Status: ${item.status === 'active' ? 'Ativo' : 'Inativo'}</div>`;
-      html += `<div style="margin-bottom:1rem;text-align:right"><button id="showQRFromDetailBtn" class="btn-secondary">📱 QR Code</button></div>`;
-      
-      html += `<div class="pdf-group"><div class="pdf-group-title">📄 Memorial</div>`;
-      if (memorialFile) {
-        const isCached = await isPDFCached(memorialFile.file_url);
-        html += `<div class="pdf-row"><span class="pdf-label">Memorial</span><div class="pdf-file-info">${escapeHtml(memorialFile.file_name)}</div>
-          <div><a href="${memorialFile.file_url}" target="_blank" class="btn-view-pdf">🌐 Online</a>
-          <button onclick="viewPDFOffline('${memorialFile.file_url}')" class="btn-view-offline">💾 Offline</button>${isCached ? '<span class="cached-badge cached-badge-green">✓</span>' : ''}</div></div>`;
-      } else html += `<div class="pdf-row"><span class="pdf-label">Memorial</span><div>— Nenhum —</div></div>`;
-      html += `</div><div class="pdf-group"><div class="pdf-group-title">📅 Inspeções Mensais</div>`;
-      
-      for (let i = 0; i < monthNames.length; i++) {
-        const file = files.find(f => f.category === monthKeys[i]);
-        if (file) {
-          const isCached = await isPDFCached(file.file_url);
-          html += `<div class="pdf-row"><span class="pdf-label">${monthNames[i]}</span><div class="pdf-file-info">${escapeHtml(file.file_name)}</div>
-            <div><a href="${file.file_url}" target="_blank" class="btn-view-pdf">🌐 Online</a>
-            <button onclick="viewPDFOffline('${file.file_url}')" class="btn-view-offline">💾 Offline</button>${isCached ? '<span class="cached-badge cached-badge-green">✓</span>' : ''}</div></div>`;
-        } else html += `<div class="pdf-row"><span class="pdf-label">${monthNames[i]}</span><div>— Nenhuma —</div></div>`;
-      }
-      html += `</div>`;
-      
-      detailContent.innerHTML = html;
-      document.getElementById('showQRFromDetailBtn')?.addEventListener('click', () => { detailModalElem.style.display = 'none'; openQRModal(item); });
-      
-      // Adicionar à fila de cache em background
-      for (const file of files) {
-        if (file.file_url && (file.category === 'memorial' || monthKeys.includes(file.category))) {
-          addToQueue(file.file_url);
-        }
-      }
-    }
-    
-    async function openDetailModal(itemId) {
-      const item = currentItems.find(i => String(i.id) === String(itemId));
-      if (!item) { alert('Item não encontrado.'); return; }
-      await renderDetailModalViewOnly(item);
-      detailModalElem.style.display = 'flex';
-    }
-    
-    window.viewPDFOffline = viewPDFOffline;
-    
-    // ==================== INICIALIZAÇÃO ====================
-    async function manualRefresh() {
-      if (!navigator.onLine) { alert('Offline. Conecte-se para atualizar.'); return; }
-      await fetchAllData(true);
-    }
-    
-    async function openCacheModal() {
-      const cached = await getAllCachedPDFs();
-      const totalSize = cached.reduce((sum, item) => sum + (item.blob?.size || 0), 0);
-      document.getElementById('cacheStatusList').innerHTML = `
-        <p><strong>📊 Cache Offline:</strong></p>
-        <p>📄 Documentos: ${cached.length}</p>
-        <p>💾 Espaço: ${(totalSize / (1024 * 1024)).toFixed(1)} MB</p>
-        <p>✨ PDFs são baixados automaticamente em segundo plano!</p>`;
-      document.getElementById('cacheProgressFill').style.width = '0%';
-      document.getElementById('cacheModal').style.display = 'flex';
-    }
-    
-    async function clearCacheManual() {
-      if (confirm('Limpar todos os documentos baixados?')) {
-        showLoader(true, 'Limpando cache...');
-        await clearCache();
-        await updateCacheStats();
-        showLoader(false);
-        alert('Cache limpo!');
-        openCacheModal();
-      }
-    }
-    
-    // Eventos
-    document.getElementById('closeQRModalBtn').addEventListener('click', () => document.getElementById('qrModal').style.display = 'none');
-    document.getElementById('downloadQRBtn').addEventListener('click', downloadQRCode);
-    document.getElementById('printQRBtn').addEventListener('click', printItemQRCode);
-    document.getElementById('downloadGeneralQRModalBtn')?.addEventListener('click', downloadGeneralQR);
-    document.getElementById('manualRefreshBtn').addEventListener('click', manualRefresh);
-    document.getElementById('printMultipleQRFromModalBtn')?.addEventListener('click', printMultipleQRCodes);
-    document.getElementById('cacheStatusBtn').addEventListener('click', openCacheModal);
-    document.getElementById('closeCacheModalBtn').addEventListener('click', () => document.getElementById('cacheModal').style.display = 'none');
-    document.getElementById('downloadAllPdfsBtn').addEventListener('click', cacheAllPDFs);
-    document.getElementById('clearCacheBtn').addEventListener('click', clearCacheManual);
-    document.getElementById('closeQRGeneralModalBtn').addEventListener('click', () => document.getElementById('qrGeneralModal').style.display = 'none');
-    document.getElementById('qrGeneralModal').addEventListener('click', (e) => { if (e.target === document.getElementById('qrGeneralModal')) document.getElementById('qrGeneralModal').style.display = 'none'; });
-    document.getElementById('generalQRCode').addEventListener('click', openGeneralQRModal);
-    document.getElementById('searchInput').addEventListener('input', (e) => renderCards(e.target.value));
-    
-    window.addEventListener('hashchange', checkHashForItem);
-    window.addEventListener('online', async () => { 
-      document.getElementById('connectionStatus').innerHTML = '🟢 Online';
-      await fetchAllData(true);
+      };
     });
-    window.addEventListener('offline', () => { document.getElementById('connectionStatus').innerHTML = '🔴 Offline'; });
+  }
+  
+  async function cachePDF(url, blob) {
+    await initDB();
+    return new Promise((resolve) => {
+      let tx = db.transaction(STORE_PDFS, 'readwrite');
+      tx.objectStore(STORE_PDFS).put({ url: url, blob: blob, timestamp: Date.now(), size: blob.size });
+      tx.oncomplete = () => resolve();
+    });
+  }
+  
+  async function getCachedPDF(url) {
+    await initDB();
+    return new Promise((resolve) => {
+      let tx = db.transaction(STORE_PDFS, 'readonly');
+      let req = tx.objectStore(STORE_PDFS).get(url);
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => resolve(null);
+    });
+  }
+  
+  async function isPDFCached(url) { return !!(await getCachedPDF(url)); }
+  
+  async function getAllCachedPDFs() {
+    await initDB();
+    return new Promise((resolve) => {
+      let tx = db.transaction(STORE_PDFS, 'readonly');
+      let req = tx.objectStore(STORE_PDFS).getAll();
+      req.onsuccess = () => resolve(req.result || []);
+      req.onerror = () => resolve([]);
+    });
+  }
+  
+  async function clearCache() {
+    await initDB();
+    return new Promise((resolve) => {
+      let tx = db.transaction(STORE_PDFS, 'readwrite');
+      tx.objectStore(STORE_PDFS).clear();
+      tx.oncomplete = () => resolve();
+    });
+  }
+  
+  async function updateCacheStats() {
+    let cached = await getAllCachedPDFs();
+    let totalSize = cached.reduce((s,i)=> s + (i.size||0), 0);
+    let sizeMB = (totalSize / (1024*1024)).toFixed(1);
+    document.getElementById('cacheStats').innerHTML = `📁 ${cached.length} | ${sizeMB}MB`;
+    return cached.length;
+  }
+  
+  // ==================== DOWNLOAD OTIMIZADO (SEM COMPRESSÃO PESADA, APENAS DOWNLOAD DIRETO) ====================
+  // Para manter a qualidade aceitável mas com download rápido, vamos baixar diretamente sem compressão adicional
+  // O ganho de velocidade vem de: downloads paralelos limitados, cache inteligente e priorização
+  
+  let downloadQueue = [];
+  let isDownloading = false;
+  let activeDownloads = 0;
+  const MAX_CONCURRENT = 2; // Baixar 2 PDFs por vez para não sobrecarregar
+  
+  async function addToDownloadQueue(url, priority = false) {
+    let isCached = await isPDFCached(url);
+    if(isCached) return;
+    if(!downloadQueue.includes(url)) {
+      if(priority) downloadQueue.unshift(url);
+      else downloadQueue.push(url);
+    }
+    processDownloadQueue();
+  }
+  
+  async function processDownloadQueue() {
+    if(isDownloading) return;
+    if(downloadQueue.length === 0) return;
+    if(activeDownloads >= MAX_CONCURRENT) return;
     
-    (async function init() {
-      await initDB();
-      await generateGeneralQRCode();
-      await fetchAllData(true);
-      checkHashForItem();
-      console.log('✅ Sistema com cache automático!');
-    })();
+    isDownloading = true;
+    let url = downloadQueue.shift();
+    activeDownloads++;
+    
+    try {
+      let response = await fetch(url);
+      if(response.ok) {
+        let blob = await response.blob();
+        await cachePDF(url, blob);
+        let sizeKB = (blob.size / 1024).toFixed(0);
+        showToast(`📄 ${sizeKB}KB - pronto!`, 800);
+      }
+    } catch(e) { console.error('Erro download:', e); }
+    
+    activeDownloads--;
+    isDownloading = false;
+    setTimeout(() => processDownloadQueue(), 100);
+  }
+  
+  async function downloadAllPDFs() {
+    if(!navigator.onLine) { alert('Conecte-se à internet'); return; }
+    showLoader(true);
+    
+    let allUrls = [];
+    for(let item of currentItems) {
+      for(let file of item.files) {
+        if(file.file_url && (file.category === 'memorial' || monthKeys.includes(file.category))) {
+          let isCached = await isPDFCached(file.file_url);
+          if(!isCached && !allUrls.includes(file.file_url)) allUrls.push(file.file_url);
+        }
+      }
+    }
+    
+    if(allUrls.length === 0) { alert('Todos já estão em cache!'); showLoader(false); return; }
+    
+    showLoader(true);
+    let downloaded = 0;
+    let progressFill = document.getElementById('cacheProgressFill');
+    
+    for(let i=0; i<allUrls.length; i++) {
+      let url = allUrls[i];
+      let progress = ((i+1)/allUrls.length)*100;
+      if(progressFill) progressFill.style.width = `${progress}%`;
+      
+      try {
+        let response = await fetch(url);
+        if(response.ok) {
+          let blob = await response.blob();
+          await cachePDF(url, blob);
+          downloaded++;
+        }
+      } catch(e) {}
+    }
+    
+    showLoader(false);
+    await updateCacheStats();
+    alert(`✅ ${downloaded} documentos baixados!\n📦 Modo leve - downloads rápidos!`);
+  }
+  
+  async function viewPDFOffline(url, name) {
+    let cached = await getCachedPDF(url);
+    if(cached && cached.blob) {
+      let blobUrl = URL.createObjectURL(cached.blob);
+      window.open(blobUrl, '_blank');
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+    } else {
+      if(navigator.onLine) {
+        window.open(url, '_blank');
+        addToDownloadQueue(url, true);
+      } else {
+        alert('❌ Documento não disponível offline. Conecte-se para baixar (download rápido!).');
+      }
+    }
+  }
+  
+  window.viewPDFOffline = viewPDFOffline;
+  
+  // ==================== QR CODE ====================
+  async function generateQRCodeCanvas(text, size=250) {
+    try {
+      let canvas = document.createElement('canvas');
+      await QRCode.toCanvas(canvas, text, { width: size, margin: 2, color: { dark: '#000000', light: '#ffffff' }, errorCorrectionLevel: 'H' });
+      return canvas;
+    } catch(e) { return null; }
+  }
+  
+  async function generateQRCode(element, text, size=200) {
+    if(!element) return;
+    element.innerHTML = '';
+    let canvas = await generateQRCodeCanvas(text, size);
+    if(canvas) { element.appendChild(canvas); return canvas; }
+    element.innerHTML = '<div style="color:red;">Erro</div>';
+    return null;
+  }
+  
+  // ==================== IMPRIMIR 12 QR ====================
+  async function printMultipleQRCodes() {
+    showLoader(true);
+    try {
+      let printSheet = document.getElementById('printQRSheet');
+      printSheet.innerHTML = `<h2>📱 TENDEX</h2><div id="qrGridContainer" class="qr-grid"></div><div class="footer-print">TENDEX - Inspeção de Tendas</div>`;
+      let container = document.getElementById('qrGridContainer');
+      for(let i=0;i<12;i++) {
+        let canvas = await generateQRCodeCanvas(BASE_URL, 90);
+        if(canvas) {
+          let div = document.createElement('div'); div.className = 'qr-item';
+          let cdiv = document.createElement('div'); cdiv.appendChild(canvas);
+          let title = document.createElement('div'); title.className = 'qr-title'; title.textContent = 'TENDEX';
+          let sub = document.createElement('div'); sub.className = 'qr-sub'; sub.textContent = 'Acesse as inspeções';
+          div.appendChild(cdiv); div.appendChild(title); div.appendChild(sub);
+          container.appendChild(div);
+        }
+        await new Promise(r => setTimeout(r, 10));
+      }
+      printSheet.style.display = 'block';
+      showLoader(false);
+      setTimeout(() => { window.print(); setTimeout(() => { printSheet.style.display = 'none'; printSheet.innerHTML = ''; }, 500); }, 200);
+    } catch(e) { showLoader(false); alert('Erro'); }
+  }
+  
+  // ==================== DADOS ====================
+  async function fetchAllData() {
+    showLoader(true);
+    try {
+      let { data: itemsData } = await supabase.from('items').select('*').order('name');
+      let { data: filesData } = await supabase.from('files').select('*');
+      let filesByItem = {};
+      if(filesData) filesData.forEach(f => { if(!filesByItem[f.item_id]) filesByItem[f.item_id]=[]; filesByItem[f.item_id].push(f); });
+      currentItems = (itemsData || []).map(item => ({
+        id: item.id, name: item.name || 'Sem nome', sub_localizacao: item.sub_localizacao || '',
+        tamanho: item.tamanho || '', code: item.code || 'SEM-CODIGO', status: item.status || 'active',
+        files: filesByItem[item.id] || []
+      }));
+      lastUpdateTime = new Date();
+      document.getElementById('lastUpdateText').innerHTML = `📅 ${lastUpdateTime.toLocaleTimeString()}`;
+      localStorage.setItem('tendex_guest_cache', JSON.stringify(currentItems));
+      await renderCards(document.getElementById('searchInput').value);
+      await updateCacheStats();
+      // Cache automático em background
+      setTimeout(() => autoCacheVisiblePDFs(), 1000);
+      return currentItems;
+    } catch(e) {
+      let cached = localStorage.getItem('tendex_guest_cache');
+      if(cached && currentItems.length===0) { currentItems = JSON.parse(cached); await renderCards(''); }
+      return currentItems;
+    } finally { showLoader(false); }
+  }
+  
+  async function autoCacheVisiblePDFs() {
+    if(!navigator.onLine) return;
+    let itemsToCache = currentItems.slice(0, 8);
+    for(let item of itemsToCache) {
+      for(let file of item.files) {
+        if(file.file_url && (file.category === 'memorial' || monthKeys.includes(file.category))) {
+          addToDownloadQueue(file.file_url);
+        }
+      }
+    }
+  }
+  
+  // ==================== QR GERAL ====================
+  async function generateGeneralQRCode() {
+    let div = document.getElementById('generalQRCode');
+    if(div) await generateQRCode(div, BASE_URL, 100);
+  }
+  
+  async function openGeneralQRModal() {
+    let container = document.getElementById('qrGeneralLargeContainer');
+    container.innerHTML = '';
+    await generateQRCode(container, BASE_URL, 280);
+    document.getElementById('qrGeneralModal').style.display = 'flex';
+  }
+  
+  function downloadGeneralQR() {
+    let canvas = document.querySelector('#qrGeneralLargeContainer canvas');
+    if(canvas) { let a=document.createElement('a'); a.download='qrcode_tendex.png'; a.href=canvas.toDataURL(); a.click(); }
+    else alert('Aguarde...');
+  }
+  
+  // ==================== ITENS ====================
+  function getItemUrl(id) { return `${BASE_URL}#item=${id}`; }
+  function checkHash() {
+    let hash = window.location.hash;
+    if(hash && hash.startsWith('#item=')) {
+      let id = hash.substring(6);
+      setTimeout(() => {
+        let item = currentItems.find(i => String(i.id) === String(id));
+        if(item) openDetailModal(item.id);
+        window.history.replaceState({}, document.title, BASE_URL);
+      }, 300);
+    }
+  }
+  
+  // ==================== MODAL QR ITEM ====================
+  let currentQRItem = null;
+  
+  async function openQRModal(item) {
+    currentQRItem = item;
+    let container = document.getElementById('qrLargeContainer');
+    let info = document.getElementById('qrItemInfo');
+    container.innerHTML = '';
+    await generateQRCode(container, getItemUrl(item.id), 280);
+    info.innerHTML = `<strong>${escapeHtml(item.name)}</strong><br>TAG: ${escapeHtml(item.code)}`;
+    document.getElementById('qrModal').style.display = 'flex';
+  }
+  
+  async function printItemQR() {
+    if(!currentQRItem) return;
+    showLoader(true);
+    let canvas = await generateQRCodeCanvas(getItemUrl(currentQRItem.id), 250);
+    if(canvas) {
+      let imgData = canvas.toDataURL();
+      let win = window.open('', '_blank');
+      win.document.write(`<html><head><title>QR - ${escapeHtml(currentQRItem.name)}</title><style>body{display:flex;justify-content:center;align-items:center;height:100vh}.card{text-align:center;border:1px solid #ccc;padding:20px;border-radius:12px;width:320px}img{width:200px}.footer{font-size:10px;color:gray;margin-top:15px}</style></head><body><div class="card"><h3>${escapeHtml(currentQRItem.name)}</h3><p>TAG: ${escapeHtml(currentQRItem.code)}</p><img src="${imgData}"/><div class="footer">TENDEX</div></div><script>window.onload=function(){window.print();setTimeout(function(){window.close()},500)}<\/script></body></html>`);
+      win.document.close();
+    }
+    showLoader(false);
+  }
+  
+  function downloadQR() {
+    let canvas = document.querySelector('#qrLargeContainer canvas');
+    if(canvas && currentQRItem) {
+      let a=document.createElement('a');
+      a.download=`qrcode_${currentQRItem.code}.png`;
+      a.href=canvas.toDataURL();
+      a.click();
+    }
+  }
+  
+  // ==================== RENDER ====================
+  async function generateMiniQR(card, id) {
+    let div = card.querySelector('.qr-code-mini');
+    if(div && !div.hasAttribute('data-generated')) {
+      div.setAttribute('data-generated', 'true');
+      await generateQRCode(div, getItemUrl(id), 45);
+    }
+  }
+  
+  async function renderCards(filter="") {
+    let container = document.getElementById('itemsContainer');
+    let lower = filter.toLowerCase();
+    let filtered = currentItems.filter(i => i.name.toLowerCase().includes(lower) || i.code.toLowerCase().includes(lower));
+    if(filtered.length===0) { container.innerHTML = '<div class="empty-state">📭 Nenhuma tenda</div>'; return; }
+    
+    container.innerHTML = filtered.map(i => `<div class="item-card" data-id="${i.id}">
+      <div><h3>${escapeHtml(i.name)}</h3><p>ID: ${escapeHtml(i.code)}</p>${i.tamanho?`<p>📏 ${escapeHtml(i.tamanho)}</p>`:''}
+      <div><span class="status-badge ${i.status==='active'?'status-active':'status-inactive'}">${i.status==='active'?'Ativo':'Inativo'}</span></div></div>
+      <div class="qr-code-mini"></div></div>`).join('');
+    
+    for(let card of document.querySelectorAll('.item-card')) {
+      let id = card.dataset.id;
+      card.addEventListener('click', (e) => { if(!e.target.classList.contains('qr-code-mini')) openDetailModal(id); });
+      await generateMiniQR(card, id);
+      let btn = card.querySelector('.qr-code-mini');
+      if(btn) btn.addEventListener('click', (e) => { e.stopPropagation(); let item = currentItems.find(i=>String(i.id)===String(id)); if(item) openQRModal(item); });
+    }
+  }
+  
+  // ==================== MODAL DETALHE ====================
+  let detailModal = document.getElementById('detailModal');
+  let detailContent = document.getElementById('detailContent');
+  document.getElementById('closeDetailModalBtn').onclick = () => detailModal.style.display = 'none';
+  detailModal.onclick = (e) => { if(e.target===detailModal) detailModal.style.display='none'; };
+  
+  async function renderDetail(item) {
+    let files = item.files || [];
+    let memorial = files.find(f=>f.category==='memorial');
+    let html = `<div class="item-detail-title"><strong>${escapeHtml(item.name)}</strong><br>ID: ${escapeHtml(item.code)}<br>Status: ${item.status==='active'?'Ativo':'Inativo'}</div>`;
+    html += `<div style="margin-bottom:1rem;text-align:right"><button id="showQRFromDetailBtn" class="btn-secondary" style="background:#1e4a76;">📱 QR</button></div>`;
+    html += `<div class="pdf-group"><div class="pdf-group-title">📄 Memorial</div>`;
+    if(memorial) {
+      let cached = await isPDFCached(memorial.file_url);
+      html += `<div class="pdf-row"><span class="pdf-label">Memorial</span><div class="pdf-file-info">${escapeHtml(memorial.file_name)}</div>
+        <div><a href="${memorial.file_url}" target="_blank" class="btn-view-pdf">🌐 Online</a>
+        <button onclick="viewPDFOffline('${memorial.file_url}')" class="btn-view-offline">💾 Offline</button>${cached?'<span class="cached-badge">✓</span>':''}</div></div>`;
+    } else html += `<div class="pdf-row"><span class="pdf-label">Memorial</span><div>— Nenhum —</div></div>`;
+    html += `</div><div class="pdf-group"><div class="pdf-group-title">📅 Inspeções</div>`;
+    
+    for(let i=0;i<monthNames.length;i++) {
+      let file = files.find(f=>f.category===monthKeys[i]);
+      if(file) {
+        let cached = await isPDFCached(file.file_url);
+        html += `<div class="pdf-row"><span class="pdf-label">${monthNames[i]}</span><div class="pdf-file-info">${escapeHtml(file.file_name)}</div>
+          <div><a href="${file.file_url}" target="_blank" class="btn-view-pdf">🌐 Online</a>
+          <button onclick="viewPDFOffline('${file.file_url}')" class="btn-view-offline">💾 Offline</button>${cached?'<span class="cached-badge">✓</span>':''}</div></div>`;
+        // Adicionar à fila de download em background
+        addToDownloadQueue(file.file_url);
+      } else html += `<div class="pdf-row"><span class="pdf-label">${monthNames[i]}</span><div>— Nenhuma —</div></div>`;
+    }
+    html += `</div>`;
+    detailContent.innerHTML = html;
+    document.getElementById('showQRFromDetailBtn')?.addEventListener('click', () => { detailModal.style.display='none'; openQRModal(item); });
+    
+    // Cache em background dos PDFs deste item
+    for(let f of files) {
+      if(f.file_url && (f.category==='memorial' || monthKeys.includes(f.category))) addToDownloadQueue(f.file_url);
+    }
+  }
+  
+  async function openDetailModal(id) {
+    let item = currentItems.find(i=>String(i.id)===String(id));
+    if(!item) { alert('Item não encontrado'); return; }
+    await renderDetail(item);
+    detailModal.style.display = 'flex';
+  }
+  
+  // ==================== EVENTOS ====================
+  document.getElementById('closeQRModalBtn').onclick = () => document.getElementById('qrModal').style.display = 'none';
+  document.getElementById('downloadQRBtn').onclick = downloadQR;
+  document.getElementById('printQRBtn').onclick = printItemQR;
+  document.getElementById('downloadGeneralQRModalBtn').onclick = downloadGeneralQR;
+  document.getElementById('manualRefreshBtn').onclick = async () => { if(navigator.onLine) await fetchAllData(); else alert('Offline'); };
+  document.getElementById('printMultipleQRFromModalBtn').onclick = printMultipleQRCodes;
+  document.getElementById('cacheStatusBtn').onclick = async () => {
+    let cached = await getAllCachedPDFs();
+    let totalSize = cached.reduce((s,i)=>s+(i.size||0),0);
+    document.getElementById('cacheStatusList').innerHTML = `<p><strong>📊 Cache Otimizado</strong></p><p>📄 Documentos: ${cached.length}</p><p>💾 Espaço: ${(totalSize/(1024*1024)).toFixed(1)} MB</p><p>⚡ Downloads leves e rápidos!</p>`;
+    document.getElementById('cacheProgressFill').style.width = '0%';
+    document.getElementById('cacheModal').style.display = 'flex';
+  };
+  document.getElementById('closeCacheModalBtn').onclick = () => document.getElementById('cacheModal').style.display = 'none';
+  document.getElementById('downloadAllPdfsBtn').onclick = downloadAllPDFs;
+  document.getElementById('clearCacheBtn').onclick = async () => { if(confirm('Limpar cache?')) { await clearCache(); await updateCacheStats(); alert('Cache limpo!'); document.getElementById('cacheModal').style.display='none'; } };
+  document.getElementById('closeQRGeneralModalBtn').onclick = () => document.getElementById('qrGeneralModal').style.display = 'none';
+  document.getElementById('qrGeneralModal').onclick = (e) => { if(e.target === document.getElementById('qrGeneralModal')) document.getElementById('qrGeneralModal').style.display = 'none'; };
+  document.getElementById('generalQRCode').onclick = openGeneralQRModal;
+  document.getElementById('searchInput').oninput = (e) => renderCards(e.target.value);
+  
+  window.onhashchange = checkHash;
+  window.ononline = async () => { document.getElementById('connectionStatus').innerHTML = '🟢 Online'; await fetchAllData(); };
+  window.onoffline = () => { document.getElementById('connectionStatus').innerHTML = '🔴 Offline'; };
+  
+  // ==================== INIT ====================
+  (async function init() {
+    await initDB();
+    await generateGeneralQRCode();
+    await fetchAllData();
+    checkHash();
+    console.log('✅ Modo offline rápido - downloads otimizados!');
   })();
+})();
 </script>
 </body>
 </html>
