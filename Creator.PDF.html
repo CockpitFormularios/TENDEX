@@ -1,0 +1,1246 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editor PDF Inteligente - Detecção Automática com Criação de Campos</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        h1 {
+            color: #333;
+            font-size: 1.8rem;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        .upload-area {
+            border: 3px dashed #667eea;
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            background: #f8f9ff;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-bottom: 20px;
+        }
+
+        .upload-area:hover {
+            background: #f0f2ff;
+            border-color: #764ba2;
+        }
+
+        .upload-area.drag-over {
+            background: #e8ebff;
+            border-color: #10b981;
+        }
+
+        .toolbar {
+            background: white;
+            border-radius: 15px;
+            padding: 15px;
+            margin-bottom: 20px;
+            display: none;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            font-size: 14px;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5a67d8;
+            transform: translateY(-2px);
+        }
+
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        .btn-warning {
+            background: #f59e0b;
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background: #d97706;
+        }
+
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #4b5563;
+        }
+
+        .page-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            background: #f3f4f6;
+            padding: 5px 15px;
+            border-radius: 25px;
+        }
+
+        .main-layout {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 20px;
+        }
+
+        .pdf-area {
+            background: #1f2937;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .canvas-container {
+            overflow: auto;
+            text-align: center;
+            background: #374151;
+            border-radius: 10px;
+            padding: 20px;
+            min-height: 600px;
+        }
+
+        canvas {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            background: white;
+            cursor: crosshair;
+            max-width: 100%;
+            height: auto;
+        }
+
+        .control-panel {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .panel-section {
+            margin-bottom: 25px;
+            border-bottom: 1px solid #e5e7eb;
+            padding-bottom: 15px;
+        }
+
+        .panel-section h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+        }
+
+        .detection-config {
+            background: #f3f4f6;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+        }
+
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            font-size: 12px;
+            color: #666;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            margin: 10px 0;
+        }
+
+        .lines-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .line-item {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .line-item:hover {
+            background: #f3f4f6;
+            transform: translateX(5px);
+        }
+
+        .line-item.selected {
+            background: #ede9fe;
+            border-color: #667eea;
+        }
+
+        .line-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+
+        .line-number {
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .line-coord {
+            font-size: 11px;
+            color: #6b7280;
+            font-family: monospace;
+        }
+
+        .line-actions {
+            display: flex;
+            gap: 5px;
+            margin-top: 5px;
+        }
+
+        .btn-icon {
+            padding: 3px 8px;
+            font-size: 11px;
+        }
+
+        .field-name-input {
+            width: 100%;
+            padding: 5px;
+            border: 1px solid #d1d5db;
+            border-radius: 5px;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+
+        .fields-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .field-item {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .field-item:hover {
+            background: #f3f4f6;
+            border-color: #667eea;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            animation: fadeIn 0.3s;
+        }
+
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 0;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            animation: slideDown 0.3s;
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            border-radius: 15px 15px 0 0;
+            color: white;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .modal-footer {
+            padding: 15px 20px;
+            border-top: 1px solid #e5e7eb;
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            flex-wrap: wrap;
+        }
+
+        .modal input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+            margin-top: 5px;
+        }
+
+        .modal input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .coord-row {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .coord-row > div {
+            flex: 1;
+        }
+
+        .info-box {
+            background: #f0fdf4;
+            border-left: 4px solid #10b981;
+            padding: 12px;
+            margin-top: 15px;
+            border-radius: 8px;
+            font-size: 13px;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes slideDown {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .status {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #333;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 10px;
+            z-index: 1000;
+            display: none;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+        .auto-badge {
+            background: #10b981;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 10px;
+            margin-left: 8px;
+        }
+
+        @media (max-width: 1024px) {
+            .main-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+    <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+    </script>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>📄 Editor PDF Inteligente</h1>
+        <div class="subtitle">Detecte linhas automaticamente e os campos serão criados instantaneamente</div>
+    </div>
+
+    <div class="upload-area" id="uploadArea">
+        <div>📂 Arraste e solte um PDF aqui</div>
+        <div style="font-size: 12px; margin-top: 10px;">ou clique para selecionar</div>
+        <input type="file" id="fileInput" accept=".pdf" style="display: none;">
+    </div>
+
+    <div class="toolbar" id="toolbar">
+        <div class="page-controls">
+            <button class="btn btn-primary" id="prevPage">◀ Anterior</button>
+            <span id="pageIndicator">Página 1 / 0</span>
+            <button class="btn btn-primary" id="nextPage">Próxima ▶</button>
+        </div>
+        <button class="btn btn-success" id="autoDetectBtn">🔍 Detectar e Criar Campos Automaticamente</button>
+        <button class="btn btn-warning" id="generatePdfBtn">💾 Gerar PDF com Campos</button>
+        <button class="btn btn-danger" id="clearAllBtn">🗑️ Limpar Tudo</button>
+    </div>
+
+    <div class="main-layout">
+        <div class="pdf-area">
+            <div class="canvas-container">
+                <canvas id="pdfCanvas"></canvas>
+            </div>
+        </div>
+
+        <div class="control-panel" id="controlPanel" style="display: none;">
+            <div class="panel-section">
+                <h3>⚙️ Configuração de Detecção</h3>
+                <div class="detection-config">
+                    <div class="slider-label">
+                        <span>Sensibilidade (quanto menor, mais linhas)</span>
+                        <span id="sensitivityValue">50</span>
+                    </div>
+                    <input type="range" id="sensitivity" min="1" max="100" value="50">
+                    
+                    <div class="slider-label">
+                        <span>Espessura mínima da linha (px)</span>
+                        <span id="minThicknessValue">2</span>
+                    </div>
+                    <input type="range" id="minThickness" min="1" max="20" value="2">
+                    
+                    <div class="slider-label">
+                        <span>Distância entre linhas (agrupamento)</span>
+                        <span id="groupDistanceValue">10</span>
+                    </div>
+                    <input type="range" id="groupDistance" min="5" max="50" value="10">
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <h3>📊 Linhas Detectadas <span class="auto-badge">Auto-Campos</span></h3>
+                <div style="margin-bottom: 10px;">
+                    <button class="btn btn-primary btn-icon" id="selectAllLines">Selecionar Todas</button>
+                    <button class="btn btn-danger btn-icon" id="deselectAllLines">Desselecionar Todas</button>
+                    <button class="btn btn-warning btn-icon" id="deleteSelectedLines">Remover Selecionadas</button>
+                </div>
+                <div class="lines-list" id="linesList">
+                    <div style="color: #999; text-align: center;">Nenhuma linha detectada ainda.<br>Clique em "Detectar e Criar Campos"</div>
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <h3>✏️ Campos do Formulário</h3>
+                <div class="fields-list" id="fieldsList">
+                    <div style="color: #999; text-align: center;">Nenhum campo adicionado.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL DE EDIÇÃO -->
+<div id="editModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>✏️ Editar Campo</h3>
+        </div>
+        <div class="modal-body">
+            <label>Nome do Campo:</label>
+            <input type="text" id="modalFieldName" placeholder="Ex: nome, email, telefone...">
+            
+            <div class="coord-row">
+                <div>
+                    <label>Posição X:</label>
+                    <input type="number" id="modalX" step="1">
+                </div>
+                <div>
+                    <label>Posição Y:</label>
+                    <input type="number" id="modalY" step="1">
+                </div>
+            </div>
+            
+            <div class="coord-row">
+                <div>
+                    <label>Largura:</label>
+                    <input type="number" id="modalWidth" step="1" min="20">
+                </div>
+                <div>
+                    <label>Altura:</label>
+                    <input type="number" id="modalHeight" step="1" min="15">
+                </div>
+            </div>
+            
+            <div class="info-box">
+                💡 Dica: Você pode ajustar a posição e o tamanho do campo manualmente.
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-primary" id="modalSaveBtn">💾 Salvar Alterações</button>
+            <button class="btn btn-danger" id="modalDeleteBtn">🗑️ Excluir Campo</button>
+            <button class="btn btn-secondary" id="modalCancelBtn">Cancelar</button>
+        </div>
+    </div>
+</div>
+
+<div class="status" id="status"></div>
+
+<script>
+    // ==================== MÓDULO 1: Gerenciamento de Estado ====================
+    class PDFEditor {
+        constructor() {
+            this.pdfDoc = null;
+            this.pdfBytes = null;
+            this.totalPages = 0;
+            this.currentPage = 0;
+            this.fields = [];
+            this.detectedLines = [];
+            this.selectedLines = new Set();
+            this.canvas = document.getElementById('pdfCanvas');
+            this.ctx = this.canvas.getContext('2d');
+            this.isDrawingField = false;
+            this.tempField = null;
+            this.zoom = 1.5;
+            this.currentEditingFieldId = null;
+        }
+
+        showStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.style.display = 'block';
+            statusDiv.style.background = type === 'error' ? '#ef4444' : type === 'success' ? '#10b981' : '#667eea';
+            setTimeout(() => {
+                statusDiv.style.display = 'none';
+            }, 3000);
+        }
+
+        updatePageIndicator() {
+            document.getElementById('pageIndicator').textContent = `Página ${this.currentPage + 1} / ${this.totalPages}`;
+            document.getElementById('prevPage').disabled = this.currentPage === 0;
+            document.getElementById('nextPage').disabled = this.currentPage === this.totalPages - 1;
+        }
+
+        openEditModal(field) {
+            this.currentEditingFieldId = field.id;
+            document.getElementById('modalFieldName').value = field.name || '';
+            document.getElementById('modalX').value = Math.round(field.x);
+            document.getElementById('modalY').value = Math.round(field.y);
+            document.getElementById('modalWidth').value = Math.round(field.width);
+            document.getElementById('modalHeight').value = Math.round(field.height);
+            document.getElementById('editModal').style.display = 'block';
+        }
+
+        closeModal() {
+            document.getElementById('editModal').style.display = 'none';
+            this.currentEditingFieldId = null;
+        }
+
+        saveFieldChanges() {
+            const field = this.fields.find(f => f.id === this.currentEditingFieldId);
+            if (field) {
+                const newName = document.getElementById('modalFieldName').value.trim();
+                const newX = parseInt(document.getElementById('modalX').value);
+                const newY = parseInt(document.getElementById('modalY').value);
+                const newWidth = parseInt(document.getElementById('modalWidth').value);
+                const newHeight = parseInt(document.getElementById('modalHeight').value);
+                
+                if (newName) field.name = newName;
+                if (!isNaN(newX)) field.x = Math.max(0, Math.min(this.canvas.width - field.width, newX));
+                if (!isNaN(newY)) field.y = Math.max(0, Math.min(this.canvas.height - field.height, newY));
+                if (!isNaN(newWidth) && newWidth >= 20) field.width = newWidth;
+                if (!isNaN(newHeight) && newHeight >= 15) field.height = newHeight;
+                
+                this.renderPage();
+                this.updateFieldsList();
+                this.showStatus(`✅ Campo "${field.name}" atualizado!`, 'success');
+                this.closeModal();
+            }
+        }
+
+        deleteFieldFromModal() {
+            const index = this.fields.findIndex(f => f.id === this.currentEditingFieldId);
+            if (index >= 0) {
+                const fieldName = this.fields[index].name;
+                this.fields.splice(index, 1);
+                this.renderPage();
+                this.updateFieldsList();
+                this.showStatus(`🗑️ Campo "${fieldName}" removido!`, 'info');
+                this.closeModal();
+            }
+        }
+    }
+
+    // ==================== MÓDULO 2: Carregamento e Renderização ====================
+    class PDFRenderer extends PDFEditor {
+        async loadPDF(file) {
+            this.showStatus('Carregando PDF...', 'info');
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                this.pdfBytes = arrayBuffer;
+                this.pdfDoc = await PDFLib.PDFDocument.load(arrayBuffer);
+                this.totalPages = this.pdfDoc.getPages().length;
+                
+                document.getElementById('toolbar').style.display = 'flex';
+                document.getElementById('controlPanel').style.display = 'block';
+                
+                this.currentPage = 0;
+                this.fields = [];
+                this.detectedLines = [];
+                this.selectedLines.clear();
+                
+                await this.renderPage();
+                this.updatePageIndicator();
+                this.showStatus(`PDF carregado com ${this.totalPages} página(s)!`, 'success');
+            } catch (err) {
+                this.showStatus(`Erro ao carregar: ${err.message}`, 'error');
+            }
+        }
+
+        async renderPage() {
+            const loadingTask = pdfjsLib.getDocument({ data: this.pdfBytes });
+            const pdf = await loadingTask.promise;
+            const page = await pdf.getPage(this.currentPage + 1);
+            const viewport = page.getViewport({ scale: this.zoom });
+            
+            this.canvas.width = viewport.width;
+            this.canvas.height = viewport.height;
+            this.canvas.style.width = 'auto';
+            this.canvas.style.height = 'auto';
+            
+            const renderContext = { canvasContext: this.ctx, viewport };
+            await page.render(renderContext).promise;
+            
+            this.drawAllElements();
+        }
+
+        drawAllElements() {
+            // Desenhar linhas detectadas
+            this.detectedLines.forEach(line => {
+                if (line.page === this.currentPage) {
+                    this.ctx.save();
+                    this.ctx.strokeStyle = this.selectedLines.has(line.id) ? '#10b981' : '#f59e0b';
+                    this.ctx.lineWidth = 2;
+                    this.ctx.setLineDash([5, 5]);
+                    this.ctx.strokeRect(line.x, line.y, line.width, line.height);
+                    this.ctx.fillStyle = 'rgba(16, 185, 129, 0.1)';
+                    this.ctx.fillRect(line.x, line.y, line.width, line.height);
+                    this.ctx.restore();
+                }
+            });
+            
+            // Desenhar campos
+            this.fields.forEach(field => {
+                if (field.page === this.currentPage) {
+                    this.ctx.save();
+                    this.ctx.strokeStyle = '#3b82f6';
+                    this.ctx.lineWidth = 2;
+                    this.ctx.strokeRect(field.x, field.y, field.width, field.height);
+                    this.ctx.fillStyle = 'rgba(59, 130, 246, 0.2)';
+                    this.ctx.fillRect(field.x, field.y, field.width, field.height);
+                    this.ctx.fillStyle = '#1e293b';
+                    this.ctx.font = '12px monospace';
+                    this.ctx.fillText(field.name || `Campo`, field.x + 2, field.y + 15);
+                    this.ctx.restore();
+                }
+            });
+        }
+
+        async goToPage(delta) {
+            const newPage = this.currentPage + delta;
+            if (newPage >= 0 && newPage < this.totalPages) {
+                this.currentPage = newPage;
+                await this.renderPage();
+                this.updatePageIndicator();
+                this.updateLinesList();
+                this.updateFieldsList();
+            }
+        }
+    }
+
+    // ==================== MÓDULO 3: Detecção de Linhas com Criação Automática de Campos ====================
+    class LineDetector extends PDFRenderer {
+        async detectLines() {
+            this.showStatus('Detectando linhas e criando campos automaticamente...', 'info');
+            
+            const sensitivity = document.getElementById('sensitivity').value / 100;
+            const minThickness = parseInt(document.getElementById('minThickness').value);
+            const groupDistance = parseInt(document.getElementById('groupDistance').value);
+            
+            const loadingTask = pdfjsLib.getDocument({ data: this.pdfBytes });
+            const pdf = await loadingTask.promise;
+            const page = await pdf.getPage(this.currentPage + 1);
+            const viewport = page.getViewport({ scale: this.zoom });
+            
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = viewport.width;
+            tempCanvas.height = viewport.height;
+            const tempCtx = tempCanvas.getContext('2d');
+            
+            await page.render({ canvasContext: tempCtx, viewport }).promise;
+            
+            const imageData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+            const lines = this.findBlackRectangles(imageData, sensitivity, minThickness, groupDistance);
+            
+            // Criar linhas detectadas
+            const newLines = lines.map((line, idx) => ({
+                id: Date.now() + idx + Math.random(),
+                page: this.currentPage,
+                x: line.x,
+                y: line.y,
+                width: line.width,
+                height: line.height,
+                name: `linha_${this.detectedLines.length + idx + 1}`
+            }));
+            
+            this.detectedLines.push(...newLines);
+            newLines.forEach(line => this.selectedLines.add(line.id));
+            
+            // ========== CRIAÇÃO AUTOMÁTICA DE CAMPOS ==========
+            // Para cada linha detectada, criar um campo automaticamente
+            const novosCampos = [];
+            for (const line of newLines) {
+                const newField = {
+                    id: Date.now() + Math.random() + Math.random(),
+                    page: line.page,
+                    x: line.x,
+                    y: line.y,
+                    width: line.width,
+                    height: Math.max(20, line.height),
+                    name: line.name.replace('linha', 'campo'),
+                    defaultValue: ''
+                };
+                novosCampos.push(newField);
+                this.fields.push(newField);
+            }
+            
+            await this.renderPage();
+            this.updateLinesList();
+            this.updateFieldsList();
+            
+            this.showStatus(`✅ Detectadas ${newLines.length} linhas e criados ${novosCampos.length} campos automaticamente!`, 'success');
+        }
+
+        findBlackRectangles(imageData, sensitivity, minThickness, groupDistance) {
+            const { width, height, data } = imageData;
+            const rectangles = [];
+            const visited = new Set();
+            
+            const isDark = (x, y) => {
+                if (x < 0 || x >= width || y < 0 || y >= height) return false;
+                const idx = (y * width + x) * 4;
+                const brightness = (data[idx] + data[idx + 1] + data[idx + 2]) / 3;
+                return brightness < 255 * (1 - sensitivity);
+            };
+            
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    const key = `${x},${y}`;
+                    if (isDark(x, y) && !visited.has(key)) {
+                        let right = x;
+                        let bottom = y;
+                        
+                        while (right + 1 < width && isDark(right + 1, y)) right++;
+                        while (bottom + 1 < height && isDark(x, bottom + 1)) bottom++;
+                        
+                        let isValid = true;
+                        for (let i = x; i <= right; i++) {
+                            if (!isDark(i, bottom)) isValid = false;
+                        }
+                        for (let j = y; j <= bottom; j++) {
+                            if (!isDark(right, j)) isValid = false;
+                        }
+                        
+                        if (isValid && (right - x) >= minThickness && (bottom - y) >= minThickness) {
+                            rectangles.push({ x, y, width: right - x + 1, height: bottom - y + 1 });
+                        }
+                        
+                        for (let i = x; i <= right; i++) {
+                            for (let j = y; j <= bottom; j++) {
+                                visited.add(`${i},${j}`);
+                            }
+                        }
+                    }
+                }
+            }
+            
+            return this.groupNearbyRectangles(rectangles, groupDistance);
+        }
+
+        groupNearbyRectangles(rectangles, distance) {
+            const groups = [];
+            const used = new Set();
+            
+            for (let i = 0; i < rectangles.length; i++) {
+                if (used.has(i)) continue;
+                
+                const group = [rectangles[i]];
+                used.add(i);
+                
+                for (let j = i + 1; j < rectangles.length; j++) {
+                    if (used.has(j)) continue;
+                    
+                    const rect1 = rectangles[i];
+                    const rect2 = rectangles[j];
+                    const distX = Math.min(Math.abs(rect1.x - rect2.x), Math.abs(rect1.x + rect1.width - rect2.x - rect2.width));
+                    const distY = Math.min(Math.abs(rect1.y - rect2.y), Math.abs(rect1.y + rect1.height - rect2.y - rect2.height));
+                    
+                    if (distX < distance && distY < distance) {
+                        group.push(rectangles[j]);
+                        used.add(j);
+                    }
+                }
+                
+                const minX = Math.min(...group.map(r => r.x));
+                const minY = Math.min(...group.map(r => r.y));
+                const maxX = Math.max(...group.map(r => r.x + r.width));
+                const maxY = Math.max(...group.map(r => r.y + r.height));
+                
+                groups.push({
+                    x: minX,
+                    y: minY,
+                    width: maxX - minX,
+                    height: maxY - minY
+                });
+            }
+            
+            return groups;
+        }
+
+        updateLinesList() {
+            const container = document.getElementById('linesList');
+            const currentPageLines = this.detectedLines.filter(l => l.page === this.currentPage);
+            
+            if (currentPageLines.length === 0) {
+                container.innerHTML = '<div style="color: #999; text-align: center;">Nenhuma linha detectada na página atual.</div>';
+                return;
+            }
+            
+            container.innerHTML = currentPageLines.map(line => {
+                // Verificar se esta linha já tem um campo associado
+                const hasField = this.fields.some(f => 
+                    f.page === line.page && 
+                    Math.abs(f.x - line.x) < 5 && 
+                    Math.abs(f.y - line.y) < 5
+                );
+                
+                return `
+                    <div class="line-item ${this.selectedLines.has(line.id) ? 'selected' : ''}" data-line-id="${line.id}">
+                        <div class="line-header">
+                            <span class="line-number">📐 ${line.name}</span>
+                            <span class="line-coord">${Math.round(line.width)}x${Math.round(line.height)}px</span>
+                        </div>
+                        <div class="line-actions">
+                            ${hasField ? '<span style="color:#10b981; font-size:11px;">✅ Campo criado automaticamente</span>' : ''}
+                            <button class="btn btn-danger btn-icon delete-line" data-line-id="${line.id}">🗑️ Remover Linha e Campo</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+            
+            document.querySelectorAll('.line-item').forEach(el => {
+                el.addEventListener('click', (e) => {
+                    if (!e.target.classList.contains('btn-icon') && !e.target.classList.contains('field-name-input')) {
+                        const lineId = parseInt(el.dataset.lineId);
+                        if (this.selectedLines.has(lineId)) {
+                            this.selectedLines.delete(lineId);
+                        } else {
+                            this.selectedLines.add(lineId);
+                        }
+                        this.renderPage();
+                        this.updateLinesList();
+                    }
+                });
+            });
+            
+            document.querySelectorAll('.delete-line').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const lineId = parseInt(btn.dataset.lineId);
+                    const line = this.detectedLines.find(l => l.id === lineId);
+                    if (line) {
+                        // Remover também o campo associado
+                        this.fields = this.fields.filter(f => 
+                            !(f.page === line.page && 
+                              Math.abs(f.x - line.x) < 5 && 
+                              Math.abs(f.y - line.y) < 5)
+                        );
+                        this.detectedLines = this.detectedLines.filter(l => l.id !== lineId);
+                        this.selectedLines.delete(lineId);
+                        this.renderPage();
+                        this.updateLinesList();
+                        this.updateFieldsList();
+                        this.showStatus('Linha e campo removidos!', 'info');
+                    }
+                });
+            });
+        }
+
+        deleteSelectedLines() {
+            const linesToDelete = this.detectedLines.filter(line => this.selectedLines.has(line.id));
+            for (const line of linesToDelete) {
+                // Remover campos associados
+                this.fields = this.fields.filter(f => 
+                    !(f.page === line.page && 
+                      Math.abs(f.x - line.x) < 5 && 
+                      Math.abs(f.y - line.y) < 5)
+                );
+            }
+            this.detectedLines = this.detectedLines.filter(line => !this.selectedLines.has(line.id));
+            this.selectedLines.clear();
+            this.renderPage();
+            this.updateLinesList();
+            this.updateFieldsList();
+            this.showStatus('Linhas e campos selecionados removidos!', 'success');
+        }
+
+        selectAllLines() {
+            this.detectedLines.forEach(line => {
+                if (line.page === this.currentPage) {
+                    this.selectedLines.add(line.id);
+                }
+            });
+            this.updateLinesList();
+            this.renderPage();
+        }
+
+        deselectAllLines() {
+            this.selectedLines.clear();
+            this.updateLinesList();
+            this.renderPage();
+        }
+    }
+
+    // ==================== MÓDULO 4: Gerenciamento de Campos ====================
+    class FieldManager extends LineDetector {
+        updateFieldsList() {
+            const container = document.getElementById('fieldsList');
+            const currentPageFields = this.fields.filter(f => f.page === this.currentPage);
+            
+            if (currentPageFields.length === 0) {
+                container.innerHTML = '<div style="color: #999; text-align: center;">Nenhum campo na página atual.</div>';
+                return;
+            }
+            
+            container.innerHTML = currentPageFields.map(field => `
+                <div class="field-item" data-field-id="${field.id}">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                        <strong style="color: #667eea;">📝 ${field.name}</strong>
+                        <span style="font-size: 11px; color: #666;">${Math.round(field.width)}x${Math.round(field.height)}px</span>
+                    </div>
+                    <div style="font-size: 11px; color: #666; margin-bottom: 5px;">
+                        Pos: (${Math.round(field.x)}, ${Math.round(field.y)})
+                    </div>
+                    <div class="line-actions">
+                        <button class="btn btn-primary btn-icon edit-field-btn" data-field-id="${field.id}">✏️ Editar</button>
+                        <button class="btn btn-danger btn-icon delete-field-btn" data-field-id="${field.id}">🗑️ Excluir</button>
+                    </div>
+                </div>
+            `).join('');
+            
+            document.querySelectorAll('.field-item').forEach(el => {
+                el.addEventListener('click', (e) => {
+                    if (!e.target.classList.contains('btn-icon')) {
+                        const fieldId = parseFloat(el.dataset.fieldId);
+                        const field = this.fields.find(f => f.id === fieldId);
+                        if (field) this.openEditModal(field);
+                    }
+                });
+            });
+            
+            document.querySelectorAll('.edit-field-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const fieldId = parseFloat(btn.dataset.fieldId);
+                    const field = this.fields.find(f => f.id === fieldId);
+                    if (field) this.openEditModal(field);
+                });
+            });
+            
+            document.querySelectorAll('.delete-field-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const fieldId = parseFloat(btn.dataset.fieldId);
+                    const index = this.fields.findIndex(f => f.id === fieldId);
+                    if (index >= 0) {
+                        const fieldName = this.fields[index].name;
+                        this.fields.splice(index, 1);
+                        this.renderPage();
+                        this.updateFieldsList();
+                        this.showStatus(`🗑️ Campo "${fieldName}" removido!`, 'info');
+                    }
+                });
+            });
+        }
+
+        async generatePDF() {
+            if (!this.pdfDoc) return;
+            
+            if (this.fields.length === 0) {
+                this.showStatus('⚠️ Nenhum campo para gerar! Clique em "Detectar e Criar Campos" primeiro.', 'error');
+                return;
+            }
+            
+            this.showStatus(`Gerando PDF com ${this.fields.length} campos editáveis...`, 'info');
+            
+            try {
+                const newPdfDoc = await PDFLib.PDFDocument.load(this.pdfBytes);
+                const form = newPdfDoc.getForm();
+                const pages = newPdfDoc.getPages();
+                
+                for (const field of this.fields) {
+                    if (field.page >= pages.length) continue;
+                    
+                    const page = pages[field.page];
+                    const pageSize = page.getSize();
+                    const scaleX = pageSize.width / this.canvas.width;
+                    const scaleY = pageSize.height / this.canvas.height;
+                    
+                    const pdfX = field.x * scaleX;
+                    const pdfY = pageSize.height - (field.y + field.height) * scaleY;
+                    const pdfWidth = field.width * scaleX;
+                    const pdfHeight = field.height * scaleY;
+                    
+                    try {
+                        const textField = form.createTextField(field.name);
+                        textField.addToPage(page, {
+                            x: pdfX,
+                            y: pdfY,
+                            width: pdfWidth,
+                            height: pdfHeight
+                        });
+                        
+                        textField.setFontSize(10);
+                        textField.setColor(PDFLib.rgb(0, 0, 0));
+                        textField.setBorderColor(PDFLib.rgb(0, 0, 0));
+                        textField.setBackgroundColor(PDFLib.rgb(1, 1, 0.85));
+                        
+                        if (field.defaultValue) {
+                            textField.setText(field.defaultValue);
+                        }
+                    } catch (err) {
+                        console.warn(`Erro ao criar campo ${field.name}:`, err);
+                    }
+                }
+                
+                const pdfBytesOut = await newPdfDoc.save();
+                const blob = new Blob([pdfBytesOut], { type: 'application/pdf' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = 'formulario_editavel.pdf';
+                link.click();
+                URL.revokeObjectURL(link.href);
+                
+                this.showStatus(`PDF gerado com sucesso! ${this.fields.length} campos criados.`, 'success');
+            } catch (err) {
+                this.showStatus(`Erro ao gerar PDF: ${err.message}`, 'error');
+            }
+        }
+
+        clearAll() {
+            if (confirm('Tem certeza que deseja limpar TODOS os campos e linhas detectadas?')) {
+                this.fields = [];
+                this.detectedLines = [];
+                this.selectedLines.clear();
+                this.renderPage();
+                this.updateLinesList();
+                this.updateFieldsList();
+                this.showStatus('Todos os dados foram limpos!', 'success');
+            }
+        }
+    }
+
+    // ==================== MÓDULO 5: Inicialização ====================
+    class PDFApp extends FieldManager {
+        init() {
+            const uploadArea = document.getElementById('uploadArea');
+            const fileInput = document.getElementById('fileInput');
+            
+            uploadArea.addEventListener('click', () => fileInput.click());
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length) this.loadPDF(e.target.files[0]);
+            });
+            
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.classList.add('drag-over');
+            });
+            
+            uploadArea.addEventListener('dragleave', () => {
+                uploadArea.classList.remove('drag-over');
+            });
+            
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('drag-over');
+                const file = e.dataTransfer.files[0];
+                if (file && file.type === 'application/pdf') this.loadPDF(file);
+                else this.showStatus('Por favor, carregue um arquivo PDF válido.', 'error');
+            });
+            
+            document.getElementById('prevPage').addEventListener('click', () => this.goToPage(-1));
+            document.getElementById('nextPage').addEventListener('click', () => this.goToPage(1));
+            document.getElementById('autoDetectBtn').addEventListener('click', () => this.detectLines());
+            document.getElementById('generatePdfBtn').addEventListener('click', () => this.generatePDF());
+            document.getElementById('clearAllBtn').addEventListener('click', () => this.clearAll());
+            
+            document.getElementById('selectAllLines').addEventListener('click', () => this.selectAllLines());
+            document.getElementById('deselectAllLines').addEventListener('click', () => this.deselectAllLines());
+            document.getElementById('deleteSelectedLines').addEventListener('click', () => this.deleteSelectedLines());
+            
+            document.getElementById('sensitivity').addEventListener('input', (e) => {
+                document.getElementById('sensitivityValue').textContent = e.target.value;
+            });
+            document.getElementById('minThickness').addEventListener('input', (e) => {
+                document.getElementById('minThicknessValue').textContent = e.target.value;
+            });
+            document.getElementById('groupDistance').addEventListener('input', (e) => {
+                document.getElementById('groupDistanceValue').textContent = e.target.value;
+            });
+            
+            document.getElementById('modalSaveBtn').addEventListener('click', () => this.saveFieldChanges());
+            document.getElementById('modalDeleteBtn').addEventListener('click', () => this.deleteFieldFromModal());
+            document.getElementById('modalCancelBtn').addEventListener('click', () => this.closeModal());
+            
+            window.addEventListener('click', (e) => {
+                const modal = document.getElementById('editModal');
+                if (e.target === modal) this.closeModal();
+            });
+            
+            this.canvas.addEventListener('click', (e) => {
+                if (!this.pdfDoc) return;
+                
+                const rect = this.canvas.getBoundingClientRect();
+                const scaleX = this.canvas.width / rect.width;
+                const scaleY = this.canvas.height / rect.height;
+                const x = (e.clientX - rect.left) * scaleX;
+                const y = (e.clientY - rect.top) * scaleY;
+                
+                let clickedOnField = false;
+                for (const field of this.fields) {
+                    if (field.page === this.currentPage &&
+                        x >= field.x && x <= field.x + field.width &&
+                        y >= field.y && y <= field.y + field.height) {
+                        this.openEditModal(field);
+                        clickedOnField = true;
+                        break;
+                    }
+                }
+                
+                if (!clickedOnField) {
+                    const fieldName = prompt('Nome do campo:', `campo_${this.fields.length + 1}`);
+                    if (fieldName) {
+                        this.fields.push({
+                            id: Date.now() + Math.random(),
+                            page: this.currentPage,
+                            x: Math.max(0, Math.min(this.canvas.width - 150, x - 75)),
+                            y: Math.max(0, Math.min(this.canvas.height - 25, y - 12)),
+                            width: 150,
+                            height: 25,
+                            name: fieldName,
+                            defaultValue: ''
+                        });
+                        this.renderPage();
+                        this.updateFieldsList();
+                        this.showStatus(`Campo "${fieldName}" adicionado!`, 'success');
+                    }
+                }
+            });
+        }
+    }
+
+    const app = new PDFApp();
+    app.init();
+</script>
+</body>
+</html>
