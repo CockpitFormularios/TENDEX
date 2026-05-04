@@ -92,8 +92,8 @@
     .cache-item-stats.complete { background: #d1fae5; color: #065f46; }
     .cache-item-stats.partial { background: #fef3c7; color: #92400e; }
     .cache-item-stats.pending { background: #fee2e2; color: #991b1b; }
-    .selection-info { background: #e0f2fe; padding: 0.5rem; border-radius: 0.5rem; margin-bottom: 1rem; font-size: 0.75rem; }
-    .selected-count { font-weight: bold; color: #1e4a76; }
+    .selection-info { background: #e0f2fe; padding: 0.5rem; border-radius: 0.5rem; margin-bottom: 1rem; font-size: 0.75rem; text-align: center; }
+    .selected-count { font-weight: bold; color: #1e4a76; font-size: 1.1rem; }
     @media print {
       body * { visibility: hidden; }
       .print-sheet, .print-sheet * { visibility: visible; }
@@ -155,7 +155,7 @@
       <button class="close-modal" id="closeCacheModalBtn">&times;</button>
     </div>
     <div class="selection-info" id="selectionInfo">
-      ⚡ <span id="selectedCountText">0</span> tenda(s) selecionada(s)
+      ⚡ <span id="selectedCountText" class="selected-count">0</span> tenda(s) selecionada(s)
     </div>
     <div id="selectionActions" style="display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap;">
       <button id="selectAllBtn" class="select-all-btn">✅ Selecionar Todos</button>
@@ -191,10 +191,10 @@
   
   let currentItems = [];
   let db = null;
-  let selectedItemsIds = new Set(); // Usando Set para garantir unicidade
+  let selectedItemsIds = new Set();
   
   const DB_NAME = 'TendexOfflineCache';
-  const DB_VERSION = 3;
+  const DB_VERSION = 4;
   const STORE_PDFS = 'pdf_files';
   
   const monthNames = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
@@ -234,7 +234,7 @@
     return new Promise((resolve, reject) => {
       let tx = db.transaction(STORE_PDFS, 'readwrite');
       let store = tx.objectStore(STORE_PDFS);
-      let record = { id: id, itemId: itemId, url: url, blob: blob, fileName: fileName, timestamp: Date.now(), size: blob.size };
+      let record = { id: id, itemId: String(itemId), url: url, blob: blob, fileName: fileName, timestamp: Date.now(), size: blob.size };
       let req = store.put(record);
       req.onsuccess = () => {
         console.log(`✅ PDF salvo: ${fileName} (${(blob.size/1024).toFixed(0)}KB)`);
@@ -251,13 +251,7 @@
       let tx = db.transaction(STORE_PDFS, 'readonly');
       let store = tx.objectStore(STORE_PDFS);
       let req = store.get(id);
-      req.onsuccess = () => {
-        if(req.result) {
-          resolve(req.result.blob);
-        } else {
-          resolve(null);
-        }
-      };
+      req.onsuccess = () => resolve(req.result ? req.result.blob : null);
       req.onerror = () => resolve(null);
     });
   }
@@ -280,7 +274,8 @@
   
   async function getCacheCountForItem(itemId) {
     let all = await getAllCachedPDFs();
-    return all.filter(c => c.itemId == itemId).length;
+    let itemIdStr = String(itemId);
+    return all.filter(c => String(c.itemId) === itemIdStr).length;
   }
   
   async function clearAllCache() {
@@ -300,25 +295,6 @@
     let totalSize = cached.reduce((s,i)=> s + (i.size||0), 0);
     let sizeMB = (totalSize / (1024*1024)).toFixed(1);
     document.getElementById('cacheStats').innerHTML = `📁 ${cached.length} | ${sizeMB}MB`;
-    
-    // Atualizar badges nos cards
-    for(let item of currentItems) {
-      let card = document.querySelector(`.item-card[data-id="${item.id}"]`);
-      if(card) {
-        let count = await getCacheCountForItem(item.id);
-        let totalFiles = item.files.filter(f => f.category === 'memorial' || monthKeys.includes(f.category)).length;
-        let badge = card.querySelector('.cache-status-indicator');
-        if(count > 0 && count === totalFiles && totalFiles > 0) {
-          if(!badge) {
-            let indicator = document.createElement('span');
-            indicator.className = 'cached-badge cache-status-indicator';
-            indicator.style.marginLeft = '0.5rem';
-            indicator.textContent = '✓ Offline';
-            card.querySelector('h3')?.appendChild(indicator);
-          }
-        } else if(badge && (count !== totalFiles || totalFiles === 0)) { badge.remove(); }
-      }
-    }
     return cached.length;
   }
   
@@ -331,7 +307,10 @@
       return;
     }
     
-    // Verificar se há itens selecionados
+    console.log('=== INICIANDO DOWNLOAD ===');
+    console.log('Itens selecionados (IDs):', Array.from(selectedItemsIds));
+    console.log('Total de itens no sistema:', currentItems.length);
+    
     if(selectedItemsIds.size === 0) { 
       alert('⚠️ Nenhuma tenda selecionada.\n\nClique nas tendas da lista para selecionar e depois clique em "Baixar Selecionados".');
       return;
@@ -345,14 +324,19 @@
     isDownloading = true;
     showLoader(true);
     
-    // Coletar todos os PDFs dos itens selecionados
-    let itemsToDownload = currentItems.filter(i => selectedItemsIds.has(i.id));
+    // Converter IDs selecionados para string para comparação
+    let selectedIdsArray = Array.from(selectedItemsIds).map(id => String(id));
     
-    console.log(`📦 Itens selecionados: ${itemsToDownload.length}`);
-    console.log('IDs selecionados:', Array.from(selectedItemsIds));
+    // Filtrar os itens que estão selecionados
+    let itemsToDownload = currentItems.filter(item => selectedIdsArray.includes(String(item.id)));
+    
+    console.log(`📦 Itens selecionados encontrados: ${itemsToDownload.length}`);
+    itemsToDownload.forEach(item => {
+      console.log(`  - ${item.name} (ID: ${item.id}, Code: ${item.code})`);
+    });
     
     if(itemsToDownload.length === 0) {
-      alert('Nenhum item válido selecionado.');
+      alert('Nenhum item válido encontrado para os IDs selecionados.');
       showLoader(false);
       isDownloading = false;
       return;
@@ -361,7 +345,6 @@
     let allPdfs = [];
     
     for(let item of itemsToDownload) {
-      console.log(`  - ${item.name} (${item.code}) - ID: ${item.id}`);
       for(let file of item.files) {
         if(file.file_url && (file.category === 'memorial' || monthKeys.includes(file.category))) {
           let isCached = await isPDFCached(file.file_url);
@@ -427,7 +410,6 @@
     
     isDownloading = false;
     
-    // Atualizar a lista do modal
     if(document.getElementById('cacheModal').style.display === 'flex') {
       await loadCacheItemsList();
     }
@@ -469,7 +451,7 @@
     for(let item of currentItems) {
       let cachedCount = await getCacheCountForItem(item.id);
       let totalFiles = item.files.filter(f => f.category === 'memorial' || monthKeys.includes(f.category)).length;
-      let isSelected = selectedItemsIds.has(item.id);
+      let isSelected = selectedItemsIds.has(String(item.id));
       
       let statusClass = '';
       let statusText = '';
@@ -499,15 +481,16 @@
     
     listContainer.innerHTML = itemsHtml;
     
-    // Re-adicionar eventos aos checkboxes
     document.querySelectorAll('.item-checkbox').forEach(cb => {
       cb.addEventListener('change', (e) => {
         e.stopPropagation();
         let id = cb.dataset.id;
         if(cb.checked) {
-          selectedItemsIds.add(id);
+          selectedItemsIds.add(String(id));
+          console.log(`✅ Item adicionado: ${id}`);
         } else {
-          selectedItemsIds.delete(id);
+          selectedItemsIds.delete(String(id));
+          console.log(`❌ Item removido: ${id}`);
         }
         updateSelectionInfo();
       });
@@ -522,30 +505,31 @@
     document.getElementById('cacheProgressFill').style.width = '0%';
   }
   
-  // Função global para toggle de seleção
   window.toggleSelectItem = function(itemId) {
-    console.log('Toggle item:', itemId);
+    console.log(`🖱️ Toggle item: ${itemId}`);
     let cb = document.querySelector(`.item-checkbox[data-id="${itemId}"]`);
     if(cb) {
       cb.checked = !cb.checked;
       if(cb.checked) {
-        selectedItemsIds.add(itemId);
-        console.log(`Item adicionado: ${itemId}. Total: ${selectedItemsIds.size}`);
+        selectedItemsIds.add(String(itemId));
+        console.log(`✅ Item adicionado: ${itemId}. Total: ${selectedItemsIds.size}`);
       } else {
-        selectedItemsIds.delete(itemId);
-        console.log(`Item removido: ${itemId}. Total: ${selectedItemsIds.size}`);
+        selectedItemsIds.delete(String(itemId));
+        console.log(`❌ Item removido: ${itemId}. Total: ${selectedItemsIds.size}`);
       }
       updateSelectionInfo();
+    } else {
+      console.log(`⚠️ Checkbox não encontrado para o ID: ${itemId}`);
     }
   };
   
   function updateSelectionInfo() {
-    let info = document.getElementById('selectionInfo');
     let count = selectedItemsIds.size;
-    if(info) {
-      info.innerHTML = `⚡ <span class="selected-count">${count}</span> tenda(s) selecionada(s) para download offline.`;
+    let countSpan = document.getElementById('selectedCountText');
+    if(countSpan) {
+      countSpan.textContent = count;
     }
-    console.log(`Seleção atualizada: ${count} itens selecionados`);
+    console.log(`📊 Seleção atualizada: ${count} itens selecionados`);
   }
   
   // ==================== QR CODE ====================
@@ -599,7 +583,7 @@
       let filesByItem = {};
       if(filesData) filesData.forEach(f => { if(!filesByItem[f.item_id]) filesByItem[f.item_id]=[]; filesByItem[f.item_id].push(f); });
       currentItems = (itemsData || []).map(item => ({
-        id: item.id, name: item.name || 'Sem nome', sub_localizacao: item.sub_localizacao || '',
+        id: String(item.id), name: item.name || 'Sem nome', sub_localizacao: item.sub_localizacao || '',
         tamanho: item.tamanho || '', code: item.code || 'SEM-CODIGO', status: item.status || 'active',
         files: filesByItem[item.id] || []
       }));
@@ -765,17 +749,17 @@
   }
   
   function selectAllItems() {
-    currentItems.forEach(item => selectedItemsIds.add(item.id));
+    currentItems.forEach(item => selectedItemsIds.add(String(item.id)));
     document.querySelectorAll('.item-checkbox').forEach(cb => cb.checked = true);
     updateSelectionInfo();
-    console.log(`Selecionados todos: ${selectedItemsIds.size} itens`);
+    console.log(`✅ Selecionados todos: ${selectedItemsIds.size} itens`);
   }
   
   function deselectAllItems() {
     selectedItemsIds.clear();
     document.querySelectorAll('.item-checkbox').forEach(cb => cb.checked = false);
     updateSelectionInfo();
-    console.log(`Desmarcados todos.`);
+    console.log(`✅ Desmarcados todos.`);
   }
   
   async function clearCacheManual() {
@@ -812,7 +796,13 @@
   document.getElementById('deselectAllBtn').onclick = deselectAllItems;
   document.getElementById('refreshCacheStatusBtn').onclick = refreshCacheStatus;
   document.getElementById('closeQRGeneralModalBtn').onclick = () => document.getElementById('qrGeneralModal').style.display = 'none';
-  document.getElementById('qrGeneralModal').onclick = (e) => { if(e.target === document.getElementById('qrGeneralModal')) document.getElementById('qrGeneralModal').style.display = 'none'; };
+  
+  // Modal geral clique fora
+  let qrGeneralModalElem = document.getElementById('qrGeneralModal');
+  if(qrGeneralModalElem) {
+    qrGeneralModalElem.onclick = (e) => { if(e.target === qrGeneralModalElem) qrGeneralModalElem.style.display = 'none'; };
+  }
+  
   document.getElementById('generalQRCode').onclick = openGeneralQRModal;
   document.getElementById('searchInput').oninput = (e) => renderCards(e.target.value);
   
