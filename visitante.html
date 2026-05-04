@@ -194,8 +194,9 @@
   let selectedItemsIds = new Set();
   
   const DB_NAME = 'TendexOfflineCache';
-  const DB_VERSION = 4;
+  const DB_VERSION = 5;
   const STORE_PDFS = 'pdf_files';
+  const STORE_ITEMS = 'items_cache';
   
   const monthNames = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
   const monthKeys = ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
@@ -213,7 +214,7 @@
       req.onerror = () => reject(req.error);
       req.onsuccess = () => { 
         db = req.result;
-        console.log('✅ DB aberto');
+        console.log('✅ DB aberto versão:', DB_VERSION);
         resolve(db);
       };
       req.onupgradeneeded = (e) => {
@@ -222,9 +223,43 @@
           let store = dbEvent.createObjectStore(STORE_PDFS, { keyPath: 'id' });
           store.createIndex('by_itemId', 'itemId', { unique: false });
           store.createIndex('by_url', 'url', { unique: false });
-          console.log('📦 Store criada');
         }
+        if(!dbEvent.objectStoreNames.contains(STORE_ITEMS)) {
+          let storeItems = dbEvent.createObjectStore(STORE_ITEMS, { keyPath: 'id' });
+          console.log('📦 Store de itens criada');
+        }
+        console.log('📦 Stores atualizadas');
       };
+    });
+  }
+  
+  // Salvar itens no cache local
+  async function saveItemsToCache(items) {
+    await initDB();
+    return new Promise((resolve) => {
+      let tx = db.transaction(STORE_ITEMS, 'readwrite');
+      let store = tx.objectStore(STORE_ITEMS);
+      for(let item of items) {
+        store.put({ id: String(item.id), data: item, timestamp: Date.now() });
+      }
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => resolve();
+    });
+  }
+  
+  // Carregar itens do cache local
+  async function loadItemsFromCache() {
+    await initDB();
+    return new Promise((resolve) => {
+      let tx = db.transaction(STORE_ITEMS, 'readonly');
+      let store = tx.objectStore(STORE_ITEMS);
+      let req = store.getAll();
+      req.onsuccess = () => {
+        let items = (req.result || []).map(r => r.data);
+        console.log(`📦 Itens carregados do cache local: ${items.length}`);
+        resolve(items);
+      };
+      req.onerror = () => resolve([]);
     });
   }
   
@@ -282,11 +317,11 @@
     await initDB();
     selectedItemsIds.clear();
     return new Promise((resolve) => {
-      let tx = db.transaction(STORE_PDFS, 'readwrite');
-      let store = tx.objectStore(STORE_PDFS);
-      let req = store.clear();
-      req.onsuccess = () => resolve();
-      req.onerror = () => resolve();
+      let tx = db.transaction([STORE_PDFS, STORE_ITEMS], 'readwrite');
+      tx.objectStore(STORE_PDFS).clear();
+      tx.objectStore(STORE_ITEMS).clear();
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => resolve();
     });
   }
   
@@ -298,7 +333,65 @@
     return cached.length;
   }
   
-  // ==================== DOWNLOAD SELECIONADO (CORRIGIDO) ====================
+  // ==================== CARREGAR DADOS (PRIORIDADE PARA CACHE LOCAL) ====================
+  async function loadData() {
+    showLoader(true);
+    
+    // PRIMEIRO: Tentar carregar do cache local (rápido, funciona offline)
+    let cachedItems = await loadItemsFromCache();
+    if(cachedItems && cachedItems.length > 0) {
+      console.log('✅ Carregando dados do cache local...');
+      currentItems = cachedItems;
+      await renderCards('');
+      await updateCacheStats();
+      showLoader(false);
+    }
+    
+    // SEGUNDO: Se estiver online, buscar dados atualizados do servidor
+    if(navigator.onLine) {
+      try {
+        console.log('🌐 Online - Buscando dados atualizados...');
+        let { data: itemsData } = await supabase.from('items').select('*').order('name');
+        let { data: filesData } = await supabase.from('files').select('*');
+        
+        let filesByItem = {};
+        if(filesData) filesData.forEach(f => { if(!filesByItem[f.item_id]) filesByItem[f.item_id]=[]; filesByItem[f.item_id].push(f); });
+        
+        let newItems = (itemsData || []).map(item => ({
+          id: String(item.id), name: item.name || 'Sem nome', sub_localizacao: item.sub_localizacao || '',
+          tamanho: item.tamanho || '', code: item.code || 'SEM-CODIGO', status: item.status || 'active',
+          files: filesByItem[item.id] || []
+        }));
+        
+        // Verificar se houve mudanças
+        let hasChanges = JSON.stringify(currentItems.map(i => ({id:i.id, code:i.code}))) !== 
+                         JSON.stringify(newItems.map(i => ({id:i.id, code:i.code})));
+        
+        if(hasChanges || currentItems.length === 0) {
+          console.log('📦 Dados atualizados do servidor, salvando cache...');
+          currentItems = newItems;
+          await saveItemsToCache(currentItems);
+          await renderCards('');
+          await updateCacheStats();
+        }
+        
+        document.getElementById('lastUpdateText').innerHTML = `📅 ${new Date().toLocaleTimeString()}`;
+        localStorage.setItem('tendex_guest_cache', JSON.stringify(currentItems));
+        
+      } catch(e) {
+        console.warn('Erro ao buscar dados online:', e);
+      }
+    } else {
+      console.log('📡 Modo OFFLINE - usando dados do cache local');
+      document.getElementById('connectionStatus').innerHTML = '🔴 Offline (Cache)';
+      document.getElementById('connectionStatus').className = 'connection-status offline-badge';
+    }
+    
+    showLoader(false);
+    return currentItems;
+  }
+  
+  // ==================== DOWNLOAD SELECIONADO ====================
   let isDownloading = false;
   
   async function downloadSelectedItems() {
@@ -307,12 +400,8 @@
       return;
     }
     
-    console.log('=== INICIANDO DOWNLOAD ===');
-    console.log('Itens selecionados (IDs):', Array.from(selectedItemsIds));
-    console.log('Total de itens no sistema:', currentItems.length);
-    
     if(selectedItemsIds.size === 0) { 
-      alert('⚠️ Nenhuma tenda selecionada.\n\nClique nas tendas da lista para selecionar e depois clique em "Baixar Selecionados".');
+      alert('⚠️ Nenhuma tenda selecionada.\n\nClique nas tendas da lista para selecionar.');
       return;
     }
     
@@ -324,19 +413,11 @@
     isDownloading = true;
     showLoader(true);
     
-    // Converter IDs selecionados para string para comparação
     let selectedIdsArray = Array.from(selectedItemsIds).map(id => String(id));
-    
-    // Filtrar os itens que estão selecionados
     let itemsToDownload = currentItems.filter(item => selectedIdsArray.includes(String(item.id)));
     
-    console.log(`📦 Itens selecionados encontrados: ${itemsToDownload.length}`);
-    itemsToDownload.forEach(item => {
-      console.log(`  - ${item.name} (ID: ${item.id}, Code: ${item.code})`);
-    });
-    
     if(itemsToDownload.length === 0) {
-      alert('Nenhum item válido encontrado para os IDs selecionados.');
+      alert('Nenhum item válido encontrado.');
       showLoader(false);
       isDownloading = false;
       return;
@@ -356,22 +437,17 @@
               category: file.category,
               itemName: item.name
             });
-            console.log(`    📄 Pendente: ${file.file_name}`);
-          } else {
-            console.log(`    ✅ Já em cache: ${file.file_name}`);
           }
         }
       }
     }
     
     if(allPdfs.length === 0) {
-      alert(`✅ Todos os documentos das ${itemsToDownload.length} tenda(s) selecionadas já estão em cache!`);
+      alert(`✅ Todos os documentos das ${itemsToDownload.length} tenda(s) já estão em cache!`);
       showLoader(false);
       isDownloading = false;
       return;
     }
-    
-    console.log(`📥 Iniciando download de ${allPdfs.length} PDFs...`);
     
     let progressFill = document.getElementById('cacheProgressFill');
     let downloaded = 0;
@@ -390,51 +466,41 @@
           let blob = await response.blob();
           await savePDFToCache(pdf.itemId, pdf.url, blob, pdf.fileName);
           downloaded++;
-          console.log(`✅ [${downloaded}/${allPdfs.length}] ${pdf.fileName}`);
         } else {
           errors++;
-          console.error(`❌ Erro ${response.status}: ${pdf.fileName}`);
         }
       } catch(e) {
         errors++;
-        console.error(`❌ Erro ao baixar ${pdf.fileName}:`, e);
       }
     }
     
     await updateCacheStats();
     showLoader(false);
     
-    let message = `📥 Download concluído!\n\n✅ Baixados: ${downloaded}\n❌ Erros: ${errors}\n📁 Total: ${allPdfs.length} PDFs\n📦 Tendas: ${itemsToDownload.length}`;
-    console.log(message);
-    alert(message);
+    alert(`📥 Download concluído!\n\n✅ Baixados: ${downloaded}\n❌ Erros: ${errors}\n📁 Total: ${allPdfs.length} PDFs`);
     
     isDownloading = false;
     
     if(document.getElementById('cacheModal').style.display === 'flex') {
       await loadCacheItemsList();
     }
-    
-    showToast(`✅ Download finalizado! ${downloaded} arquivos salvos.`, 3000);
   }
   
   // ==================== VISUALIZAR PDF OFFLINE ====================
   async function viewPDFOffline(url, fileName, itemId) {
-    console.log(`🔍 Buscando PDF: ${fileName}`);
     let blob = await getPDFFromCache(url);
     
     if(blob) {
-      console.log(`✅ Abrindo offline: ${fileName} (${(blob.size/1024).toFixed(0)}KB)`);
       let blobUrl = URL.createObjectURL(blob);
       window.open(blobUrl, '_blank');
       setTimeout(() => URL.revokeObjectURL(blobUrl), 30000);
     } else {
-      console.log(`❌ PDF não está em cache: ${fileName}`);
       if(navigator.onLine) {
         if(confirm(`📄 "${fileName}" não está disponível offline.\n\nDeseja abrir online agora?`)) {
           window.open(url, '_blank');
         }
       } else {
-        alert(`❌ Documento "${fileName}" não disponível offline.\n\nConecte-se à internet, vá no menu 💾 e selecione esta tenda para baixar.`);
+        alert(`❌ Documento "${fileName}" não disponível offline.\n\nConecte-se à internet e baixe esta tenda.`);
       }
     }
   }
@@ -487,10 +553,8 @@
         let id = cb.dataset.id;
         if(cb.checked) {
           selectedItemsIds.add(String(id));
-          console.log(`✅ Item adicionado: ${id}`);
         } else {
           selectedItemsIds.delete(String(id));
-          console.log(`❌ Item removido: ${id}`);
         }
         updateSelectionInfo();
       });
@@ -506,20 +570,15 @@
   }
   
   window.toggleSelectItem = function(itemId) {
-    console.log(`🖱️ Toggle item: ${itemId}`);
     let cb = document.querySelector(`.item-checkbox[data-id="${itemId}"]`);
     if(cb) {
       cb.checked = !cb.checked;
       if(cb.checked) {
         selectedItemsIds.add(String(itemId));
-        console.log(`✅ Item adicionado: ${itemId}. Total: ${selectedItemsIds.size}`);
       } else {
         selectedItemsIds.delete(String(itemId));
-        console.log(`❌ Item removido: ${itemId}. Total: ${selectedItemsIds.size}`);
       }
       updateSelectionInfo();
-    } else {
-      console.log(`⚠️ Checkbox não encontrado para o ID: ${itemId}`);
     }
   };
   
@@ -529,7 +588,6 @@
     if(countSpan) {
       countSpan.textContent = count;
     }
-    console.log(`📊 Seleção atualizada: ${count} itens selecionados`);
   }
   
   // ==================== QR CODE ====================
@@ -572,33 +630,6 @@
       showLoader(false);
       setTimeout(() => { window.print(); setTimeout(() => { printSheet.style.display = 'none'; printSheet.innerHTML = ''; }, 500); }, 200);
     } catch(e) { showLoader(false); alert('Erro'); }
-  }
-  
-  // ==================== DADOS ====================
-  async function fetchAllData() {
-    showLoader(true);
-    try {
-      let { data: itemsData } = await supabase.from('items').select('*').order('name');
-      let { data: filesData } = await supabase.from('files').select('*');
-      let filesByItem = {};
-      if(filesData) filesData.forEach(f => { if(!filesByItem[f.item_id]) filesByItem[f.item_id]=[]; filesByItem[f.item_id].push(f); });
-      currentItems = (itemsData || []).map(item => ({
-        id: String(item.id), name: item.name || 'Sem nome', sub_localizacao: item.sub_localizacao || '',
-        tamanho: item.tamanho || '', code: item.code || 'SEM-CODIGO', status: item.status || 'active',
-        files: filesByItem[item.id] || []
-      }));
-      document.getElementById('lastUpdateText').innerHTML = `📅 ${new Date().toLocaleTimeString()}`;
-      localStorage.setItem('tendex_guest_cache', JSON.stringify(currentItems));
-      await renderCards('');
-      await updateCacheStats();
-      return currentItems;
-    } catch(e) {
-      let cached = localStorage.getItem('tendex_guest_cache');
-      if(cached && currentItems.length===0) { 
-        try { currentItems = JSON.parse(cached); await renderCards(''); } catch(e2) {}
-      }
-      return currentItems;
-    } finally { showLoader(false); }
   }
   
   // ==================== QR GERAL ====================
@@ -683,7 +714,7 @@
     let container = document.getElementById('itemsContainer');
     let lower = filter.toLowerCase();
     let filtered = currentItems.filter(i => i.name.toLowerCase().includes(lower) || i.code.toLowerCase().includes(lower));
-    if(filtered.length===0) { container.innerHTML = '<div class="empty-state">📭 Nenhuma tenda</div>'; return; }
+    if(filtered.length===0) { container.innerHTML = '<div class="empty-state">📭 Nenhuma tenda encontrada</div>'; return; }
     
     container.innerHTML = filtered.map(i => `<div class="item-card" data-id="${i.id}">
       <div><h3>${escapeHtml(i.name)}</h3><p>ID: ${escapeHtml(i.code)}</p>${i.tamanho?`<p>📏 ${escapeHtml(i.tamanho)}</p>`:''}
@@ -752,24 +783,27 @@
     currentItems.forEach(item => selectedItemsIds.add(String(item.id)));
     document.querySelectorAll('.item-checkbox').forEach(cb => cb.checked = true);
     updateSelectionInfo();
-    console.log(`✅ Selecionados todos: ${selectedItemsIds.size} itens`);
   }
   
   function deselectAllItems() {
     selectedItemsIds.clear();
     document.querySelectorAll('.item-checkbox').forEach(cb => cb.checked = false);
     updateSelectionInfo();
-    console.log(`✅ Desmarcados todos.`);
   }
   
   async function clearCacheManual() {
-    if(confirm('⚠️ Limpar todos os documentos do cache offline?\n\nIsso removerá todos os PDFs baixados.')) {
+    if(confirm('⚠️ Limpar todos os documentos do cache offline?')) {
       showLoader(true);
       await clearAllCache();
+      selectedItemsIds.clear();
       await updateCacheStats();
+      // Recarregar dados do cache local após limpar
+      await loadData();
       showLoader(false);
       alert('✅ Cache limpo com sucesso!');
-      if(document.getElementById('cacheModal').style.display === 'flex') await loadCacheItemsList();
+      if(document.getElementById('cacheModal').style.display === 'flex') {
+        document.getElementById('cacheModal').style.display = 'none';
+      }
     }
   }
   
@@ -781,12 +815,21 @@
     showToast('✅ Status atualizado!', 1000);
   }
   
+  async function manualRefresh() {
+    if(!navigator.onLine) {
+      alert('📡 Você está offline. Usando dados do cache local.');
+      return;
+    }
+    await loadData();
+    showToast('✅ Dados atualizados!', 1000);
+  }
+  
   // Registrar eventos
   document.getElementById('closeQRModalBtn').onclick = () => document.getElementById('qrModal').style.display = 'none';
   document.getElementById('downloadQRBtn').onclick = downloadQR;
   document.getElementById('printQRBtn').onclick = printItemQR;
   document.getElementById('downloadGeneralQRModalBtn').onclick = downloadGeneralQR;
-  document.getElementById('manualRefreshBtn').onclick = async () => { if(navigator.onLine) await fetchAllData(); else alert('Offline'); };
+  document.getElementById('manualRefreshBtn').onclick = manualRefresh;
   document.getElementById('printMultipleQRFromModalBtn').onclick = printMultipleQRCodes;
   document.getElementById('cacheStatusBtn').onclick = openCacheModal;
   document.getElementById('closeCacheModalBtn').onclick = () => document.getElementById('cacheModal').style.display = 'none';
@@ -797,7 +840,6 @@
   document.getElementById('refreshCacheStatusBtn').onclick = refreshCacheStatus;
   document.getElementById('closeQRGeneralModalBtn').onclick = () => document.getElementById('qrGeneralModal').style.display = 'none';
   
-  // Modal geral clique fora
   let qrGeneralModalElem = document.getElementById('qrGeneralModal');
   if(qrGeneralModalElem) {
     qrGeneralModalElem.onclick = (e) => { if(e.target === qrGeneralModalElem) qrGeneralModalElem.style.display = 'none'; };
@@ -810,19 +852,20 @@
   window.ononline = async () => {
     let statusDiv = document.getElementById('connectionStatus');
     if(statusDiv) { statusDiv.innerHTML = '🟢 Online'; statusDiv.className = 'connection-status online-badge'; }
+    await loadData();
   };
   window.onoffline = () => {
     let statusDiv = document.getElementById('connectionStatus');
-    if(statusDiv) { statusDiv.innerHTML = '🔴 Offline'; statusDiv.className = 'connection-status offline-badge'; }
+    if(statusDiv) { statusDiv.innerHTML = '🔴 Offline (Cache)'; statusDiv.className = 'connection-status offline-badge'; }
   };
   
   // ==================== INIT ====================
   (async function init() {
     await initDB();
     await generateGeneralQRCode();
-    await fetchAllData();
+    await loadData(); // Carrega do cache primeiro, depois atualiza se online
     checkHash();
-    console.log('✅ Sistema offline pronto! Clique no ícone 💾, selecione as tendas que deseja e baixe.');
+    console.log('✅ Sistema offline pronto! Os dados ficam salvos mesmo sem internet.');
   })();
 })();
 </script>
