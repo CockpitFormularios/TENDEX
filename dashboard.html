@@ -9,23 +9,31 @@
   <link rel="icon" type="image/png" sizes="192x192" href="https://jklcvyuxwxgsfczrfaco.supabase.co/storage/v1/object/public/assinaturas/icon-180.png">
   <link rel="apple-touch-icon" sizes="180x180" href="https://jklcvyuxwxgsfczrfaco.supabase.co/storage/v1/object/public/assinaturas/icon-180.png">
   <style>
-    /* ==================== ESTILOS EXISTENTES ==================== */
+    /* Reset e Estilos Globais */
     * { margin:0; padding:0; box-sizing: border-box; font-family: system-ui, 'Segoe UI', 'Inter', sans-serif; }
     body { background: #f3f6fc; padding: 2rem 1.5rem; }
+    
+    /* Cabeçalho */
     .dashboard-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem; padding-bottom: 0.75rem; border-bottom: 2px solid #cbd5e1; }
     .dashboard-header h1 { font-size: 1.8rem; background: linear-gradient(135deg, #0f2b3d, #1e4a76); background-clip: text; -webkit-background-clip: text; color: transparent; }
     .logo { height: 50px; width: auto; object-fit: contain; }
     .user-info { background: #1e293b; padding: 0.3rem 1rem; border-radius: 2rem; font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem; cursor: pointer; transition: 0.2s; }
     .user-info:hover { background: #0f172a; transform: scale(0.98); }
     .header-left { display: flex; align-items: center; gap: 1rem; }
+    
+    /* Busca */
     .search-area { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 1.5rem; background: white; padding: 0.5rem 1rem; border-radius: 2rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
     .search-icon { font-size: 1.2rem; color: #64748b; }
     .search-input { flex: 1; border: none; outline: none; font-size: 1rem; padding: 0.4rem 0; background: transparent; }
+    
+    /* Download Mensal */
     .download-section { background: white; border-radius: 1rem; padding: 1rem; margin-bottom: 2rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
     .download-section h3 { font-size: 1rem; margin-bottom: 0.8rem; color: #1e4a76; }
     .month-buttons { display: flex; flex-wrap: wrap; gap: 0.5rem; }
     .month-btn { background: #e2e8f0; border: none; padding: 0.4rem 0.9rem; border-radius: 2rem; font-size: 0.8rem; cursor: pointer; transition: 0.2s; }
     .month-btn:hover { background: #cbd5e1; transform: scale(0.96); }
+    
+    /* Grid de Itens */
     .items-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1.2rem; margin-top: 1rem; }
     .item-card { background: white; border-radius: 1rem; padding: 1rem; cursor: pointer; transition: 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid #e2edff; position: relative; }
     .item-card:hover { transform: translateY(-2px); box-shadow: 0 8px 16px rgba(0,0,0,0.08); background: #fafcff; }
@@ -35,42 +43,56 @@
     .status-active { background: #d1fae5; color: #065f46; }
     .status-inactive { background: #fee2e2; color: #991b1b; }
     .empty-state { text-align: center; color: #6c86a3; margin-top: 3rem; }
+    
+    /* Botão Flutuante */
     .fab { position: fixed; bottom: 2rem; right: 2rem; background: linear-gradient(135deg, #0f2b3d, #1e4a76); color: white; width: 56px; height: 56px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; box-shadow: 0 8px 16px rgba(0,0,0,0.2); cursor: pointer; border: none; z-index: 10; }
     .fab:hover { transform: scale(1.05); }
+    
+    /* Modais */
     .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; z-index: 1000; }
     .modal-content { background: white; max-width: 800px; width: 90%; border-radius: 1.5rem; padding: 1.5rem; max-height: 85vh; overflow-y: auto; }
     .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
     .modal-header h2 { font-size: 1.3rem; }
     .close-modal { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #64748b; padding: 0 0.5rem; }
     .close-modal:hover { color: #ef4444; }
-    .logout-modal-content { max-width: 600px; text-align: center; }
-    .logout-modal-content p { margin: 1rem 0; font-size: 1.1rem; }
-    .logout-buttons { display: flex; gap: 1rem; justify-content: center; margin-top: 1rem; }
+    
+    /* Botões */
     .btn-confirm { background: #ef4444; color: white; border: none; padding: 0.5rem 1.5rem; border-radius: 2rem; cursor: pointer; font-weight: 600; }
     .btn-confirm:hover { background: #dc2626; }
     .btn-cancel-logout { background: #64748b; color: white; border: none; padding: 0.5rem 1.5rem; border-radius: 2rem; cursor: pointer; font-weight: 600; }
     .btn-cancel-logout:hover { background: #475569; }
     .btn-primary { background: #1e4a76; color: white; border: none; padding: 0.5rem 1.5rem; border-radius: 2rem; cursor: pointer; font-weight: 600; margin: 0.25rem; }
     .btn-primary:hover { background: #0f2b3d; }
-    .btn-warning { background: #f59e0b; color: white; border: none; padding: 0.5rem 1.5rem; border-radius: 2rem; cursor: pointer; font-weight: 600; margin: 0.25rem; }
-    .btn-warning:hover { background: #d97706; }
     .btn-danger { background: #ef4444; color: white; border: none; padding: 0.5rem 1.5rem; border-radius: 2rem; cursor: pointer; font-weight: 600; margin: 0.25rem; }
     .btn-danger:hover { background: #dc2626; }
     .btn-success { background: #10b981; color: white; border: none; padding: 0.5rem 1.5rem; border-radius: 2rem; cursor: pointer; font-weight: 600; margin: 0.25rem; }
     .btn-success:hover { background: #059669; }
+    .btn-save { background: #1e4a76; color: white; padding: 0.5rem 1.2rem; border-radius: 2rem; border: none; cursor: pointer; }
+    .btn-cancel { background: #e2e8f0; color: #1e293b; padding: 0.5rem 1.2rem; border-radius: 2rem; border: none; cursor: pointer; }
+    
+    /* Seções do Modal do Usuário */
     .user-modal-section { margin: 1rem 0; padding: 1rem; background: #f8fafc; border-radius: 1rem; }
     .user-modal-section h4 { color: #1e4a76; margin-bottom: 0.5rem; font-size: 0.9rem; }
+    .logout-modal-content { max-width: 600px; text-align: center; }
+    .logout-buttons { display: flex; gap: 1rem; justify-content: center; margin-top: 1rem; }
+    
+    /* Status Badges */
     .cache-info { display: inline-block; padding: 0.2rem 0.8rem; border-radius: 2rem; font-size: 0.7rem; font-weight: 600; margin-top: 0.5rem; }
     .cache-ok { background: #d1fae5; color: #065f46; }
     .cache-missing { background: #fee2e2; color: #991b1b; }
     .signature-status { display: inline-block; padding: 0.2rem 0.8rem; border-radius: 2rem; font-size: 0.7rem; font-weight: 600; margin-top: 0.5rem; }
     .signature-ok { background: #d1fae5; color: #065f46; }
     .signature-missing { background: #fee2e2; color: #991b1b; }
+    .offline-badge { background: #f59e0b; color: white; padding: 0.2rem 0.8rem; border-radius: 2rem; font-size: 0.7rem; font-weight: 600; margin-left: 1rem; }
+    .online-badge { background: #10b981; color: white; padding: 0.2rem 0.8rem; border-radius: 2rem; font-size: 0.7rem; font-weight: 600; margin-left: 1rem; }
+    .sync-pending-badge { background: #f59e0b; color: white; border-radius: 20px; padding: 2px 8px; font-size: 10px; margin-left: 8px; cursor: pointer; }
+    .sync-pending-badge:hover { background: #d97706; }
+    
+    /* Lista de Pendentes */
     .pending-list { max-height: 300px; overflow-y: auto; margin: 1rem 0; }
     .pending-item { background: #fef3c7; padding: 0.5rem; margin: 0.25rem 0; border-radius: 0.5rem; font-size: 0.8rem; display: flex; justify-content: space-between; align-items: center; }
-    .progress-bar { width: 100%; height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden; margin: 1rem 0; }
-    .progress-fill { height: 100%; background: #10b981; width: 0%; transition: width 0.3s; }
-    .item-detail-title { background: #f1f5f9; padding: 0.8rem; border-radius: 1rem; margin-bottom: 1.2rem; }
+    
+    /* PDFs e Formulários */
     .pdf-group { margin-bottom: 1.2rem; }
     .pdf-group-title { font-weight: 600; font-size: 0.9rem; border-left: 3px solid #3b82f6; padding-left: 0.6rem; margin-bottom: 0.5rem; display: flex; justify-content: space-between; align-items: center; }
     .pdf-row { display: flex; align-items: center; justify-content: space-between; background: #f9fafb; margin-bottom: 0.5rem; padding: 0.4rem 0.8rem; border-radius: 2rem; font-size: 0.75rem; }
@@ -86,35 +108,30 @@
     .fill-form-btn:hover { background: #059669; }
     .delete-item-btn { background: #ef4444; color: white; border: none; padding: 0.5rem 1rem; border-radius: 2rem; cursor: pointer; margin-top: 1rem; font-weight: 600; }
     .delete-item-btn:hover { background: #dc2626; }
-    .notice { font-size: 0.7rem; color: #5b6e8c; margin-top: 1rem; text-align: center; }
-    .loading { text-align: center; padding: 2rem; color: #1e4a76; }
-    .error-text { color: #dc2626; font-size: 0.75rem; margin-top: 0.25rem; }
-    .form-group { margin-bottom: 1rem; }
-    .form-group label { display: block; font-weight: 600; margin-bottom: 0.3rem; font-size: 0.85rem; }
-    .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 0.6rem; border: 1px solid #cbd5e1; border-radius: 1rem; font-family: inherit; }
-    .form-group textarea { min-height: 60px; resize: vertical; }
-    .form-row { display: flex; gap: 1rem; flex-wrap: wrap; }
-    .form-row .form-group { flex: 1; }
+    .item-detail-title { background: #f1f5f9; padding: 0.8rem; border-radius: 1rem; margin-bottom: 1.2rem; }
+    
+    /* Formulário de Checklist */
     .question-group { margin-bottom: 1.5rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 1rem; }
     .question-text { font-weight: 600; margin-bottom: 0.5rem; font-size: 0.85rem; }
     .question-options { display: flex; gap: 1rem; margin-bottom: 0.5rem; flex-wrap: wrap; }
     .question-options label { font-weight: normal; margin-right: 0.5rem; }
     .question-obs { margin-top: 0.5rem; }
-    .question-obs input { font-size: 0.8rem; padding: 0.4rem; }
-    .modal-buttons { display: flex; justify-content: flex-end; gap: 0.8rem; margin-top: 1.2rem; }
-    .btn-save { background: #1e4a76; color: white; padding: 0.5rem 1.2rem; border-radius: 2rem; border: none; cursor: pointer; }
-    .btn-cancel { background: #e2e8f0; color: #1e293b; padding: 0.5rem 1.2rem; border-radius: 2rem; border: none; cursor: pointer; }
-    .attachments-title { font-size: 0.8rem; font-weight: 600; color: #334155; margin-bottom: 0.8rem; border-left: 3px solid #3b82f6; padding-left: 0.6rem; margin-top: 1rem; }
-    .month-group { margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
-    .month-group label { font-weight: 600; width: 110px; font-size: 0.8rem; }
-    .month-group input[type="file"] { flex: 1; }
+    .question-obs input { font-size: 0.8rem; padding: 0.4rem; width: 100%; }
+    .form-row { display: flex; gap: 1rem; flex-wrap: wrap; }
+    .form-row .form-group { flex: 1; }
+    .form-group { margin-bottom: 1rem; }
+    .form-group label { display: block; font-weight: 600; margin-bottom: 0.3rem; font-size: 0.85rem; }
+    .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 0.6rem; border: 1px solid #cbd5e1; border-radius: 1rem; font-family: inherit; }
     .image-preview { max-width: 100%; max-height: 100px; margin-top: 0.5rem; border-radius: 0.5rem; border: 1px solid #cbd5e1; object-fit: contain; background: #f8fafc; }
+    
+    /* Loader */
     .fullscreen-loader { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; visibility: hidden; opacity: 0; transition: visibility 0s, opacity 0.3s; }
     .fullscreen-loader.active { visibility: visible; opacity: 1; }
     .loader-spinner { width: 70px; height: 70px; border: 8px solid rgba(255,255,255,0.3); border-top-color: #3b82f6; border-radius: 50%; animation: spin 1s linear infinite; }
     .loader-text { margin-top: 1.5rem; font-size: 1.2rem; font-weight: 600; color: white; background: rgba(0,0,0,0.6); padding: 0.5rem 1.2rem; border-radius: 2rem; letter-spacing: 1px; }
     @keyframes spin { to { transform: rotate(360deg); } }
-
+    
+    .sync-status { position: fixed; top: 10px; right: 10px; background: rgba(0,0,0,0.7); color: white; padding: 4px 8px; border-radius: 20px; font-size: 10px; z-index: 10; display: none; }
     .toggle-switch { position: relative; display: inline-block; width: 60px; height: 28px; margin-left: 10px; }
     .toggle-switch input { opacity: 0; width: 0; height: 0; }
     .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ef4444; transition: 0.3s; border-radius: 28px; }
@@ -123,92 +140,40 @@
     input:checked + .slider:before { transform: translateX(32px); }
     .status-text { font-size: 0.8rem; font-weight: 600; margin-left: 5px; }
     .status-container { display: flex; align-items: center; justify-content: flex-end; margin-bottom: 1rem; }
-    .disabled-action { opacity: 0.5; pointer-events: none; }
     .inactive-message { background: #fee2e2; color: #991b1b; padding: 0.5rem; border-radius: 0.5rem; margin-bottom: 1rem; text-align: center; font-size: 0.8rem; }
-    .offline-badge { background: #f59e0b; color: white; padding: 0.2rem 0.8rem; border-radius: 2rem; font-size: 0.7rem; font-weight: 600; margin-left: 1rem; }
-    .online-badge { background: #10b981; color: white; padding: 0.2rem 0.8rem; border-radius: 2rem; font-size: 0.7rem; font-weight: 600; margin-left: 1rem; }
-    .sync-status { position: fixed; top: 10px; right: 10px; background: rgba(0,0,0,0.7); color: white; padding: 4px 8px; border-radius: 20px; font-size: 10px; z-index: 10; display: none; }
-    .sync-pending-badge { background: #f59e0b; color: white; border-radius: 20px; padding: 2px 8px; font-size: 10px; margin-left: 8px; cursor: pointer; }
-    .sync-pending-badge:hover { background: #d97706; }
-
-    /* ==================== ESTILOS DO GERENCIADOR DE PDF OFFLINE ==================== */
-    .cache-manager-section {
-      margin-top: 1rem;
-      border-top: 1px solid #e2e8f0;
-      padding-top: 1rem;
-    }
-    .cache-item-list-modal {
-      max-height: 300px;
-      overflow-y: auto;
-      margin: 0.5rem 0;
-      border: 1px solid #e2e8f0;
-      border-radius: 0.5rem;
-      padding: 0.5rem;
-    }
-    .cache-item-modal {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0.5rem;
-      border-bottom: 1px solid #e2e8f0;
-      gap: 0.5rem;
-      flex-wrap: wrap;
-      cursor: pointer;
-    }
+    .disabled-action { opacity: 0.5; pointer-events: none; }
+    .progress-bar { width: 100%; height: 4px; background: #e2e8f0; border-radius: 2px; overflow: hidden; margin: 0.5rem 0; }
+    .progress-fill { height: 100%; background: #10b981; width: 0%; transition: width 0.3s; }
+    .attachments-title { font-size: 0.8rem; font-weight: 600; color: #334155; margin-bottom: 0.8rem; border-left: 3px solid #3b82f6; padding-left: 0.6rem; margin-top: 1rem; }
+    .month-group { margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+    .month-group label { font-weight: 600; width: 110px; font-size: 0.8rem; }
+    .month-group input[type="file"] { flex: 1; }
+    .notice { font-size: 0.7rem; color: #5b6e8c; margin-top: 1rem; text-align: center; }
+    .error-text { color: #dc2626; font-size: 0.75rem; margin-top: 0.25rem; }
+    .loading { text-align: center; padding: 2rem; color: #1e4a76; }
+    
+    /* Gerenciador de Cache */
+    .cache-manager-section { margin-top: 1rem; border-top: 1px solid #e2e8f0; padding-top: 1rem; }
+    .cache-item-list-modal { max-height: 300px; overflow-y: auto; margin: 0.5rem 0; border: 1px solid #e2e8f0; border-radius: 0.5rem; padding: 0.5rem; }
+    .cache-item-modal { display: flex; align-items: center; justify-content: space-between; padding: 0.5rem; border-bottom: 1px solid #e2e8f0; gap: 0.5rem; flex-wrap: wrap; cursor: pointer; }
     .cache-item-modal:last-child { border-bottom: none; }
     .cache-item-modal:hover { background: #f8fafc; }
     .cache-item-info-modal { flex: 1; min-width: 150px; }
     .cache-item-name-modal { font-weight: 600; font-size: 0.8rem; }
     .cache-item-code-modal { font-size: 0.65rem; color: #64748b; }
-    .cache-item-stats-modal {
-      font-size: 0.6rem;
-      padding: 0.2rem 0.4rem;
-      border-radius: 1rem;
-    }
+    .cache-item-stats-modal { font-size: 0.6rem; padding: 0.2rem 0.4rem; border-radius: 1rem; }
     .cache-item-stats-modal.complete { background: #d1fae5; color: #065f46; }
     .cache-item-stats-modal.pending { background: #fee2e2; color: #991b1b; }
-    .selection-info-modal {
-      background: #e0f2fe;
-      padding: 0.3rem;
-      border-radius: 0.5rem;
-      margin-bottom: 0.5rem;
-      font-size: 0.7rem;
-      text-align: center;
-    }
+    .selection-info-modal { background: #e0f2fe; padding: 0.3rem; border-radius: 0.5rem; margin-bottom: 0.5rem; font-size: 0.7rem; text-align: center; }
     .selected-count-modal { font-weight: bold; color: #1e4a76; }
-    .btn-small {
-      padding: 0.2rem 0.5rem;
-      font-size: 0.7rem;
-      border-radius: 1rem;
-      cursor: pointer;
-      border: none;
-    }
+    .btn-small { padding: 0.2rem 0.5rem; font-size: 0.7rem; border-radius: 1rem; cursor: pointer; border: none; }
     .btn-small-success { background: #10b981; color: white; }
     .btn-small-success:hover { background: #059669; }
     .btn-small-danger { background: #ef4444; color: white; }
     .btn-small-danger:hover { background: #dc2626; }
     .btn-small-primary { background: #3b82f6; color: white; }
     .btn-small-primary:hover { background: #2563eb; }
-    .download-progress-bar {
-      width: 100%;
-      height: 4px;
-      background: #e2e8f0;
-      border-radius: 2px;
-      overflow: hidden;
-      margin: 0.5rem 0;
-    }
-    .download-progress-fill {
-      height: 100%;
-      background: #10b981;
-      width: 0%;
-      transition: width 0.3s;
-    }
-    .download-status-list {
-      max-height: 150px;
-      overflow-y: auto;
-      font-size: 0.65rem;
-      margin-top: 0.5rem;
-    }
+    .download-status-list { max-height: 150px; overflow-y: auto; font-size: 0.65rem; margin-top: 0.5rem; }
     .status-item-success { color: #065f46; background: #d1fae5; padding: 0.2rem; margin: 0.1rem 0; border-radius: 0.2rem; }
     .status-item-error { color: #991b1b; background: #fee2e2; padding: 0.2rem; margin: 0.1rem 0; border-radius: 0.2rem; }
   </style>
@@ -229,7 +194,7 @@
   </div>
 </div>
 
-<!-- MODAL DO USUÁRIO COM GERENCIADOR DE PDF OFFLINE -->
+<!-- MODAL DO USUÁRIO -->
 <div id="userModal" class="modal">
   <div class="modal-content logout-modal-content">
     <div class="modal-header">
@@ -249,34 +214,21 @@
     
     <div class="user-modal-section">
       <h4>📤 Itens Pendentes de Sincronização</h4>
-      <div id="pendingItemsList" class="pending-list">
-        <p style="color: #64748b; text-align: center;">Carregando...</p>
-      </div>
+      <div id="pendingItemsList" class="pending-list"><p style="color:#64748b;text-align:center;">Carregando...</p></div>
     </div>
     
-    <!-- ==================== GERENCIADOR DE PDF OFFLINE ==================== -->
+    <!-- GERENCIADOR DE PDF OFFLINE -->
     <div class="user-modal-section cache-manager-section">
       <h4>📥 Gerenciar PDFs Offline</h4>
-      <div class="selection-info-modal" id="selectionInfoModal">
-        ⚡ <span id="selectedCountModal" class="selected-count-modal">0</span> tenda(s) selecionada(s)
-      </div>
-      
+      <div class="selection-info-modal">⚡ <span id="selectedCountModal" class="selected-count-modal">0</span> tenda(s) selecionada(s)</div>
       <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; flex-wrap: wrap;">
         <button id="selectAllCacheModal" class="btn-small btn-small-primary">✅ Selecionar Todos</button>
         <button id="deselectAllCacheModal" class="btn-small" style="background:#64748b; color:white;">❌ Desmarcar Todos</button>
         <button id="refreshCacheModal" class="btn-small btn-small-primary">🔄 Verificar Cache</button>
       </div>
-      
-      <div id="cacheItemsModalList" class="cache-item-list-modal">
-        <p style="text-align: center; color: #64748b;">Carregando tendas...</p>
-      </div>
-      
-      <div class="download-progress-bar" id="downloadProgressModal" style="display: none;">
-        <div class="download-progress-fill" id="downloadProgressFillModal"></div>
-      </div>
-      
+      <div id="cacheItemsModalList" class="cache-item-list-modal"><p style="text-align:center;color:#64748b;">Carregando tendas...</p></div>
+      <div class="progress-bar" id="downloadProgressModal" style="display:none;"><div class="progress-fill" id="downloadProgressFillModal"></div></div>
       <div id="downloadStatusModal" class="download-status-list"></div>
-      
       <div style="display: flex; gap: 0.5rem; justify-content: center; margin-top: 0.5rem;">
         <button id="downloadSelectedModal" class="btn-small btn-small-success">📥 Baixar Selecionados</button>
         <button id="clearCacheModal" class="btn-small btn-small-danger">🗑️ Limpar PDFs</button>
@@ -294,38 +246,24 @@
     
     <div class="user-modal-section">
       <h4>👤 Conta</h4>
-      <p style="font-size: 0.9rem; margin-bottom: 1rem;">Usuário: <strong id="userModalUserName"></strong></p>
+      <p style="font-size:0.9rem;margin-bottom:1rem;">Usuário: <strong id="userModalUserName"></strong></p>
       <button class="btn-confirm" id="userModalLogoutBtn">🔓 Sair do Sistema</button>
     </div>
     
-    <div class="logout-buttons">
-      <button class="btn-cancel-logout" id="cancelUserModalBtn">Fechar</button>
-    </div>
+    <div class="logout-buttons"><button class="btn-cancel-logout" id="cancelUserModalBtn">Fechar</button></div>
   </div>
 </div>
 
-<!-- MODAL DE SINCRONIZAÇÃO DETALHADA -->
+<!-- MODAL DE SINCRONIZAÇÃO -->
 <div id="syncModal" class="modal">
   <div class="modal-content">
-    <div class="modal-header">
-      <h2>🔄 Sincronização de Dados</h2>
-      <button class="close-modal" id="closeSyncModalBtn">&times;</button>
-    </div>
-    <div id="syncModalContent">
-      <div class="progress-bar">
-        <div class="progress-fill" id="syncModalProgress"></div>
-      </div>
-      <div id="syncModalList" class="pending-list"></div>
-      <div class="modal-buttons">
-        <button class="btn-cancel" id="cancelSyncModalBtn">Fechar</button>
-      </div>
-    </div>
+    <div class="modal-header"><h2>🔄 Sincronização de Dados</h2><button class="close-modal" id="closeSyncModalBtn">&times;</button></div>
+    <div id="syncModalContent"><div class="progress-bar"><div class="progress-fill" id="syncModalProgress"></div></div><div id="syncModalList" class="pending-list"></div><div class="modal-buttons"><button class="btn-cancel" id="cancelSyncModalBtn">Fechar</button></div></div>
   </div>
 </div>
 
-<div id="reactivateModal" class="modal" style="z-index: 1001;">
-  <div class="modal-content">
-    <div class="modal-header"><h2>✏️ Reativar TENDA</h2><button class="close-modal" id="closeReactivateModalBtn">&times;</button></div>
+<div id="reactivateModal" class="modal">
+  <div class="modal-content"><div class="modal-header"><h2>✏️ Reativar TENDA</h2><button class="close-modal" id="closeReactivateModalBtn">&times;</button></div>
     <div class="form-group"><label>Localização *</label><input type="text" id="editItemName" placeholder="Ex: Tenda 5x5" spellcheck="false"></div>
     <div class="form-group"><label>Sub. Localização</label><input type="text" id="editSubLocalizacao" placeholder="Ex: Área Central" spellcheck="false"></div>
     <div class="form-group"><label>Tamanho</label><input type="text" id="editTamanho" placeholder="Ex: 5x5m, 10x20m" spellcheck="false"></div>
@@ -355,7 +293,7 @@
     <div class="form-group"><label>TAG / ID *</label><input type="text" id="newItemCode" placeholder="Ex: T-001" spellcheck="false"><div id="createCodeError" class="error-text"></div></div>
     <div class="attachments-title">📄 Memorial de Cálculo e Projeto</div>
     <div class="month-group"><label>Memorial:</label><input type="file" id="newMemorialFile" accept=".pdf"></div>
-    <div class="attachments-title" style="margin-top: 1rem;">📅 Documentos Mensais</div>
+    <div class="attachments-title" style="margin-top:1rem;">📅 Documentos Mensais</div>
     <div id="newMonthlyFilesContainer"></div>
     <div class="modal-buttons"><button class="btn-cancel" id="cancelCreateBtn">Cancelar</button><button class="btn-save" id="confirmCreateBtn">Salvar</button></div>
   </div>
@@ -372,63 +310,26 @@
   <div class="modal-content">
     <div class="modal-header"><h2 id="formModalTitle">Formulário de Inspeção</h2><button class="close-modal" id="closeFormModalBtn">&times;</button></div>
     <div id="formFieldsContainer"></div>
-    <div class="form-group">
-      <label>📸 Foto da Inspeção (obrigatória)</label>
-      <input type="file" id="fotoInspecao" accept="image/png, image/jpeg" required>
-      <div id="fotoPreview" style="margin-top: 0.5rem;"></div>
-    </div>
+    <div class="form-group"><label>📸 Foto da Inspeção (obrigatória)</label><input type="file" id="fotoInspecao" accept="image/png, image/jpeg" required><div id="fotoPreview" style="margin-top:0.5rem;"></div></div>
     <div class="modal-buttons"><button class="btn-cancel" id="cancelFormBtn">Cancelar</button><button class="btn-save" id="generatePdfBtn">Gerar PDF e Anexar</button></div>
   </div>
 </div>
 
-<div id="fullscreenLoader" class="fullscreen-loader">
-  <div class="loader-spinner"></div>
-  <div class="loader-text">🔃 Processando, aguarde...</div>
-</div>
-
+<div id="fullscreenLoader" class="fullscreen-loader"><div class="loader-spinner"></div><div class="loader-text">🔃 Processando, aguarde...</div></div>
 <div class="sync-status" id="syncStatus"></div>
 
 <script>
   (function() {
     // ==================== CONFIGURAÇÕES INICIAIS ====================
     document.addEventListener('DOMContentLoaded', () => {
-      const disableSpellCheck = () => {
-        document.querySelectorAll('input, textarea, [contenteditable="true"]').forEach(el => {
-          el.setAttribute('spellcheck', 'false');
-        });
-      };
-      disableSpellCheck();
-      const observer = new MutationObserver(disableSpellCheck);
-      observer.observe(document.body, { childList: true, subtree: true });
+      document.querySelectorAll('input, textarea, [contenteditable="true"]').forEach(el => el.setAttribute('spellcheck', 'false'));
+      new MutationObserver(() => document.querySelectorAll('input, textarea, [contenteditable="true"]').forEach(el => el.setAttribute('spellcheck', 'false'))).observe(document.body, { childList: true, subtree: true });
     });
 
     const SUPABASE_URL = "https://jklcvyuxwxgsfczrfaco.supabase.co";
     const SUPABASE_ANON_KEY = "sb_publishable_oCE8y5qaLovVj0BU-rANHA__Zmy3XVl";
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     const BUCKET = "pdfs";
-
-    // ==================== VERIFICAR PDF-LIB ====================
-    async function carregarPDFLib() {
-      if (window.PDFLib && window.PDFLib.PDFDocument) {
-        console.log('✅ PDF-lib já carregado');
-        return true;
-      }
-      
-      console.log('📥 Carregando PDF-lib...');
-      return new Promise((resolve, reject) => {
-        const script = document.createElement('script');
-        script.src = 'https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js';
-        script.onload = () => {
-          console.log('✅ PDF-lib carregado com sucesso');
-          resolve(true);
-        };
-        script.onerror = () => {
-          console.error('❌ Erro ao carregar PDF-lib');
-          reject(new Error('Falha ao carregar PDF-lib'));
-        };
-        document.head.appendChild(script);
-      });
-    }
 
     // ==================== OFFLINE STORAGE (IndexedDB) ====================
     const DB_NAME_OFFLINE = 'TendexOfflineDB';
@@ -452,34 +353,46 @@
     const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
     const monthKeys = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 
+    const checklistPerguntas = [
+      "[IMPEDITIVO] [Projeto] As tendas/ Galpões lonados possuem Projeto Estrutural e Anotação de Responsabilidade Técnica executado por um Engenheiro habilitado pelo CREA e está aderente?",
+      "[Projeto] As tendas/ Galpões lonados utilizados como abrigo seguro possuem Projeto de SPDA e Anotação de Responsabilidade Técnica executado por um Engenheiro habilitado pelo CREA e está vigente?",
+      "[Projeto] As tendas/ Galpões lonados utilizados para cobrir estruturas de canteiro, possuem aterramento conforme projeto do canteiro de obras?",
+      "[Projeto] O manual de instrução/ montagem do fabricante estão disponíveis na frente de serviço?",
+      "[Projeto] As tendas/ Galpões lonados, possuem a placa de liberação com data e responsável?",
+      "[Projeto] As tendas/ Galpões lonados possuem plano de inspeção e o mesmo está aderente, conforme projeto?",
+      "[Projeto] O formulário de inspeção anterior está disponível na frente de serviço?",
+      "[Inspeção] A aranha (estrutura de sustentação da lona), estão em bom estado de conservação, parafusadas com parafuso autotravante, tanto na parte superior e inferior do teto?",
+      "[Inspeção] As Cintas Poliéster estão tensionada e não apresentam deformação, fissuras ou cortes, conforme projeto?",
+      "[Inspeção] As colunas de escoramento e colunas de sustentação (pilares) estão alinhadas perpendicular (90°) as vigas e não apresentam corrosão e/ou deformação?",
+      "[Inspeção] As colunas de sustentação estão encaixadas e parafusadas às vigas e possuem mão francesa?",
+      "[Inspeção] As mãos francesas possuem parafusos autotravantes de encaixe nas vigas e pilares?",
+      "[Inspeção] As tendas/ Galpões lonados não estão montadas próximo à escavação, taludes ou pilhas de materiais onde exista risco de ser atingido em caso de deslizamento ou ruptura?",
+      "[Inspeção] As travas (parafusos cabeça sextavado, porcas sextavada, pino em L, arruela lisa, chumbadores, porca e contraporca, ou porca autotravante) apresentam sinais de corrosão ou folgas?",
+      "[Inspeção] As vigas (calha treliçada), estão alinhadas perpendicular (90°) aos pilares e não apresentam corrosão e/ou deformação?",
+      "[Inspeção] Os cabos de aço estão tensionados e possuem clips, não possuem fissuras ou corrosão, e possuem sapatilhas para fixação, conforme projeto?",
+      "[Inspeção] Todas as colunas de sustentação (pilares) possuem estaiamento com Cinta Poliéster e/ou cabo de aço conforme projeto e catraca vinculada a um Chumbador - Finca / Parabole?",
+      "[Inspeção] Todas as colunas de sustentação (pilares) possuem no mínimo 02 Chumbadores - Finca com ponto de solda na base / Parabole por pilar?",
+      "[Inspeção] A lona / Sombrite do fechamento lateral, esta em bom estado de conservação, não apresenta rasgos, furos, esta amarrada e esticada em todos os pontos de fixação conforme projeto?",
+      "[Inspeção] A lona / Sombrite do teto, esta em bom estado de conservação, não apresenta rasgos, furos, esta esticada e amarrada às vigas em todos os pontos de fixação, conforme projeto?",
+      "[Inspeção] As calhas de água de chuva e o interior dos pilares vazados estão totalmente desobstruídos?",
+      "[Inspeção] As tendas/ Galpões lonados estão montadas a uma distância segura de rede elétrica, equipamento ou árvores que ofereça risco de queda de peças e materiais?",
+      "[Inspeção] As tendas/galpões lonados utilizadas para ocupação de pessoas possuem sinalização de saída de emergência e alarme de emergência, conforme projeto?",
+      "[Inspeção] O sistema de iluminação (se aplicável), estão instalados corretamente?",
+      "[Inspeção] A lona de cobertura está sem nenhuma deformação ocasionada por acumulo de água, folhas, minério, etc.?"
+    ];
+
     // ==================== INICIALIZAR INDEXEDDB ====================
     function initOfflineDB() {
       return new Promise((resolve, reject) => {
-        if (dbInstance && dbInstance.version >= 36) {
-          resolve(dbInstance);
-          return;
-        }
-        const request = indexedDB.open(DB_NAME_OFFLINE, 36);
-        request.onerror = (event) => {
-          console.error('IndexedDB erro:', event);
-          reject(request.error);
-        };
-        request.onsuccess = (event) => {
-          dbInstance = request.result;
-          console.log('IndexedDB aberto com sucesso - versão 36');
-          resolve(dbInstance);
-        };
+        if (dbInstance && dbInstance.version >= 37) { resolve(dbInstance); return; }
+        const request = indexedDB.open(DB_NAME_OFFLINE, 37);
+        request.onerror = (event) => { console.error('IndexedDB erro:', event); reject(request.error); };
+        request.onsuccess = (event) => { dbInstance = request.result; console.log('IndexedDB aberto com sucesso - versão 37'); resolve(dbInstance); };
         request.onupgradeneeded = (event) => {
           const db = event.target.result;
-          console.log('Criando stores versão 36...');
-          
-          const storesToRemove = ['items_cache', 'files_cache', 'pending_items', 'pending_inspections', 'modelo_pdf', 'sync_log', 'signature_cache', 'pdf_cache'];
-          for (const store of storesToRemove) {
-            if (db.objectStoreNames.contains(store)) {
-              db.deleteObjectStore(store);
-            }
-          }
-          
+          ['items_cache', 'files_cache', 'pending_items', 'pending_inspections', 'modelo_pdf', 'sync_log', 'signature_cache', 'pdf_cache'].forEach(store => {
+            if (db.objectStoreNames.contains(store)) db.deleteObjectStore(store);
+          });
           db.createObjectStore(STORE_ITEMS, { keyPath: 'id' });
           db.createObjectStore(STORE_FILES, { keyPath: 'id', autoIncrement: true });
           db.createObjectStore(STORE_PENDING_ITEMS, { keyPath: 'id' });
@@ -492,52 +405,268 @@
       });
     }
 
-    // ==================== FUNÇÕES DO GERENCIADOR DE CACHE ====================
+    // ==================== FUNÇÕES DE ARQUIVO E CACHE ====================
+    async function carregarItemsLocal() {
+      try {
+        const db = await initOfflineDB();
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction(STORE_ITEMS, 'readonly');
+          const request = tx.objectStore(STORE_ITEMS).getAll();
+          request.onsuccess = () => resolve(request.result || []);
+          request.onerror = () => reject(request.error);
+        });
+      } catch(e) { return []; }
+    }
+
+    async function salvarItemsLocal(items) {
+      try {
+        const db = await initOfflineDB();
+        const tx = db.transaction(STORE_ITEMS, 'readwrite');
+        const store = tx.objectStore(STORE_ITEMS);
+        for (const item of items) store.put(item);
+        return new Promise((resolve, reject) => { tx.oncomplete = () => resolve(); tx.onerror = () => reject(tx.error); });
+      } catch(e) { console.warn('Erro ao salvar items local:', e); }
+    }
+
+    async function carregarFilesLocal() {
+      try {
+        const db = await initOfflineDB();
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction(STORE_FILES, 'readonly');
+          const request = tx.objectStore(STORE_FILES).getAll();
+          request.onsuccess = () => resolve(request.result || []);
+          request.onerror = () => reject(request.error);
+        });
+      } catch(e) { return []; }
+    }
+
+    async function salvarFilesLocal(files) {
+      try {
+        const db = await initOfflineDB();
+        const tx = db.transaction(STORE_FILES, 'readwrite');
+        const store = tx.objectStore(STORE_FILES);
+        for (const file of files) store.put(file);
+        return new Promise((resolve, reject) => { tx.oncomplete = () => resolve(); tx.onerror = () => reject(tx.error); });
+      } catch(e) { console.warn('Erro ao salvar files local:', e); }
+    }
+
+    async function getPendingItems() {
+      const db = await initOfflineDB();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE_PENDING_ITEMS, 'readonly');
+        const request = tx.objectStore(STORE_PENDING_ITEMS).getAll();
+        request.onsuccess = () => resolve(request.result || []);
+        request.onerror = () => reject(request.error);
+      });
+    }
+
+    async function salvarItemPending(itemData) {
+      const db = await initOfflineDB();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE_PENDING_ITEMS, 'readwrite');
+        const request = tx.objectStore(STORE_PENDING_ITEMS).put(itemData);
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+    }
+
+    async function removerItemPending(id) {
+      const db = await initOfflineDB();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE_PENDING_ITEMS, 'readwrite');
+        const request = tx.objectStore(STORE_PENDING_ITEMS).delete(id);
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(request.error);
+      });
+    }
+
+    async function getPendingInspections() {
+      const db = await initOfflineDB();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE_PENDING_INSPECTIONS, 'readonly');
+        const request = tx.objectStore(STORE_PENDING_INSPECTIONS).getAll();
+        request.onsuccess = () => resolve(request.result || []);
+        request.onerror = () => reject(request.error);
+      });
+    }
+
+    async function salvarInspecaoPending(data) {
+      const db = await initOfflineDB();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE_PENDING_INSPECTIONS, 'readwrite');
+        const request = tx.objectStore(STORE_PENDING_INSPECTIONS).put(data);
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+      });
+    }
+
+    async function removerInspecaoPending(id) {
+      const db = await initOfflineDB();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE_PENDING_INSPECTIONS, 'readwrite');
+        const request = tx.objectStore(STORE_PENDING_INSPECTIONS).delete(id);
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(request.error);
+      });
+    }
+
+    async function carregarModeloPDF() {
+      if (cachedModeloPDF) return cachedModeloPDF;
+      try {
+        const db = await initOfflineDB();
+        const tx = db.transaction(STORE_MODELO_PDF, 'readonly');
+        const result = await new Promise((resolve) => {
+          const request = tx.objectStore(STORE_MODELO_PDF).get('modelo');
+          request.onsuccess = () => resolve(request.result);
+        });
+        if (result && result.data) { cachedModeloPDF = result.data; return cachedModeloPDF; }
+      } catch(e) {}
+      const response = await fetch(MODELO_PDF_URL);
+      const buffer = await response.arrayBuffer();
+      cachedModeloPDF = buffer;
+      const db = await initOfflineDB();
+      const tx = db.transaction(STORE_MODELO_PDF, 'readwrite');
+      tx.objectStore(STORE_MODELO_PDF).put({ id: 'modelo', data: buffer });
+      return buffer;
+    }
+
+    async function cachearAssinatura() {
+      if (!currentUser || !currentUser.username) return null;
+      const nomeUsuario = currentUser.username.toLowerCase();
+      const assinaturaUrl = `https://jklcvyuxwxgsfczrfaco.supabase.co/storage/v1/object/public/assinaturas/${nomeUsuario}.png`;
+      const cacheKey = `assinatura_${nomeUsuario}`;
+      try {
+        const db = await initOfflineDB();
+        const tx = db.transaction(STORE_SIGNATURE, 'readonly');
+        const cached = await new Promise((resolve) => {
+          const request = tx.objectStore(STORE_SIGNATURE).get(cacheKey);
+          request.onsuccess = () => resolve(request.result);
+        });
+        if (cached && cached.data) { cachedSignature = cached.data; updateSignatureStatus(true); return cached.data; }
+        if (navigator.onLine) {
+          const response = await fetch(assinaturaUrl);
+          if (response.ok) {
+            const imageBytes = await response.arrayBuffer();
+            const tx2 = db.transaction(STORE_SIGNATURE, 'readwrite');
+            tx2.objectStore(STORE_SIGNATURE).put({ id: cacheKey, data: imageBytes });
+            cachedSignature = imageBytes;
+            updateSignatureStatus(true);
+            return imageBytes;
+          } else { updateSignatureStatus(false); }
+        }
+      } catch(error) { updateSignatureStatus(false); }
+      return null;
+    }
+
+    function updateSignatureStatus(isCached) {
+      const div = document.getElementById('userModalSignatureStatus');
+      if (div) {
+        div.innerHTML = isCached ? '✅ Assinatura cacheada' : '⚠️ Assinatura não disponível';
+        div.className = isCached ? 'signature-status signature-ok' : 'signature-status signature-missing';
+      }
+    }
+
+    async function updateUserModalCacheStatus() {
+      const div = document.getElementById('userModalCacheStatus');
+      try {
+        const db = await initOfflineDB();
+        const tx = db.transaction(STORE_MODELO_PDF, 'readonly');
+        const result = await new Promise((resolve) => {
+          const request = tx.objectStore(STORE_MODELO_PDF).get('modelo');
+          request.onsuccess = () => resolve(request.result);
+        });
+        if (result && result.data) {
+          const sizeMB = (result.data.byteLength / (1024 * 1024)).toFixed(2);
+          div.innerHTML = `✅ PDF Cacheado ✓ (${sizeMB} MB)`;
+          div.className = 'cache-info cache-ok';
+        } else {
+          div.innerHTML = '⚠️ PDF não cacheado';
+          div.className = 'cache-info cache-missing';
+        }
+      } catch(e) {
+        div.innerHTML = '❌ Erro ao verificar cache';
+        div.className = 'cache-info cache-missing';
+      }
+    }
+
+    async function updatePendingBadge() {
+      const badge = document.getElementById('syncPendingBadge');
+      const pendentes = await getPendingItems();
+      const total = pendentes.length;
+      if (total > 0) {
+        badge.style.display = 'inline-block';
+        badge.textContent = `📤 ${total} pendente${total > 1 ? 's' : ''}`;
+      } else {
+        badge.style.display = 'none';
+      }
+    }
+
+    async function getAllItemsWithFiles() {
+      const itemsLocal = await carregarItemsLocal();
+      const filesLocal = await carregarFilesLocal();
+      const pendentesItems = await getPendingItems();
+      const pendentesComoItens = pendentesItems.map(p => ({
+        id: p.id, name: p.name, sub_localizacao: p.sub_localizacao || '', tamanho: p.tamanho || '',
+        code: p.code, status: 'active', pending: true, files: []
+      }));
+      const todosItens = [...itemsLocal, ...pendentesComoItens];
+      const uniqueItems = [];
+      const seenIds = new Set();
+      for (const item of todosItens) {
+        if (!seenIds.has(item.id)) { seenIds.add(item.id); uniqueItems.push(item); }
+      }
+      const filesByItem = {};
+      filesLocal.forEach(file => { if (file && file.item_id) { if (!filesByItem[file.item_id]) filesByItem[file.item_id] = []; filesByItem[file.item_id].push(file); } });
+      return uniqueItems.map(item => ({
+        id: item.id, name: item.name, sub_localizacao: item.sub_localizacao || '', tamanho: item.tamanho || '',
+        code: item.code, status: item.status || 'active', pending: item.pending || false,
+        files: filesByItem[item.id] || []
+      }));
+    }
+
+    async function refreshData() {
+      currentItems = await getAllItemsWithFiles();
+      renderCards(document.getElementById('searchInput').value);
+      await updatePendingBadge();
+    }
+
+    function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;'); }
+    function formatarData(dataString) { if (!dataString) return ''; const partes = dataString.split('-'); if (partes.length === 3) return `${partes[2]}/${partes[1]}/${partes[0]}`; return dataString; }
+    function showSyncStatus(msg, isError) { const div = document.getElementById('syncStatus'); div.textContent = msg; div.style.display = 'block'; div.style.background = isError ? '#ef4444' : '#10b981'; setTimeout(() => div.style.display = 'none', 4000); }
+    async function testarConexao() { if (!navigator.onLine) return false; try { await fetch('https://www.google.com', { method: 'HEAD', mode: 'no-cors' }); return true; } catch(e) { return navigator.onLine; } }
+
+    // ==================== GERENCIADOR DE CACHE ====================
     async function carregarListaCacheModal() {
       const container = document.getElementById('cacheItemsModalList');
       if (!container) return;
-      
       container.innerHTML = '<div class="loading">Carregando tendas...</div>';
-      
       try {
         const items = await getAllItemsWithFiles();
-        const pdfCacheados = await getPdfCacheStatus();
-        
-        let html = '';
-        let selectedCount = 0;
-        
+        const db = await initOfflineDB();
+        const tx = db.transaction(STORE_PDF_CACHE, 'readonly');
+        const all = await new Promise((resolve) => { const req = tx.objectStore(STORE_PDF_CACHE).getAll(); req.onsuccess = () => resolve(req.result); });
+        const pdfCacheados = {};
+        all.forEach(item => { pdfCacheados[item.id] = true; });
+        let html = '', selectedCount = 0;
         for (const item of items) {
           const temPDF = pdfCacheados[item.id];
           const statusClass = temPDF ? 'complete' : 'pending';
           const statusText = temPDF ? '✅ PDF baixado' : '⚠️ Aguardando download';
           const isSelected = selectedItemsModal.has(item.id);
           if (isSelected) selectedCount++;
-          
-          html += `
-            <div class="cache-item-modal" data-id="${item.id}">
-              <div class="cache-item-info-modal">
-                <div class="cache-item-name-modal">${escapeHtml(item.name)}</div>
-                <div class="cache-item-code-modal">Código: ${escapeHtml(item.code)}</div>
-              </div>
-              <div class="cache-item-stats-modal ${statusClass}">${statusText}</div>
-              <div>
-                <button class="select-item-cache-modal btn-small" data-id="${item.id}" data-selected="${isSelected}" style="background:${isSelected ? '#ef4444' : '#10b981'}; color:white;">
-                  ${isSelected ? 'Desmarcar' : 'Selecionar'}
-                </button>
-              </div>
-            </div>
-          `;
+          html += `<div class="cache-item-modal" data-id="${item.id}">
+            <div class="cache-item-info-modal"><div class="cache-item-name-modal">${escapeHtml(item.name)}</div><div class="cache-item-code-modal">Código: ${escapeHtml(item.code)}</div></div>
+            <div class="cache-item-stats-modal ${statusClass}">${statusText}</div>
+            <div><button class="select-item-cache-modal btn-small" data-id="${item.id}" data-selected="${isSelected}" style="background:${isSelected ? '#ef4444' : '#10b981'}; color:white;">${isSelected ? 'Desmarcar' : 'Selecionar'}</button></div>
+          </div>`;
         }
-        
         document.getElementById('selectedCountModal').innerText = selectedCount;
         container.innerHTML = html;
-        
         document.querySelectorAll('.select-item-cache-modal').forEach(btn => {
           btn.addEventListener('click', (e) => {
             e.stopPropagation();
             const id = btn.dataset.id;
             const isSelected = btn.dataset.selected === 'true';
-            
             if (isSelected) {
               selectedItemsModal.delete(id);
               btn.dataset.selected = 'false';
@@ -549,172 +678,91 @@
               btn.style.background = '#ef4444';
               btn.innerText = 'Desmarcar';
             }
-            
             document.getElementById('selectedCountModal').innerText = selectedItemsModal.size;
           });
         });
-        
-        document.querySelectorAll('.cache-item-modal').forEach(itemDiv => {
-          itemDiv.addEventListener('click', (e) => {
-            if (e.target.tagName === 'BUTTON') return;
-            const btn = itemDiv.querySelector('.select-item-cache-modal');
-            if (btn) btn.click();
-          });
+        document.querySelectorAll('.cache-item-modal').forEach(div => {
+          div.addEventListener('click', (e) => { if (e.target.tagName !== 'BUTTON') div.querySelector('.select-item-cache-modal')?.click(); });
         });
-        
-      } catch (error) {
-        console.error('Erro ao carregar lista:', error);
-        container.innerHTML = '<div class="error-text">Erro ao carregar tendas</div>';
-      }
-    }
-
-    async function getPdfCacheStatus() {
-      try {
-        const db = await initOfflineDB();
-        const tx = db.transaction(STORE_PDF_CACHE, 'readonly');
-        const store = tx.objectStore(STORE_PDF_CACHE);
-        const all = await new Promise((resolve) => {
-          const req = store.getAll();
-          req.onsuccess = () => resolve(req.result);
-        });
-        const status = {};
-        all.forEach(item => { status[item.id] = true; });
-        return status;
-      } catch(e) {
-        return {};
-      }
+      } catch(e) { container.innerHTML = '<div class="error-text">Erro ao carregar tendas</div>'; }
     }
 
     async function baixarPDFsSelecionadosModal() {
-      if (selectedItemsModal.size === 0) {
-        alert('Selecione pelo menos uma tenda para baixar os PDFs.');
-        return;
-      }
-      
+      if (selectedItemsModal.size === 0) { alert('Selecione pelo menos uma tenda para baixar os PDFs.'); return; }
       const progressBar = document.getElementById('downloadProgressModal');
       const progressFill = document.getElementById('downloadProgressFillModal');
       const statusList = document.getElementById('downloadStatusModal');
-      
-      progressBar.style.display = 'block';
-      progressFill.style.width = '0%';
-      statusList.innerHTML = '';
-      
+      progressBar.style.display = 'block'; progressFill.style.width = '0%'; statusList.innerHTML = '';
       const items = await getAllItemsWithFiles();
       const itemsSelecionados = items.filter(i => selectedItemsModal.has(i.id));
-      let concluidos = 0;
-      let erros = 0;
-      
+      let concluidos = 0, erros = 0;
       for (const item of itemsSelecionados) {
         try {
-          const pdfBlob = await gerarPDFCompleto(item);
-          await salvarPDFCache(item.id, pdfBlob);
-          
-          const statusDiv = document.createElement('div');
-          statusDiv.className = 'status-item-success';
-          statusDiv.innerHTML = `✅ ${escapeHtml(item.name)} baixado com sucesso!`;
-          statusList.appendChild(statusDiv);
+          await gerarEPDFCache(item);
+          const div = document.createElement('div');
+          div.className = 'status-item-success';
+          div.innerHTML = `✅ ${escapeHtml(item.name)} baixado com sucesso!`;
+          statusList.appendChild(div);
           concluidos++;
-        } catch (error) {
-          console.error(`Erro ao baixar ${item.name}:`, error);
-          const statusDiv = document.createElement('div');
-          statusDiv.className = 'status-item-error';
-          statusDiv.innerHTML = `❌ Erro ao baixar ${escapeHtml(item.name)}: ${error.message}`;
-          statusList.appendChild(statusDiv);
+        } catch(e) {
+          const div = document.createElement('div');
+          div.className = 'status-item-error';
+          div.innerHTML = `❌ Erro ao baixar ${escapeHtml(item.name)}: ${e.message}`;
+          statusList.appendChild(div);
           erros++;
         }
-        
-        const percent = ((concluidos + erros) / itemsSelecionados.length) * 100;
-        progressFill.style.width = `${percent}%`;
+        progressFill.style.width = `${((concluidos + erros) / itemsSelecionados.length) * 100}%`;
       }
-      
-      setTimeout(() => {
-        progressBar.style.display = 'none';
-        setTimeout(() => { statusList.innerHTML = ''; }, 3000);
-      }, 3000);
-      
-      alert(`✅ Download concluído!\n\nSucesso: ${concluidos}\nFalhas: ${erros}`);
-      
+      setTimeout(() => { progressBar.style.display = 'none'; setTimeout(() => { statusList.innerHTML = ''; }, 3000); }, 3000);
+      alert(`✅ Download concluído!\nSucesso: ${concluidos}\nFalhas: ${erros}`);
       await carregarListaCacheModal();
       await updateUserModalCacheStatus();
     }
 
-    async function gerarPDFCompleto(item) {
+    async function gerarEPDFCache(item) {
       if (!window.PDFLib) await carregarPDFLib();
-      const { PDFDocument, StandardFonts, rgb } = window.PDFLib;
+      const { PDFDocument, StandardFonts } = window.PDFLib;
       const modelBytes = await carregarModeloPDF();
       const pdfDoc = await PDFDocument.load(modelBytes);
       const form = pdfDoc.getForm();
-      
       const campos = [
-        { nome: "unidade", valor: "SERRA NORTE" },
-        { nome: "localidade", valor: item.name },
-        { nome: "nome", valor: currentUser?.username || "Sistema" },
-        { nome: "matrcula", valor: "SISTEMA" },
-        { nome: "data", valor: new Date().toISOString().split('T')[0] },
-        { nome: "empresa", valor: "TENDEX" }
+        { nome: "unidade", valor: "SERRA NORTE" }, { nome: "localidade", valor: item.name },
+        { nome: "nome", valor: currentUser?.username || "Sistema" }, { nome: "matrcula", valor: "SISTEMA" },
+        { nome: "data", valor: new Date().toISOString().split('T')[0] }, { nome: "empresa", valor: "TENDEX" }
       ];
-      
-      for (const campo of campos) {
-        try {
-          const textField = form.getTextField(campo.nome);
-          if (textField) textField.setText(campo.valor);
-        } catch(e) {}
-      }
-      
-      for (let i = 1; i <= 25; i++) {
-        try {
-          const textField = form.getTextField(`${i}`);
-          if (textField) textField.setText("Conforme");
-        } catch(e) {}
-      }
-      
+      for (const c of campos) { try { form.getTextField(c.nome)?.setText(c.valor); } catch(e) {} }
+      for (let i = 1; i <= 25; i++) { try { form.getTextField(`${i}`)?.setText("Conforme"); } catch(e) {} }
       const pages = pdfDoc.getPages();
       if (pages.length > 0) {
-        const pagina = pages[0];
-        const { width, height } = pagina.getSize();
+        const pagina = pages[0], { width, height } = pagina.getSize();
         const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
         const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-        
-        const posX = width - 210;
-        let posY = 130;
-        pagina.drawText(`ID / TAG: ${item.code}`, { x: posX, y: posY, size: 10, font: boldFont });
-        posY -= 18;
-        pagina.drawText(`TAMANHO: ${item.tamanho || 'Não informado'}`, { x: posX, y: posY, size: 10, font: boldFont });
-        posY -= 25;
-        pagina.drawLine({ start: { x: posX - 10, y: posY + 8 }, end: { x: width - 30, y: posY + 8 }, thickness: 1 });
-        pagina.drawText("Assinatura do Responsável", { x: posX - 10, y: posY - 5, size: 8, font: font });
-        
+        let y = 130;
+        pagina.drawText(`ID / TAG: ${item.code}`, { x: width - 210, y: y, size: 10, font: boldFont });
+        y -= 18;
+        pagina.drawText(`TAMANHO: ${item.tamanho || 'Não informado'}`, { x: width - 210, y: y, size: 10, font: boldFont });
+        y -= 25;
+        pagina.drawLine({ start: { x: width - 220, y: y + 8 }, end: { x: width - 30, y: y + 8 }, thickness: 1 });
+        pagina.drawText("Assinatura do Responsável", { x: width - 220, y: y - 5, size: 8, font: font });
         if (cachedSignature) {
           try {
-            let imagem = await pdfDoc.embedPng(cachedSignature);
-            const areaMaxWidth = 180, areaMaxHeight = 80;
-            const scale = Math.min(areaMaxWidth / imagem.width, areaMaxHeight / imagem.height);
-            const finalW = imagem.width * scale, finalH = imagem.height * scale;
-            const imgX = width - finalW - 30, imgY = posY - finalH - 10;
-            pagina.drawImage(imagem, { x: imgX, y: imgY, width: finalW, height: finalH });
+            let img = await pdfDoc.embedPng(cachedSignature);
+            const scale = Math.min(180 / img.width, 80 / img.height);
+            pagina.drawImage(img, { x: width - (img.width * scale) - 30, y: y - (img.height * scale) - 10, width: img.width * scale, height: img.height * scale });
           } catch(e) {}
         }
       }
-      
       const pdfBytes = await pdfDoc.save();
-      return new Blob([pdfBytes], { type: 'application/pdf' });
-    }
-
-    async function salvarPDFCache(itemId, blob) {
+      const blob = new Blob([pdfBytes], { type: 'application/pdf' });
       const db = await initOfflineDB();
       const tx = db.transaction(STORE_PDF_CACHE, 'readwrite');
-      const store = tx.objectStore(STORE_PDF_CACHE);
       const arrayBuffer = await blob.arrayBuffer();
-      store.put({ id: String(itemId), data: arrayBuffer, timestamp: Date.now() });
-      return new Promise((resolve, reject) => {
-        tx.oncomplete = () => resolve();
-        tx.onerror = () => reject(tx.error);
-      });
+      tx.objectStore(STORE_PDF_CACHE).put({ id: String(item.id), data: arrayBuffer, timestamp: Date.now() });
+      return new Promise((resolve, reject) => { tx.oncomplete = () => resolve(); tx.onerror = () => reject(tx.error); });
     }
 
     async function limparPDFsCacheModal() {
       if (!confirm('⚠️ ATENÇÃO: Isso irá remover TODOS os PDFs baixados para uso offline.\n\nDeseja continuar?')) return;
-      
       const db = await initOfflineDB();
       const tx = db.transaction(STORE_PDF_CACHE, 'readwrite');
       await tx.objectStore(STORE_PDF_CACHE).clear();
@@ -724,240 +772,56 @@
       await updateUserModalCacheStatus();
     }
 
-    // ==================== FUNÇÕES PRINCIPAIS ====================
-    async function carregarItemsLocal() {
-      try {
-        const db = await initOfflineDB();
-        return new Promise((resolve, reject) => {
-          const tx = db.transaction(STORE_ITEMS, 'readonly');
-          const store = tx.objectStore(STORE_ITEMS);
-          const request = store.getAll();
-          request.onsuccess = () => resolve(request.result || []);
-          request.onerror = () => reject(request.error);
-        });
-      } catch (e) { return []; }
-    }
-
-    async function carregarFilesLocal() {
-      try {
-        const db = await initOfflineDB();
-        return new Promise((resolve, reject) => {
-          const tx = db.transaction(STORE_FILES, 'readonly');
-          const store = tx.objectStore(STORE_FILES);
-          const request = store.getAll();
-          request.onsuccess = () => resolve(request.result || []);
-          request.onerror = () => reject(request.error);
-        });
-      } catch (e) { return []; }
-    }
-
-    async function getAllItemsWithFiles() {
-      const itemsLocal = await carregarItemsLocal();
-      const filesLocal = await carregarFilesLocal();
-      const pendentesItems = await getPendingItems();
-      
-      const pendentesComoItens = pendentesItems.map(p => ({
-        id: p.id,
-        name: p.name,
-        sub_localizacao: p.sub_localizacao || '',
-        tamanho: p.tamanho || '',
-        code: p.code,
-        status: 'active',
-        pending: true,
-        files: []
-      }));
-      
-      const todosItens = [...itemsLocal, ...pendentesComoItens];
-      const uniqueItems = [];
-      const seenIds = new Set();
-      for (const item of todosItens) {
-        if (!seenIds.has(item.id)) {
-          seenIds.add(item.id);
-          uniqueItems.push(item);
-        }
-      }
-      
-      const filesByItem = {};
-      filesLocal.forEach(file => {
-        if (file && file.item_id) {
-          if (!filesByItem[file.item_id]) filesByItem[file.item_id] = [];
-          filesByItem[file.item_id].push(file);
-        }
-      });
-      
-      return uniqueItems.map(item => ({
-        id: item.id, name: item.name, sub_localizacao: item.sub_localizacao || '',
-        tamanho: item.tamanho || '', code: item.code, status: item.status || 'active',
-        pending: item.pending || false,
-        files: filesByItem[item.id] || []
-      }));
-    }
-
-    async function carregarModeloPDF() {
-      if (cachedModeloPDF) return cachedModeloPDF;
-      try {
-        const db = await initOfflineDB();
-        const tx = db.transaction(STORE_MODELO_PDF, 'readonly');
-        const store = tx.objectStore(STORE_MODELO_PDF);
-        const result = await new Promise((resolve) => {
-          const request = store.get('modelo');
-          request.onsuccess = () => resolve(request.result);
-        });
-        if (result && result.data) {
-          cachedModeloPDF = result.data;
-          return cachedModeloPDF;
-        }
-      } catch(e) {}
-      
-      const response = await fetch(MODELO_PDF_URL);
-      const buffer = await response.arrayBuffer();
-      cachedModeloPDF = buffer;
-      const db = await initOfflineDB();
-      const tx = db.transaction(STORE_MODELO_PDF, 'readwrite');
-      tx.objectStore(STORE_MODELO_PDF).put({ id: 'modelo', data: buffer });
-      return buffer;
-    }
-
-    async function getPendingItems() {
-      const db = await initOfflineDB();
+    async function carregarPDFLib() {
+      if (window.PDFLib && window.PDFLib.PDFDocument) return true;
       return new Promise((resolve, reject) => {
-        const tx = db.transaction(STORE_PENDING_ITEMS, 'readonly');
-        const store = tx.objectStore(STORE_PENDING_ITEMS);
-        const request = store.getAll();
-        request.onsuccess = () => resolve(request.result || []);
-        request.onerror = () => reject(request.error);
+        const script = document.createElement('script');
+        script.src = 'https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js';
+        script.onload = () => resolve(true);
+        script.onerror = () => reject(new Error('Falha ao carregar PDF-lib'));
+        document.head.appendChild(script);
       });
     }
 
-    async function cachearAssinatura() {
-      if (!currentUser || !currentUser.username) return null;
-      const nomeUsuario = currentUser.username.toLowerCase();
-      const assinaturaUrl = `https://jklcvyuxwxgsfczrfaco.supabase.co/storage/v1/object/public/assinaturas/${nomeUsuario}.png`;
-      const cacheKey = `assinatura_${nomeUsuario}`;
-      
-      try {
-        const db = await initOfflineDB();
-        const tx = db.transaction(STORE_SIGNATURE, 'readonly');
-        const store = tx.objectStore(STORE_SIGNATURE);
-        const cached = await new Promise((resolve) => {
-          const request = store.get(cacheKey);
-          request.onsuccess = () => resolve(request.result);
-        });
-        if (cached && cached.data) {
-          cachedSignature = cached.data;
-          updateSignatureStatus(true);
-          return cached.data;
-        }
-        if (navigator.onLine) {
-          const response = await fetch(assinaturaUrl);
-          if (response.ok) {
-            const imageBytes = await response.arrayBuffer();
-            const tx2 = db.transaction(STORE_SIGNATURE, 'readwrite');
-            const store2 = tx2.objectStore(STORE_SIGNATURE);
-            store2.put({ id: cacheKey, data: imageBytes });
-            cachedSignature = imageBytes;
-            updateSignatureStatus(true);
-            return imageBytes;
-          } else {
-            updateSignatureStatus(false);
-          }
-        }
-      } catch (error) {
-        updateSignatureStatus(false);
+    // ==================== CRIAÇÃO DE ITEM ====================
+    async function saveItemComplete(itemId, name, sub_localizacao, tamanho, code, filesToProcess) {
+      const isOnline = navigator.onLine && await testarConexao();
+      const offlineId = `offline_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      if (!isOnline) {
+        const itemsLocal = await carregarItemsLocal();
+        if (itemsLocal.some(i => i.code === code)) { alert('❌ Este código já existe localmente.'); throw new Error('Código duplicado'); }
+        const pendingData = { id: offlineId, name, sub_localizacao: sub_localizacao || '', tamanho: tamanho || '', code, timestamp: new Date().toISOString() };
+        await salvarItemPending(pendingData);
+        const newItem = { id: offlineId, name, sub_localizacao: sub_localizacao || '', tamanho: tamanho || '', code, status: 'active', files: [], pending: true };
+        itemsLocal.push(newItem);
+        await salvarItemsLocal(itemsLocal);
+        await refreshData();
+        alert('⚠️ Você está offline. O item foi salvo localmente e será sincronizado quando a internet voltar.');
+        return offlineId;
       }
-      return null;
-    }
-
-    async function updateSignatureStatus(isCached) {
-      const statusDiv = document.getElementById('userModalSignatureStatus');
-      if (statusDiv) {
-        if (isCached) {
-          statusDiv.innerHTML = '✅ Assinatura cacheada';
-          statusDiv.className = 'signature-status signature-ok';
-        } else {
-          statusDiv.innerHTML = '⚠️ Assinatura não disponível';
-          statusDiv.className = 'signature-status signature-missing';
-        }
-      }
-    }
-
-    async function updateUserModalCacheStatus() {
-      const statusDiv = document.getElementById('userModalCacheStatus');
-      try {
-        const db = await initOfflineDB();
-        const tx = db.transaction(STORE_MODELO_PDF, 'readonly');
-        const store = tx.objectStore(STORE_MODELO_PDF);
-        const result = await new Promise((resolve) => {
-          const request = store.get('modelo');
-          request.onsuccess = () => resolve(request.result);
-        });
-        if (result && result.data) {
-          const sizeMB = (result.data.byteLength / (1024 * 1024)).toFixed(2);
-          statusDiv.innerHTML = `✅ PDF Cacheado ✓ (${sizeMB} MB)`;
-          statusDiv.className = 'cache-info cache-ok';
-        } else {
-          statusDiv.innerHTML = '⚠️ PDF não cacheado';
-          statusDiv.className = 'cache-info cache-missing';
-        }
-      } catch(e) {
-        statusDiv.innerHTML = '❌ Erro ao verificar cache';
-        statusDiv.className = 'cache-info cache-missing';
-      }
-    }
-
-    async function updatePendingBadge() {
-      const badge = document.getElementById('syncPendingBadge');
-      const pendentesItems = await getPendingItems();
-      const total = pendentesItems.length;
-      if (total > 0) {
-        badge.style.display = 'inline-block';
-        badge.textContent = `📤 ${total} pendente${total > 1 ? 's' : ''}`;
+      const { data: existing } = await supabase.from('items').select('id').eq('code', code).maybeSingle();
+      if (existing && existing.id !== itemId) { alert(`❌ O código "${code}" já está em uso.`); throw new Error('Código duplicado'); }
+      let itemIdFinal = itemId;
+      const itemData = { name, sub_localizacao: sub_localizacao || '', tamanho: tamanho || '', code, status: 'active' };
+      if (itemId && !itemId.toString().startsWith('offline_')) {
+        await supabase.from('items').update(itemData).eq('id', itemId);
       } else {
-        badge.style.display = 'none';
+        const { data: newItem, error } = await supabase.from('items').insert(itemData).select().single();
+        if (error) throw error;
+        itemIdFinal = newItem.id;
+        const pendentes = await getPendingItems();
+        const pendente = pendentes.find(p => p.code === code);
+        if (pendente) await removerItemPending(pendente.id);
       }
+      const allItems = await supabase.from('items').select('*');
+      const allFiles = await supabase.from('files').select('*');
+      await salvarItemsLocal(allItems.data || []);
+      await salvarFilesLocal(allFiles.data || []);
+      await refreshData();
+      return itemIdFinal;
     }
 
-    async function listarPendentesNoModal() {
-      const container = document.getElementById('pendingItemsList');
-      const pendentesItems = await getPendingItems();
-      
-      if (!pendentesItems || pendentesItems.length === 0) {
-        container.innerHTML = '<p style="color: #10b981; text-align: center;">✅ Nenhum item pendente</p>';
-        return;
-      }
-      
-      let html = '';
-      for (const item of pendentesItems) {
-        html += `<div class="pending-item"><span>🏷️ ${escapeHtml(item.name)} (${escapeHtml(item.code)})</span><span>Aguardando</span></div>`;
-      }
-      container.innerHTML = html;
-    }
-
-    function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;'); }
-    function formatarData(dataString) { if (!dataString) return ''; const partes = dataString.split('-'); if (partes.length === 3) return `${partes[2]}/${partes[1]}/${partes[0]}`; return dataString; }
-
-    async function testarConexao() {
-      if (!navigator.onLine) return false;
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000);
-        await fetch('https://www.google.com', { method: 'HEAD', signal: controller.signal, mode: 'no-cors' });
-        clearTimeout(timeoutId);
-        return true;
-      } catch (error) { return navigator.onLine; }
-    }
-
-    function showSyncStatus(message, isError = false) {
-      const statusDiv = document.getElementById('syncStatus');
-      statusDiv.textContent = message;
-      statusDiv.style.display = 'block';
-      statusDiv.style.background = isError ? '#ef4444' : '#10b981';
-      setTimeout(() => {
-        statusDiv.style.display = 'none';
-      }, 4000);
-    }
-
-    // ==================== FUNÇÕES DE FORMULÁRIO E PDF ====================
+    // ==================== FORMULÁRIO E PDF ====================
     async function adicionarInfoItemEAssinatura(pdfDoc, itemCode, itemTamanho) {
       try {
         const pages = pdfDoc.getPages();
@@ -967,26 +831,18 @@
         const { StandardFonts, rgb } = window.PDFLib;
         const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
         const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-        
-        const posX = width - 210;
-        let posY = 130;
-        
-        pagina.drawText(`ID / TAG: ${itemCode}`, { x: posX, y: posY, size: 10, font: boldFont, color: rgb(0,0,0) });
-        posY -= 18;
-        pagina.drawText(`TAMANHO: ${itemTamanho || 'Não informado'}`, { x: posX, y: posY, size: 10, font: boldFont, color: rgb(0,0,0) });
-        posY -= 25;
-        
-        pagina.drawLine({ start: { x: posX - 10, y: posY + 8 }, end: { x: width - 30, y: posY + 8 }, thickness: 1, color: rgb(0.5,0.5,0.5) });
-        pagina.drawText("Assinatura do Responsável", { x: posX - 10, y: posY - 5, size: 8, font: font, color: rgb(0.5,0.5,0.5) });
-        
+        let y = 130;
+        pagina.drawText(`ID / TAG: ${itemCode}`, { x: width - 210, y: y, size: 10, font: boldFont });
+        y -= 18;
+        pagina.drawText(`TAMANHO: ${itemTamanho || 'Não informado'}`, { x: width - 210, y: y, size: 10, font: boldFont });
+        y -= 25;
+        pagina.drawLine({ start: { x: width - 220, y: y + 8 }, end: { x: width - 30, y: y + 8 }, thickness: 1 });
+        pagina.drawText("Assinatura do Responsável", { x: width - 220, y: y - 5, size: 8, font: font });
         if (cachedSignature) {
           try {
-            let imagem = await pdfDoc.embedPng(cachedSignature);
-            const areaMaxWidth = 180, areaMaxHeight = 80;
-            const scale = Math.min(areaMaxWidth / imagem.width, areaMaxHeight / imagem.height);
-            const finalW = imagem.width * scale, finalH = imagem.height * scale;
-            const imgX = width - finalW - 30, imgY = posY - finalH - 10;
-            pagina.drawImage(imagem, { x: imgX, y: imgY, width: finalW, height: finalH });
+            let img = await pdfDoc.embedPng(cachedSignature);
+            const scale = Math.min(180 / img.width, 80 / img.height);
+            pagina.drawImage(img, { x: width - (img.width * scale) - 30, y: y - (img.height * scale) - 10, width: img.width * scale, height: img.height * scale });
           } catch(e) {}
         }
         return pdfDoc;
@@ -994,268 +850,376 @@
     }
 
     async function gerarPDFBlob(formData, itemInfo, fotoFile) {
-      if (!window.PDFLib || !window.PDFLib.PDFDocument) {
-        await carregarPDFLib();
-      }
-      if (!window.PDFLib || !window.PDFLib.PDFDocument) {
-        throw new Error("PDF-lib não pôde ser carregado.");
-      }
-      
+      if (!window.PDFLib || !window.PDFLib.PDFDocument) await carregarPDFLib();
+      if (!window.PDFLib || !window.PDFLib.PDFDocument) throw new Error("PDF-lib não pôde ser carregado.");
       const { PDFDocument } = window.PDFLib;
       const modelBytes = await carregarModeloPDF();
       const pdfDoc = await PDFDocument.load(modelBytes);
       const form = pdfDoc.getForm();
-      
-      const camposCabecalho = [
-        { nome: "unidade", valor: formData.unidade || "" },
-        { nome: "localidade", valor: formData.localidade || "" },
-        { nome: "nome", valor: formData.resp_nome || "" },
-        { nome: "matrcula", valor: formData.resp_matricula || "" },
-        { nome: "data", valor: formData.data_inspecao || "" },
-        { nome: "empresa", valor: formData.empresa || "" }
+      const campos = [
+        { nome: "unidade", valor: formData.unidade || "" }, { nome: "localidade", valor: formData.localidade || "" },
+        { nome: "nome", valor: formData.resp_nome || "" }, { nome: "matrcula", valor: formData.resp_matricula || "" },
+        { nome: "data", valor: formData.data_inspecao || "" }, { nome: "empresa", valor: formData.empresa || "" }
       ];
-      
-      for (const campo of camposCabecalho) {
-        try { 
-          const textField = form.getTextField(campo.nome);
-          if (textField) textField.setText(campo.valor || '');
-        } catch(e) {}
-      }
-      
-      for (let i = 1; i <= 25; i++) {
-        const resposta = formData[`resp_${i-1}`] || "Não respondido";
-        try { 
-          const textField = form.getTextField(`${i}`);
-          if (textField) textField.setText(resposta);
-        } catch(e) {}
-      }
-      
+      for (const c of campos) { try { form.getTextField(c.nome)?.setText(c.valor); } catch(e) {} }
+      for (let i = 1; i <= 25; i++) { const resposta = formData[`resp_${i-1}`] || "Não respondido"; try { form.getTextField(`${i}`)?.setText(resposta); } catch(e) {} }
       await adicionarInfoItemEAssinatura(pdfDoc, itemInfo.code, itemInfo.tamanho);
-      
       if (fotoFile) {
         try {
           const fotoBytes = await fotoFile.arrayBuffer();
           let fotoImage;
           try { fotoImage = await pdfDoc.embedPng(fotoBytes); } catch { fotoImage = await pdfDoc.embedJpg(fotoBytes); }
           if (fotoImage) {
-            const fotoMaxWidth = 300, fotoMaxHeight = 200;
-            const scale = Math.min(fotoMaxWidth / fotoImage.width, fotoMaxHeight / fotoImage.height);
-            const finalW = fotoImage.width * scale, finalH = fotoImage.height * scale;
+            const scale = Math.min(300 / fotoImage.width, 200 / fotoImage.height);
             const page = pdfDoc.getPages()[0];
-            page.drawImage(fotoImage, { x: 30, y: 30, width: finalW, height: finalH });
+            page.drawImage(fotoImage, { x: 30, y: 30, width: fotoImage.width * scale, height: fotoImage.height * scale });
           }
         } catch(e) {}
       }
-      
       const pdfBytes = await pdfDoc.save();
       return new Blob([pdfBytes], { type: 'application/pdf' });
     }
 
     async function generateAndAttachPdf(itemId, category, monthName, formData, itemInfo, fotoFile) {
+      const isOnline = navigator.onLine && await testarConexao();
+      if (!isOnline) {
+        try {
+          const loader = document.getElementById('fullscreenLoader');
+          loader.classList.add('active');
+          const pdfBlob = await gerarPDFBlob(formData, itemInfo, fotoFile);
+          const pdfBase64 = await blobToBase64(pdfBlob);
+          let fotoBase64 = null;
+          if (fotoFile) fotoBase64 = await blobToBase64(fotoFile);
+          const pendingId = `insp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+          const pendingData = { id: pendingId, type: 'inspecao', itemId, category, monthName, formData, itemInfo: { code: itemInfo.code, tamanho: itemInfo.tamanho, name: itemInfo.name, id: itemId }, pdfBase64, fotoBase64, timestamp: new Date().toISOString() };
+          await salvarInspecaoPending(pendingData);
+          loader.classList.remove('active');
+          await updatePendingBadge();
+          alert('⚠️ Você está offline. O PDF foi salvo localmente e será enviado automaticamente quando a internet voltar.');
+          return;
+        } catch(e) { alert('Erro ao salvar inspeção localmente: ' + e.message); return; }
+      }
       try {
         const pdfBlob = await gerarPDFBlob(formData, itemInfo, fotoFile);
         const file = new File([pdfBlob], `checklist_${monthName}_${Date.now()}.pdf`, { type: 'application/pdf' });
-        
         const { data: existingFile } = await supabase.from('files').select('id, file_url').eq('item_id', itemId).eq('category', category).maybeSingle();
         if (existingFile && existingFile.file_url) {
-          await deleteStorageFile(existingFile.file_url);
+          await supabase.storage.from(BUCKET).remove([getStoragePathFromUrl(existingFile.file_url)]);
           await supabase.from('files').delete().eq('id', existingFile.id);
         }
-        await addFileToItem(itemId, category, file, formData.data_inspecao);
-        
-        alert(`✅ PDF gerado!\nID: ${itemInfo.code} | Tamanho: ${itemInfo.tamanho || 'N/I'}\nAssinatura: ${currentUser?.username || 'usuário'}`);
+        const fileExt = 'pdf';
+        const filePath = `itens/${itemId}/${category}_${Date.now()}.${fileExt}`;
+        await supabase.storage.from(BUCKET).upload(filePath, file);
+        const { data: publicUrlData } = supabase.storage.from(BUCKET).getPublicUrl(filePath);
+        await supabase.from('files').insert({ item_id: itemId, category, file_name: file.name, file_url: publicUrlData.publicUrl, inspecao_data: formData.data_inspecao });
+        alert(`✅ PDF gerado! ID: ${itemInfo.code} | Assinatura: ${currentUser?.username || 'usuário'}`);
         await refreshData();
         await openDetailModal(itemId);
-      } catch(err) { 
-        console.error('Erro detalhado:', err); 
-        alert("Erro ao gerar PDF: " + err.message); 
-      }
+      } catch(err) { alert("Erro ao gerar PDF: " + err.message); }
     }
 
-    async function addFileToItem(itemId, category, file, inspecaoData = null) {
-      const { data: existing, error: findError } = await supabase.from('files').select('id, file_url').eq('item_id', itemId).eq('category', category).maybeSingle();
-      if (findError) throw findError;
-      if (existing && existing.file_url) {
-        await deleteStorageFile(existing.file_url);
-        await supabase.from('files').delete().eq('id', existing.id);
-      }
-      const fileExt = file.name.split('.').pop();
-      const filePath = `itens/${itemId}/${category}_${Date.now()}.${fileExt}`;
-      const { error: uploadError } = await supabase.storage.from(BUCKET).upload(filePath, file);
-      if (uploadError) throw uploadError;
-      const { data: publicUrlData } = supabase.storage.from(BUCKET).getPublicUrl(filePath);
-      const fileUrl = publicUrlData.publicUrl;
-      const insertData = { item_id: itemId, category, file_name: file.name, file_url: fileUrl };
-      if (inspecaoData) insertData.inspecao_data = inspecaoData;
-      const { error: insertError } = await supabase.from('files').insert(insertData);
-      if (insertError) throw insertError;
-    }
+    function blobToBase64(blob) { return new Promise((resolve, reject) => { const reader = new FileReader(); reader.onloadend = () => resolve(reader.result.split(',')[1]); reader.onerror = reject; reader.readAsDataURL(blob); }); }
+    function getStoragePathFromUrl(url) { const match = url.match(/\/storage\/v1\/object\/public\/pdfs\/(.+)$/); return match ? match[1] : null; }
 
-    async function deleteStorageFile(fileUrl) {
-      const path = getStoragePathFromUrl(fileUrl);
-      if (!path) return false;
-      const { error } = await supabase.storage.from(BUCKET).remove([path]);
-      return !error;
-    }
-
-    function getStoragePathFromUrl(url) {
-      const regex = /\/storage\/v1\/object\/public\/pdfs\/(.+)$/;
-      const match = url.match(regex);
-      return match ? match[1] : null;
-    }
-
-    // ==================== RENDER CARDS ====================
+    // ==================== RENDER ====================
     function renderCards(filterText = "") {
       const container = document.getElementById('itemsContainer');
-      const lowerFilter = filterText.toLowerCase();
-      const filtered = currentItems.filter(item => item.name.toLowerCase().includes(lowerFilter) || item.code.toLowerCase().includes(lowerFilter) || (item.sub_localizacao && item.sub_localizacao.toLowerCase().includes(lowerFilter)) || (item.tamanho && item.tamanho.toLowerCase().includes(lowerFilter)));
+      const lower = filterText.toLowerCase();
+      const filtered = currentItems.filter(i => i.name.toLowerCase().includes(lower) || i.code.toLowerCase().includes(lower) || (i.sub_localizacao && i.sub_localizacao.toLowerCase().includes(lower)) || (i.tamanho && i.tamanho.toLowerCase().includes(lower)));
       if (filtered.length === 0) { container.innerHTML = `<div class="empty-state">✨ Nenhum item encontrado.</div>`; return; }
-      
-      const dataAtual = new Date();
-      const mesAtualIndex = dataAtual.getMonth();
-      const mesAtualNome = monthNames[mesAtualIndex];
-      const mesAtualKey = monthKeys[mesAtualIndex];
-      
+      const hoje = new Date(), mesIdx = hoje.getMonth(), mesNome = monthNames[mesIdx], mesKey = monthKeys[mesIdx];
       container.innerHTML = filtered.map(item => {
-        const arquivoMesAtual = item.files.find(f => f.category === mesAtualKey);
-        let inspecaoMsg = '';
-        if (arquivoMesAtual) {
-          if (arquivoMesAtual.inspecao_data) inspecaoMsg = `<p style="color: #10b981; font-size: 0.7rem; margin-top: 0.3rem;">✅ Inspeção ${mesAtualNome}: ${formatarData(arquivoMesAtual.inspecao_data)}</p>`;
-          else inspecaoMsg = `<p style="color: #10b981; font-size: 0.7rem; margin-top: 0.3rem;">✅ Inspeção ${mesAtualNome}: realizada</p>`;
-        } else inspecaoMsg = `<p style="color: #f59e0b; font-size: 0.7rem; margin-top: 0.3rem;">⚠️ Inspeção ${mesAtualNome}: pendente</p>`;
+        const arquivo = item.files.find(f => f.category === mesKey);
+        let inspecaoMsg = arquivo ? `<p style="color:#10b981;font-size:0.7rem;margin-top:0.3rem;">✅ Inspeção ${mesNome}: ${arquivo.inspecao_data ? formatarData(arquivo.inspecao_data) : 'realizada'}</p>` : `<p style="color:#f59e0b;font-size:0.7rem;margin-top:0.3rem;">⚠️ Inspeção ${mesNome}: pendente</p>`;
         const statusClass = item.status === 'active' ? 'status-active' : 'status-inactive';
         const statusText = item.status === 'active' ? 'Ativo' : 'Inativo';
-        const pendingIcon = item.pending ? '<span style="background: #fef3c7; color: #92400e; padding: 2px 6px; border-radius: 12px; font-size: 0.6rem; margin-left: 8px;">⏳ Pendente</span>' : '';
+        const pendingIcon = item.pending ? '<span style="background:#fef3c7;color:#92400e;padding:2px 6px;border-radius:12px;font-size:0.6rem;margin-left:8px;">⏳ Pendente</span>' : '';
         return `<div class="item-card" data-id="${item.id}"><div><h3>${escapeHtml(item.name)}${pendingIcon}</h3><p>TAG: ${escapeHtml(item.code)}</p>${item.sub_localizacao ? `<p>📍 ${escapeHtml(item.sub_localizacao)}</p>` : ''}${item.tamanho ? `<p>📏 ${escapeHtml(item.tamanho)}</p>` : ''}<div><span class="status-badge ${statusClass}">${statusText}</span></div>${inspecaoMsg}</div></div>`;
       }).join('');
-      
-      document.querySelectorAll('.item-card').forEach(card => { 
-        const id = card.dataset.id;
-        card.addEventListener('click', () => openDetailModal(id)); 
-      });
+      document.querySelectorAll('.item-card').forEach(card => { card.addEventListener('click', () => openDetailModal(card.dataset.id)); });
     }
 
     // ==================== MODAL DETALHE ====================
-    const detailModalElem = document.getElementById('detailModal');
+    const detailModal = document.getElementById('detailModal');
     const detailContent = document.getElementById('detailContent');
-    const closeDetailModalBtn = document.getElementById('closeDetailModalBtn');
-    if (closeDetailModalBtn) closeDetailModalBtn.addEventListener('click', () => detailModalElem.style.display = 'none');
-    detailModalElem.addEventListener('click', (e) => { if (e.target === detailModalElem) detailModalElem.style.display = 'none'; });
+    document.getElementById('closeDetailModalBtn')?.addEventListener('click', () => detailModal.style.display = 'none');
+    detailModal.addEventListener('click', (e) => { if (e.target === detailModal) detailModal.style.display = 'none'; });
 
     async function openDetailModal(itemId) {
       const item = currentItems.find(i => String(i.id) === String(itemId));
-      if (!item) {
-        alert('Item não encontrado.');
-        return;
-      }
-      
-      detailContent.innerHTML = `
-        <div class="status-container">
-          <span style="font-weight: 500;">Status:</span>
-          <label class="toggle-switch">
-            <input type="checkbox" id="statusToggle" ${item.status === 'active' ? 'checked' : ''}>
-            <span class="slider"></span>
-          </label>
-          <span class="status-text" id="statusText">${item.status === 'active' ? 'Ativo' : 'Inativo'}</span>
-        </div>
-        <div class="item-detail-title">
-          <strong>${escapeHtml(item.name)}</strong><br>
-          ${item.sub_localizacao ? `Sub. Localização: ${escapeHtml(item.sub_localizacao)}<br>` : ''}
-          ${item.tamanho ? `Tamanho: ${escapeHtml(item.tamanho)}<br>` : ''}
-          ID: ${escapeHtml(item.code)}
-          ${item.pending ? '<br><span style="background: #fef3c7; color: #92400e; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem;">⏳ Pendente de sincronização</span>' : ''}
-        </div>
-        <div class="pdf-group">
-          <div class="pdf-group-title">📄 Memorial de Cálculo</div>
-          <div class="pdf-row">
-            <span class="pdf-label">Memorial</span>
-            <div class="pdf-file-info">— Nenhum PDF anexado —</div>
-            <div class="pdf-actions">
-              <button class="upload-pdf-btn" data-itemid="${item.id}" data-category="memorial">➕</button>
-            </div>
-          </div>
-        </div>
-        <div class="pdf-group">
-          <div class="pdf-group-title">📅 Documentos Mensais</div>
-          ${monthNames.map((month, idx) => {
-            const key = monthKeys[idx];
-            const file = item.files.find(f => f.category === key);
-            if (file) {
-              return `<div class="pdf-row">
-                <span class="pdf-label">${month}</span>
-                <div class="pdf-file-info"><a href="${file.file_url}" target="_blank">📄 ${escapeHtml(file.file_name)}</a></div>
-                <div class="pdf-actions">
-                  <button class="upload-pdf-btn" data-itemid="${item.id}" data-category="${key}" data-monthname="${month}">🔄</button>
-                  <button class="remove-pdf-btn" data-fileid="${file.id}">✖</button>
-                  <button class="fill-form-btn" data-itemid="${item.id}" data-category="${key}" data-monthname="${month}">📝</button>
-                </div>
-              </div>`;
-            } else {
-              return `<div class="pdf-row">
-                <span class="pdf-label">${month}</span>
-                <div class="pdf-file-info">— Nenhum PDF anexado —</div>
-                <div class="pdf-actions">
-                  <button class="upload-pdf-btn" data-itemid="${item.id}" data-category="${key}" data-monthname="${month}">➕</button>
-                  <button class="fill-form-btn" data-itemid="${item.id}" data-category="${key}" data-monthname="${month}">📝</button>
-                </div>
-              </div>`;
-            }
-          }).join('')}
-        </div>
-        <button class="delete-item-btn" id="deleteItemFromDetailBtn">🗑️ Excluir este item</button>
-        <div class="notice">* Clique nos botões + para anexar/substituir PDFs. Clique em 📝 para preencher formulário e gerar PDF.</div>
-      `;
-      
-      detailModalElem.style.display = 'flex';
-      
-      document.querySelectorAll('.upload-pdf-btn').forEach(btn => {
-        btn.addEventListener('click', async () => {
-          alert('Função de upload em desenvolvimento');
-        });
-      });
-      document.querySelectorAll('.remove-pdf-btn').forEach(btn => {
-        btn.addEventListener('click', async () => {
-          alert('Função de remoção em desenvolvimento');
-        });
-      });
-      document.querySelectorAll('.fill-form-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-          alert('Função de formulário em desenvolvimento');
-        });
-      });
-      
-      const deleteBtn = document.getElementById('deleteItemFromDetailBtn');
-      if (deleteBtn) {
-        deleteBtn.addEventListener('click', async () => {
-          if (confirm(`Excluir o item "${item.name}"?`)) {
-            alert('Função de exclusão em desenvolvimento');
-          }
+      if (!item) { alert('Item não encontrado.'); return; }
+      let html = `<div class="status-container"><span style="font-weight:500;">Status:</span><label class="toggle-switch"><input type="checkbox" id="statusToggle" ${item.status === 'active' ? 'checked' : ''}><span class="slider"></span></label><span class="status-text" id="statusText">${item.status === 'active' ? 'Ativo' : 'Inativo'}</span></div>`;
+      if (item.status !== 'active') html += '<div class="inactive-message">⚠️ Item inativo. Não é possível anexar PDFs ou gerar formulários.</div>';
+      html += `<div class="item-detail-title"><strong>${escapeHtml(item.name)}</strong><br>${item.sub_localizacao ? `Sub. Localização: ${escapeHtml(item.sub_localizacao)}<br>` : ''}${item.tamanho ? `Tamanho: ${escapeHtml(item.tamanho)}<br>` : ''}ID: ${escapeHtml(item.code)}${item.pending ? '<br><span style="background:#fef3c7;color:#92400e;padding:2px 8px;border-radius:12px;font-size:0.7rem;">⏳ Pendente de sincronização</span>' : ''}</div>`;
+      html += `<div class="pdf-group"><div class="pdf-group-title">📄 Memorial de Cálculo</div>${renderDetailPdfRow('memorial', 'Memorial', item.files.find(f => f.category === 'memorial'), item.id, item.status === 'active')}</div>`;
+      html += `<div class="pdf-group"><div class="pdf-group-title">📅 Documentos Mensais</div>${monthNames.map((m, idx) => renderDetailPdfRow(monthKeys[idx], m, item.files.find(f => f.category === monthKeys[idx]), item.id, item.status === 'active', true)).join('')}</div>`;
+      html += `<button class="delete-item-btn" id="deleteItemFromDetailBtn">🗑️ Excluir este item</button><div class="notice">* Clique nos botões + para anexar/substituir PDFs. Clique em 📝 para preencher formulário e gerar PDF.</div>`;
+      detailContent.innerHTML = html;
+      detailModal.style.display = 'flex';
+      const toggle = document.getElementById('statusToggle');
+      if (toggle) toggle.addEventListener('change', async (e) => { await toggleStatusFromDetail(item.id, e.target.checked ? 'active' : 'inactive'); });
+      document.querySelectorAll('.upload-pdf-btn').forEach(btn => { btn.addEventListener('click', async () => { if (item.status !== 'active') { alert('Item inativo. Ative o item para anexar PDFs.'); return; } alert('Função de upload em desenvolvimento'); }); });
+      document.querySelectorAll('.remove-pdf-btn').forEach(btn => { btn.addEventListener('click', async () => { if (item.status !== 'active') { alert('Item inativo. Ative o item para remover PDFs.'); return; } alert('Função de remoção em desenvolvimento'); }); });
+      document.querySelectorAll('.fill-form-btn').forEach(btn => { btn.addEventListener('click', () => { if (item.status !== 'active') { alert('Item inativo. Ative o item para preencher o formulário.'); return; } openFormModal(btn.dataset.itemid, btn.dataset.category, btn.dataset.monthname); }); });
+      document.getElementById('deleteItemFromDetailBtn')?.addEventListener('click', async () => { if (confirm(`Excluir o item "${item.name}"?`)) alert('Função de exclusão em desenvolvimento'); });
+    }
+
+    function renderDetailPdfRow(category, label, file, itemId, isActive, showFormButton = false) {
+      const actions = `<button class="upload-pdf-btn" data-itemid="${itemId}" data-category="${category}" data-monthname="${label}" title="Substituir PDF">🔄</button>${file ? `<button class="remove-pdf-btn" data-fileid="${file.id}" title="Remover">✖</button>` : ''}${showFormButton ? `<button class="fill-form-btn" data-itemid="${itemId}" data-category="${category}" data-monthname="${label}" title="Preencher formulário">📝</button>` : ''}`;
+      const disabledClass = !isActive ? 'disabled-action' : '';
+      if (file) return `<div class="pdf-row"><span class="pdf-label">${escapeHtml(label)}</span><div class="pdf-file-info"><a href="${file.file_url}" target="_blank">📄 ${escapeHtml(file.file_name)}</a></div><div class="pdf-actions ${disabledClass}">${actions}</div></div>`;
+      return `<div class="pdf-row"><span class="pdf-label">${escapeHtml(label)}</span><div class="pdf-file-info">— Nenhum PDF anexado —</div><div class="pdf-actions ${disabledClass}"><button class="upload-pdf-btn" data-itemid="${itemId}" data-category="${category}" data-monthname="${label}" title="Adicionar PDF">➕</button>${showFormButton ? `<button class="fill-form-btn" data-itemid="${itemId}" data-category="${category}" data-monthname="${label}" title="Preencher formulário">📝</button>` : ''}</div></div>`;
+    }
+
+    async function toggleStatusFromDetail(itemId, newStatus) {
+      const item = currentItems.find(i => String(i.id) === String(itemId));
+      if (!item) return;
+      if (newStatus === 'inactive') {
+        if (!confirm('Inativar este item? Os dados atuais serão salvos no histórico.')) {
+          const toggle = document.getElementById('statusToggle');
+          if (toggle) toggle.checked = true;
+          if (document.getElementById('statusText')) document.getElementById('statusText').innerText = 'Ativo';
+          return;
+        }
+        await supabase.from('items').update({ status: 'inactive' }).eq('id', itemId);
+        await refreshData();
+        await openDetailModal(itemId);
+      } else if (newStatus === 'active') {
+        document.getElementById('editItemName').value = item.name;
+        document.getElementById('editSubLocalizacao').value = item.sub_localizacao;
+        document.getElementById('editTamanho').value = item.tamanho;
+        document.getElementById('reactivateModal').style.display = 'flex';
+        const confirmBtn = document.getElementById('confirmReactivateBtn');
+        const newConfirm = confirmBtn.cloneNode(true);
+        confirmBtn.parentNode.replaceChild(newConfirm, confirmBtn);
+        newConfirm.addEventListener('click', async () => {
+          const newName = document.getElementById('editItemName').value.trim();
+          const newSub = document.getElementById('editSubLocalizacao').value.trim();
+          const newTamanho = document.getElementById('editTamanho').value.trim();
+          if (!newName) { alert("Localização é obrigatória."); return; }
+          await supabase.from('items').update({ name: newName, sub_localizacao: newSub, tamanho: newTamanho, status: 'active' }).eq('id', itemId);
+          document.getElementById('reactivateModal').style.display = 'none';
+          await refreshData();
+          await openDetailModal(itemId);
         });
       }
     }
 
-    async function refreshData() { 
-      currentItems = await getAllItemsWithFiles();
-      renderCards(document.getElementById('searchInput').value);
-      await updatePendingBadge();
+    // ==================== FORMULÁRIO ====================
+    const formModal = document.getElementById('formModal');
+    const formFields = document.getElementById('formFieldsContainer');
+    const closeForm = document.getElementById('closeFormModalBtn');
+    const cancelForm = document.getElementById('cancelFormBtn');
+    const generateBtn = document.getElementById('generatePdfBtn');
+    const fotoInput = document.getElementById('fotoInspecao');
+    const fotoPreview = document.getElementById('fotoPreview');
+    let currentFormItemId = null, currentFormCategory = null, currentFormMonthName = null, currentItemInfo = null;
+
+    if (fotoInput) fotoInput.addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (file) { const reader = new FileReader(); reader.onload = (e) => { fotoPreview.innerHTML = `<img src="${e.target.result}" class="image-preview">`; }; reader.readAsDataURL(file); }
+      else { fotoPreview.innerHTML = ''; }
+    });
+
+    function openFormModal(itemId, category, monthName) {
+      currentFormItemId = itemId; currentFormCategory = category; currentFormMonthName = monthName;
+      const item = currentItems.find(i => String(i.id) === String(itemId));
+      currentItemInfo = item || { name: '', code: '', tamanho: '' };
+      document.getElementById('formModalTitle').innerText = `Formulário de Inspeção - ${monthName}`;
+      let html = `<div class="form-row"><div class="form-group"><label>Unidade</label><input type="text" id="unidade" spellcheck="false"></div><div class="form-group"><label>Nome da Localidade</label><input type="text" id="localidade" spellcheck="false"></div></div>
+        <div class="form-row"><div class="form-group"><label>Responsável - Nome</label><input type="text" id="resp_nome" spellcheck="false"></div><div class="form-group"><label>Responsável - Matrícula</label><input type="text" id="resp_matricula" spellcheck="false"></div></div>
+        <div class="form-row"><div class="form-group"><label>Data da Inspeção</label><input type="date" id="data_inspecao"></div><div class="form-group"><label>Empresa</label><input type="text" id="empresa" spellcheck="false"></div></div>
+        <hr style="margin:1rem 0;"><h3>Checklist de Inspeção</h3>`;
+      for (let i = 0; i < checklistPerguntas.length; i++) {
+        html += `<div class="question-group"><div class="question-text">${i+1}. ${escapeHtml(checklistPerguntas[i])}</div>
+          <div class="question-options"><label><input type="radio" name="resp_${i}" value="Conforme"> Conforme</label><label><input type="radio" name="resp_${i}" value="Não conforme"> Não conforme</label><label><input type="radio" name="resp_${i}" value="Não se aplica"> Não se aplica</label></div>
+          <div class="question-obs"><input type="text" placeholder="Observação (opcional)" id="obs_${i}" spellcheck="false" style="width:100%;"></div></div>`;
+      }
+      formFields.innerHTML = html;
+      document.getElementById('unidade').value = 'SERRA NORTE';
+      document.getElementById('localidade').value = item?.name || '';
+      fotoInput.value = '';
+      fotoPreview.innerHTML = '';
+      formModal.style.display = 'flex';
     }
+
+    generateBtn.addEventListener('click', async () => {
+      const formData = {
+        unidade: document.getElementById('unidade')?.value || '',
+        localidade: document.getElementById('localidade')?.value || '',
+        resp_nome: document.getElementById('resp_nome')?.value || '',
+        resp_matricula: document.getElementById('resp_matricula')?.value || '',
+        data_inspecao: document.getElementById('data_inspecao')?.value || '',
+        empresa: document.getElementById('empresa')?.value || ''
+      };
+      for (let i = 0; i < checklistPerguntas.length; i++) {
+        const radio = document.querySelector(`input[name="resp_${i}"]:checked`);
+        formData[`resp_${i}`] = radio ? radio.value : "Não respondido";
+      }
+      if (!formData.data_inspecao || !formData.resp_nome) { alert("Preencha Data e Responsável."); return; }
+      const fotoFile = document.getElementById('fotoInspecao')?.files[0] || null;
+      if (!fotoFile) { alert("Por favor, anexe uma foto da inspeção."); return; }
+      const loader = document.getElementById('fullscreenLoader');
+      loader.classList.add('active');
+      try {
+        await generateAndAttachPdf(currentFormItemId, currentFormCategory, currentFormMonthName, formData, currentItemInfo, fotoFile);
+        formModal.style.display = 'none';
+      } catch(e) { alert("Erro: " + e.message); }
+      finally { loader.classList.remove('active'); }
+    });
+
+    closeForm?.addEventListener('click', () => formModal.style.display = 'none');
+    cancelForm?.addEventListener('click', () => formModal.style.display = 'none');
+
+    // ==================== CRIAÇÃO DE ITEM MODAL ====================
+    const createModal = document.getElementById('createItemModal');
+    const closeCreate = document.getElementById('closeCreateModalBtn');
+    const cancelCreate = document.getElementById('cancelCreateBtn');
+    const confirmCreate = document.getElementById('confirmCreateBtn');
+    const newItemName = document.getElementById('newItemName');
+    const newSubLocalizacao = document.getElementById('newSubLocalizacao');
+    const newTamanho = document.getElementById('newTamanho');
+    const newItemCode = document.getElementById('newItemCode');
+    const newMemorialFile = document.getElementById('newMemorialFile');
+    const newMonthlyContainer = document.getElementById('newMonthlyFilesContainer');
+    const createCodeError = document.getElementById('createCodeError');
+
+    function buildNewMonthlyInputs() {
+      newMonthlyContainer.innerHTML = '';
+      monthNames.forEach((month, idx) => {
+        const div = document.createElement('div'); div.className = 'month-group';
+        const label = document.createElement('label'); label.textContent = month + ':';
+        const input = document.createElement('input'); input.type = 'file'; input.accept = '.pdf'; input.id = `new_month_${monthKeys[idx]}`;
+        div.appendChild(label); div.appendChild(input);
+        newMonthlyContainer.appendChild(div);
+      });
+    }
+    buildNewMonthlyInputs();
+
+    function openCreateModal() {
+      newItemName.value = ''; newSubLocalizacao.value = ''; newTamanho.value = ''; newItemCode.value = '';
+      newMemorialFile.value = '';
+      monthKeys.forEach(k => { const inp = document.getElementById(`new_month_${k}`); if (inp) inp.value = ''; });
+      createCodeError.innerText = '';
+      createModal.style.display = 'flex';
+    }
+
+    closeCreate?.addEventListener('click', () => createModal.style.display = 'none');
+    cancelCreate?.addEventListener('click', () => createModal.style.display = 'none');
+    confirmCreate.addEventListener('click', async () => {
+      const name = newItemName.value.trim(), sub = newSubLocalizacao.value.trim(), tamanho = newTamanho.value.trim(), code = newItemCode.value.trim();
+      if (!name || !code) { createCodeError.innerText = 'Preencha nome e código.'; return; }
+      createCodeError.innerText = '';
+      const filesToProcess = [];
+      if (newMemorialFile.files.length > 0) filesToProcess.push({ category: 'memorial', file: newMemorialFile.files[0] });
+      else filesToProcess.push({ category: 'memorial', file: null });
+      for (let i = 0; i < monthKeys.length; i++) {
+        const inp = document.getElementById(`new_month_${monthKeys[i]}`);
+        if (inp && inp.files.length > 0) filesToProcess.push({ category: monthKeys[i], file: inp.files[0] });
+        else filesToProcess.push({ category: monthKeys[i], file: null });
+      }
+      try {
+        await saveItemComplete(null, name, sub, tamanho, code, filesToProcess);
+        createModal.style.display = 'none';
+        await refreshData();
+      } catch(e) {
+        if (e.message.includes('código')) createCodeError.innerText = e.message;
+        else alert('Erro ao criar item: ' + e.message);
+      }
+    });
+
+    document.getElementById('addItemBtn').addEventListener('click', openCreateModal);
+    document.getElementById('searchInput').addEventListener('input', (e) => renderCards(e.target.value));
+
+    // ==================== DOWNLOAD MENSAL ====================
+    async function downloadMonthPDFs(category, monthName) {
+      try {
+        if (!window.PDFLib) throw new Error("PDF-lib não carregado.");
+        const { PDFDocument } = window.PDFLib;
+        const items = await getAllItemsWithFiles();
+        const filesToMerge = [];
+        for (const item of items) {
+          const file = item.files.find(f => f.category === category);
+          if (file && file.file_url) {
+            const response = await fetch(file.file_url);
+            if (response.ok) filesToMerge.push({ name: `${item.name} - ${item.code}.pdf`, blob: await response.blob() });
+          }
+        }
+        if (filesToMerge.length === 0) { alert(`Nenhum PDF encontrado para ${monthName}.`); return; }
+        const mergedPdf = await PDFDocument.create();
+        for (const f of filesToMerge) {
+          const pdf = await PDFDocument.load(await f.blob.arrayBuffer());
+          const pages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
+          pages.forEach(p => mergedPdf.addPage(p));
+        }
+        const blob = new Blob([await mergedPdf.save()], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = `todos_${monthName}.pdf`; a.click();
+        URL.revokeObjectURL(url);
+      } catch(e) { alert(`Erro: ${e.message}`); }
+    }
+
+    const monthContainer = document.getElementById('monthButtonsContainer');
+    monthNames.forEach((month, idx) => {
+      const btn = document.createElement('button');
+      btn.className = 'month-btn';
+      btn.textContent = month;
+      btn.addEventListener('click', () => downloadMonthPDFs(monthKeys[idx], month));
+      monthContainer.appendChild(btn);
+    });
 
     // ==================== USUÁRIO ====================
     try {
-      const savedUser = localStorage.getItem('tendex_current_user');
-      if (savedUser) currentUser = JSON.parse(savedUser);
-    } catch(e) { console.warn(e); }
-    
-    const userInfoDisplay = document.getElementById('userInfoDisplay');
+      const saved = localStorage.getItem('tendex_current_user');
+      if (saved) currentUser = JSON.parse(saved);
+    } catch(e) {}
+    const userInfoSpan = document.getElementById('userInfoDisplay');
     if (currentUser && currentUser.username) {
-      userInfoDisplay.innerHTML = `👤 ${currentUser.username}`;
+      userInfoSpan.innerHTML = `👤 ${currentUser.username}`;
       document.getElementById('userModalUserName').innerText = currentUser.username;
-    } else { 
-      window.location.href = 'index.html';
-      return; 
-    }
+    } else { window.location.href = 'index.html'; return; }
 
-    // ==================== FUNÇÕES DE MANUTENÇÃO ====================
+    // ==================== MODAL DO USUÁRIO ====================
+    const userModalElem = document.getElementById('userModal');
+    const closeUserModal = document.getElementById('closeUserModalBtn');
+    const cancelUserModal = document.getElementById('cancelUserModalBtn');
+    const prepareBtn = document.getElementById('userModalPrepareBtn');
+    const syncBtn = document.getElementById('userModalSyncBtn');
+    const recoverBtn = document.getElementById('userModalRecoverBtn');
+    const clearCacheBtn = document.getElementById('userModalClearCacheBtn');
+    const logoutBtn = document.getElementById('userModalLogoutBtn');
+    const pendingBadge = document.getElementById('syncPendingBadge');
+
+    userInfoSpan.addEventListener('click', async () => {
+      await updateUserModalCacheStatus();
+      await listarPendentesNoModal();
+      await carregarListaCacheModal();
+      userModalElem.style.display = 'flex';
+    });
+    pendingBadge.addEventListener('click', () => alert('Função de sincronização em desenvolvimento'));
+
+    function closeModalUser() { userModalElem.style.display = 'none'; }
+    closeUserModal.addEventListener('click', closeModalUser);
+    cancelUserModal.addEventListener('click', closeModalUser);
+    userModalElem.addEventListener('click', (e) => { if (e.target === userModalElem) closeModalUser(); });
+
+    prepareBtn.addEventListener('click', async () => { closeModalUser(); await forcarCacheModeloPDF(); });
+    syncBtn.addEventListener('click', () => { closeModalUser(); alert('Função de sincronização em desenvolvimento'); });
+    recoverBtn.addEventListener('click', () => { closeModalUser(); alert('Função de recuperação de cache em desenvolvimento'); });
+    clearCacheBtn.addEventListener('click', () => { closeModalUser(); limparCacheOfflineManual(); });
+    logoutBtn.addEventListener('click', () => { localStorage.removeItem('tendex_current_user'); window.location.href = 'index.html'; });
+
+    // Eventos do Gerenciador de Cache
+    document.getElementById('selectAllCacheModal')?.addEventListener('click', () => {
+      document.querySelectorAll('.select-item-cache-modal').forEach(btn => { if (btn.dataset.selected === 'false') btn.click(); });
+    });
+    document.getElementById('deselectAllCacheModal')?.addEventListener('click', () => {
+      document.querySelectorAll('.select-item-cache-modal').forEach(btn => { if (btn.dataset.selected === 'true') btn.click(); });
+    });
+    document.getElementById('refreshCacheModal')?.addEventListener('click', carregarListaCacheModal);
+    document.getElementById('downloadSelectedModal')?.addEventListener('click', baixarPDFsSelecionadosModal);
+    document.getElementById('clearCacheModal')?.addEventListener('click', limparPDFsCacheModal);
+
     async function forcarCacheModeloPDF() {
       const loader = document.getElementById('fullscreenLoader');
       loader.classList.add('active');
@@ -1264,20 +1228,12 @@
         const buffer = await response.arrayBuffer();
         const db = await initOfflineDB();
         const tx = db.transaction(STORE_MODELO_PDF, 'readwrite');
-        const store = tx.objectStore(STORE_MODELO_PDF);
-        await store.clear();
-        await store.put({ id: 'modelo', data: buffer });
+        await tx.objectStore(STORE_MODELO_PDF).clear();
+        await tx.objectStore(STORE_MODELO_PDF).put({ id: 'modelo', data: buffer });
         cachedModeloPDF = buffer;
         alert('✅ Modo offline preparado com sucesso!');
-      } catch (error) {
-        alert('Erro ao preparar modo offline: ' + error.message);
-      } finally {
-        loader.classList.remove('active');
-      }
-    }
-
-    async function forcarRecuperacaoCache() {
-      alert('Função de recuperação de cache em desenvolvimento');
+      } catch(e) { alert('Erro ao preparar modo offline: ' + e.message); }
+      finally { loader.classList.remove('active'); }
     }
 
     async function limparCacheOfflineManual() {
@@ -1298,119 +1254,18 @@
         selectedItemsModal.clear();
         alert('✅ Cache limpo! Recarregando...');
         setTimeout(() => window.location.reload(), 2000);
-      } catch (error) {
-        alert('Erro ao limpar cache: ' + error.message);
-      } finally {
-        loader.classList.remove('active');
-      }
+      } catch(e) { alert('Erro ao limpar cache: ' + e.message); }
+      finally { loader.classList.remove('active'); }
     }
 
-    async function mostrarModalSincronizacao() {
-      alert('Função de sincronização em desenvolvimento');
+    async function listarPendentesNoModal() {
+      const container = document.getElementById('pendingItemsList');
+      const items = await getPendingItems();
+      if (!items || items.length === 0) { container.innerHTML = '<p style="color:#10b981;text-align:center;">✅ Nenhum item pendente</p>'; return; }
+      let html = '';
+      for (const item of items) { html += `<div class="pending-item"><span>🏷️ ${escapeHtml(item.name)} (${escapeHtml(item.code)})</span><span>Aguardando</span></div>`; }
+      container.innerHTML = html;
     }
-
-    // ==================== EVENTOS DO MODAL USUÁRIO ====================
-    const userModal = document.getElementById('userModal');
-    const closeUserModalBtn = document.getElementById('closeUserModalBtn');
-    const cancelUserModalBtn = document.getElementById('cancelUserModalBtn');
-    const userModalPrepareBtn = document.getElementById('userModalPrepareBtn');
-    const userModalSyncBtn = document.getElementById('userModalSyncBtn');
-    const userModalRecoverBtn = document.getElementById('userModalRecoverBtn');
-    const userModalClearCacheBtn = document.getElementById('userModalClearCacheBtn');
-    const userModalLogoutBtn = document.getElementById('userModalLogoutBtn');
-    const syncPendingBadge = document.getElementById('syncPendingBadge');
-
-    // Eventos do Gerenciador de Cache
-    const selectAllCacheModal = document.getElementById('selectAllCacheModal');
-    const deselectAllCacheModal = document.getElementById('deselectAllCacheModal');
-    const refreshCacheModal = document.getElementById('refreshCacheModal');
-    const downloadSelectedModal = document.getElementById('downloadSelectedModal');
-    const clearCacheModal = document.getElementById('clearCacheModal');
-
-    userInfoDisplay.addEventListener('click', async () => {
-      await updateUserModalCacheStatus();
-      await listarPendentesNoModal();
-      await carregarListaCacheModal();
-      userModal.style.display = 'flex';
-    });
-    
-    syncPendingBadge.addEventListener('click', () => {
-      mostrarModalSincronizacao();
-    });
-
-    function closeUserModal() { userModal.style.display = 'none'; }
-    closeUserModalBtn.addEventListener('click', closeUserModal);
-    cancelUserModalBtn.addEventListener('click', closeUserModal);
-    userModal.addEventListener('click', (e) => { if (e.target === userModal) closeUserModal(); });
-
-    userModalPrepareBtn.addEventListener('click', async () => {
-      closeUserModal();
-      await forcarCacheModeloPDF();
-    });
-
-    userModalSyncBtn.addEventListener('click', () => {
-      closeUserModal();
-      mostrarModalSincronizacao();
-    });
-
-    userModalRecoverBtn.addEventListener('click', async () => {
-      closeUserModal();
-      await forcarRecuperacaoCache();
-    });
-
-    userModalClearCacheBtn.addEventListener('click', () => {
-      closeUserModal();
-      limparCacheOfflineManual();
-    });
-
-    userModalLogoutBtn.addEventListener('click', () => {
-      localStorage.removeItem('tendex_current_user');
-      window.location.href = 'index.html';
-    });
-
-    // Eventos do Gerenciador de Cache
-    if (selectAllCacheModal) {
-      selectAllCacheModal.addEventListener('click', () => {
-        document.querySelectorAll('.select-item-cache-modal').forEach(btn => {
-          if (btn.dataset.selected === 'false') btn.click();
-        });
-      });
-    }
-    
-    if (deselectAllCacheModal) {
-      deselectAllCacheModal.addEventListener('click', () => {
-        document.querySelectorAll('.select-item-cache-modal').forEach(btn => {
-          if (btn.dataset.selected === 'true') btn.click();
-        });
-      });
-    }
-    
-    if (refreshCacheModal) {
-      refreshCacheModal.addEventListener('click', carregarListaCacheModal);
-    }
-    
-    if (downloadSelectedModal) {
-      downloadSelectedModal.addEventListener('click', baixarPDFsSelecionadosModal);
-    }
-    
-    if (clearCacheModal) {
-      clearCacheModal.addEventListener('click', limparPDFsCacheModal);
-    }
-
-    // ==================== EVENTOS PRINCIPAIS ====================
-    document.getElementById('addItemBtn').addEventListener('click', () => {
-      alert('Função de criar item em desenvolvimento');
-    });
-    document.getElementById('searchInput').addEventListener('input', (e) => renderCards(e.target.value));
-    
-    const monthContainer = document.getElementById('monthButtonsContainer');
-    monthNames.forEach((month, idx) => {
-      const btn = document.createElement('button');
-      btn.className = 'month-btn';
-      btn.textContent = month;
-      btn.addEventListener('click', () => alert(`Download de ${month} em desenvolvimento`));
-      monthContainer.appendChild(btn);
-    });
 
     // ==================== INICIALIZAÇÃO ====================
     window.addEventListener('DOMContentLoaded', async () => {
