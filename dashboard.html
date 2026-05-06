@@ -132,87 +132,6 @@
     .sync-status { position: fixed; top: 10px; right: 10px; background: rgba(0,0,0,0.7); color: white; padding: 4px 8px; border-radius: 20px; font-size: 10px; z-index: 10; display: none; }
     .sync-pending-badge { background: #f59e0b; color: white; border-radius: 20px; padding: 2px 8px; font-size: 10px; margin-left: 8px; cursor: pointer; }
     .sync-pending-badge:hover { background: #d97706; }
-
-    /* Estilos do Gerenciador de Cache */
-    .cache-manager-section {
-      margin-top: 1rem;
-      border-top: 1px solid #e2e8f0;
-      padding-top: 1rem;
-    }
-    .cache-item-list-modal {
-      max-height: 300px;
-      overflow-y: auto;
-      margin: 0.5rem 0;
-      border: 1px solid #e2e8f0;
-      border-radius: 0.5rem;
-      padding: 0.5rem;
-    }
-    .cache-item-modal {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0.5rem;
-      border-bottom: 1px solid #e2e8f0;
-      gap: 0.5rem;
-      flex-wrap: wrap;
-      cursor: pointer;
-    }
-    .cache-item-modal:last-child { border-bottom: none; }
-    .cache-item-modal:hover { background: #f8fafc; }
-    .cache-item-info-modal { flex: 1; min-width: 150px; }
-    .cache-item-name-modal { font-weight: 600; font-size: 0.8rem; }
-    .cache-item-code-modal { font-size: 0.65rem; color: #64748b; }
-    .cache-item-stats-modal {
-      font-size: 0.6rem;
-      padding: 0.2rem 0.4rem;
-      border-radius: 1rem;
-    }
-    .cache-item-stats-modal.complete { background: #d1fae5; color: #065f46; }
-    .cache-item-stats-modal.pending { background: #fee2e2; color: #991b1b; }
-    .selection-info-modal {
-      background: #e0f2fe;
-      padding: 0.3rem;
-      border-radius: 0.5rem;
-      margin-bottom: 0.5rem;
-      font-size: 0.7rem;
-      text-align: center;
-    }
-    .selected-count-modal { font-weight: bold; color: #1e4a76; }
-    .btn-small {
-      padding: 0.2rem 0.5rem;
-      font-size: 0.7rem;
-      border-radius: 1rem;
-      cursor: pointer;
-      border: none;
-    }
-    .btn-small-success { background: #10b981; color: white; }
-    .btn-small-success:hover { background: #059669; }
-    .btn-small-danger { background: #ef4444; color: white; }
-    .btn-small-danger:hover { background: #dc2626; }
-    .btn-small-primary { background: #3b82f6; color: white; }
-    .btn-small-primary:hover { background: #2563eb; }
-    .download-progress-bar {
-      width: 100%;
-      height: 4px;
-      background: #e2e8f0;
-      border-radius: 2px;
-      overflow: hidden;
-      margin: 0.5rem 0;
-    }
-    .download-progress-fill {
-      height: 100%;
-      background: #10b981;
-      width: 0%;
-      transition: width 0.3s;
-    }
-    .download-status-list {
-      max-height: 150px;
-      overflow-y: auto;
-      font-size: 0.65rem;
-      margin-top: 0.5rem;
-    }
-    .status-item-success { color: #065f46; background: #d1fae5; padding: 0.2rem; margin: 0.1rem 0; border-radius: 0.2rem; }
-    .status-item-error { color: #991b1b; background: #fee2e2; padding: 0.2rem; margin: 0.1rem 0; border-radius: 0.2rem; }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
@@ -231,9 +150,9 @@
   </div>
 </div>
 
-<!-- MODAL DO USUÁRIO COM GERENCIADOR DE PDFS OFFLINE -->
+<!-- MODAL DO USUÁRIO -->
 <div id="userModal" class="modal">
-  <div class="modal-content logout-modal-content" style="max-width: 600px;">
+  <div class="modal-content logout-modal-content">
     <div class="modal-header">
       <h2>👤 Menu do Usuário</h2>
       <button class="close-modal" id="closeUserModalBtn">&times;</button>
@@ -254,36 +173,9 @@
       <div id="pendingItemsList" class="pending-list">
         <p style="color: #64748b; text-align: center;">Carregando...</p>
       </div>
-    </div>
-    
-    <!-- GERENCIADOR DE PDFS OFFLINE -->
-    <div class="user-modal-section cache-manager-section">
-      <h4>📥 Gerenciar PDFs Offline</h4>
-      <div class="selection-info-modal" id="selectionInfoModal">
-        ⚡ <span id="selectedCountModal" class="selected-count-modal">0</span> tenda(s) selecionada(s)
+      <div class="progress-bar" id="syncProgressBar" style="display: none;">
+        <div class="progress-fill" id="syncProgressFill"></div>
       </div>
-      
-      <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; flex-wrap: wrap;">
-        <button id="selectAllCacheModal" class="btn-small btn-small-primary">✅ Selecionar Todos</button>
-        <button id="deselectAllCacheModal" class="btn-small" style="background:#64748b; color:white;">❌ Desmarcar Todos</button>
-        <button id="refreshCacheModal" class="btn-small btn-small-primary">🔄 Verificar Cache</button>
-      </div>
-      
-      <div id="cacheItemsModalList" class="cache-item-list-modal">
-        <p style="text-align: center; color: #64748b;">Carregando tendas...</p>
-      </div>
-      
-      <div class="download-progress-bar" id="downloadProgressModal" style="display: none;">
-        <div class="download-progress-fill" id="downloadProgressFillModal"></div>
-      </div>
-      
-      <div id="downloadStatusModal" class="download-status-list"></div>
-      
-      <div style="display: flex; gap: 0.5rem; justify-content: center; margin-top: 0.5rem;">
-        <button id="downloadSelectedModal" class="btn-small btn-small-success">📥 Baixar Selecionados</button>
-        <button id="clearCacheModal" class="btn-small btn-small-danger">🗑️ Limpar PDFs</button>
-      </div>
-      <p class="notice" style="font-size:0.6rem; margin-top:0.5rem;">✨ Selecione as tendas para baixar os PDFs e usar offline.</p>
     </div>
     
     <div class="user-modal-section">
@@ -411,12 +303,23 @@
 
     // ==================== VERIFICAR PDF-LIB ====================
     async function carregarPDFLib() {
-      if (window.PDFLib && window.PDFLib.PDFDocument) return true;
+      if (window.PDFLib && window.PDFLib.PDFDocument) {
+        console.log('✅ PDF-lib já carregado');
+        return true;
+      }
+      
+      console.log('📥 Carregando PDF-lib...');
       return new Promise((resolve, reject) => {
         const script = document.createElement('script');
         script.src = 'https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js';
-        script.onload = () => resolve(true);
-        script.onerror = () => reject(new Error('Falha ao carregar PDF-lib'));
+        script.onload = () => {
+          console.log('✅ PDF-lib carregado com sucesso');
+          resolve(true);
+        };
+        script.onerror = () => {
+          console.error('❌ Erro ao carregar PDF-lib');
+          reject(new Error('Falha ao carregar PDF-lib'));
+        };
         document.head.appendChild(script);
       });
     }
@@ -430,39 +333,39 @@
     const STORE_MODELO_PDF = 'modelo_pdf';
     const STORE_SYNC_LOG = 'sync_log';
     const STORE_SIGNATURE = 'signature_cache';
-    const STORE_PDF_CACHE = 'pdf_cache';
 
     let dbInstance = null;
     let cachedModeloPDF = null;
+    let isInitialized = false;
     let currentItems = [];
     let currentUser = null;
     let cachedSignature = null;
-    let selectedItemsModal = new Set();
 
     const MODELO_PDF_URL = "https://jklcvyuxwxgsfczrfaco.supabase.co/storage/v1/object/public/pdfs/modelo_checklist_com_campos%20(3).pdf";
 
     // ==================== INICIALIZAR INDEXEDDB ====================
     function initOfflineDB() {
       return new Promise((resolve, reject) => {
-        if (dbInstance && dbInstance.version >= 35) {
+        if (dbInstance && dbInstance.version >= 33) {
           resolve(dbInstance);
           return;
         }
-        const request = indexedDB.open(DB_NAME_OFFLINE, 35);
+        const request = indexedDB.open(DB_NAME_OFFLINE, 33);
         request.onerror = (event) => {
           console.error('IndexedDB erro:', event);
           reject(request.error);
         };
         request.onsuccess = (event) => {
           dbInstance = request.result;
-          console.log('IndexedDB aberto com sucesso - versão 35');
+          console.log('IndexedDB aberto com sucesso - versão 33');
+          verificarPersistenciaDados();
           resolve(dbInstance);
         };
         request.onupgradeneeded = (event) => {
           const db = event.target.result;
-          console.log('Criando stores versão 35...');
+          console.log('Criando stores versão 33...');
           
-          const storesToRemove = ['items_cache', 'files_cache', 'pending_items', 'pending_inspections', 'modelo_pdf', 'sync_log', 'signature_cache', 'pdf_cache'];
+          const storesToRemove = ['items_cache', 'files_cache', 'pending_items', 'pending_inspections', 'modelo_pdf', 'sync_log', 'signature_cache'];
           for (const store of storesToRemove) {
             if (db.objectStoreNames.contains(store)) {
               db.deleteObjectStore(store);
@@ -476,245 +379,36 @@
           db.createObjectStore(STORE_MODELO_PDF, { keyPath: 'id' });
           db.createObjectStore(STORE_SYNC_LOG, { keyPath: 'id', autoIncrement: true });
           db.createObjectStore(STORE_SIGNATURE, { keyPath: 'id' });
-          db.createObjectStore(STORE_PDF_CACHE, { keyPath: 'id' });
         };
       });
     }
 
-    // ==================== FUNÇÕES DO GERENCIADOR DE CACHE ====================
-    async function carregarListaCacheModal() {
-      const container = document.getElementById('cacheItemsModalList');
-      if (!container) return;
-      
-      container.innerHTML = '<div class="loading">Carregando tendas...</div>';
-      
+    // ==================== VERIFICAR PERSISTÊNCIA ====================
+    async function verificarPersistenciaDados() {
       try {
-        const items = await getAllItemsWithFiles();
-        const pdfCacheados = await getPdfCacheStatus();
+        const pendentesItems = await getPendingItems();
+        const pendentesInsp = await getPendingInspections();
+        const itemsLocal = await carregarItemsLocal();
         
-        let html = '';
-        let selectedCount = 0;
+        console.log(`📊 Dados persistidos no IndexedDB:`);
+        console.log(`   - Itens locais: ${itemsLocal.length}`);
+        console.log(`   - Itens pendentes: ${pendentesItems.length}`);
+        console.log(`   - Inspeções pendentes: ${pendentesInsp.length}`);
         
-        for (const item of items) {
-          const temPDF = pdfCacheados[item.id];
-          const statusClass = temPDF ? 'complete' : 'pending';
-          const statusText = temPDF ? '✅ PDF baixado' : '⚠️ Aguardando download';
-          const isSelected = selectedItemsModal.has(item.id);
-          if (isSelected) selectedCount++;
-          
-          html += `
-            <div class="cache-item-modal" data-id="${item.id}">
-              <div class="cache-item-info-modal">
-                <div class="cache-item-name-modal">${escapeHtml(item.name)}</div>
-                <div class="cache-item-code-modal">Código: ${escapeHtml(item.code)}</div>
-              </div>
-              <div class="cache-item-stats-modal ${statusClass}">${statusText}</div>
-              <div>
-                <button class="select-item-cache-modal btn-small" data-id="${item.id}" data-selected="${isSelected}" style="background:${isSelected ? '#ef4444' : '#10b981'}; color:white;">
-                  ${isSelected ? 'Desmarcar' : 'Selecionar'}
-                </button>
-              </div>
-            </div>
-          `;
+        if (pendentesItems.length > 0) {
+          console.log(`📋 Itens pendentes detalhados:`);
+          pendentesItems.forEach(p => {
+            console.log(`   - ID: ${p.id}, Nome: ${p.name}, Código: ${p.code}`);
+          });
         }
         
-        document.getElementById('selectedCountModal').innerText = selectedCount;
-        container.innerHTML = html;
-        
-        document.querySelectorAll('.select-item-cache-modal').forEach(btn => {
-          btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const id = btn.dataset.id;
-            const isSelected = btn.dataset.selected === 'true';
-            
-            if (isSelected) {
-              selectedItemsModal.delete(id);
-              btn.dataset.selected = 'false';
-              btn.style.background = '#10b981';
-              btn.innerText = 'Selecionar';
-            } else {
-              selectedItemsModal.add(id);
-              btn.dataset.selected = 'true';
-              btn.style.background = '#ef4444';
-              btn.innerText = 'Desmarcar';
-            }
-            
-            document.getElementById('selectedCountModal').innerText = selectedItemsModal.size;
-            const itemDiv = btn.closest('.cache-item-modal');
-            if (itemDiv) itemDiv.dataset.selected = isSelected ? 'false' : 'true';
-          });
-        });
-        
-        document.querySelectorAll('.cache-item-modal').forEach(itemDiv => {
-          itemDiv.addEventListener('click', (e) => {
-            if (e.target.tagName === 'BUTTON') return;
-            const btn = itemDiv.querySelector('.select-item-cache-modal');
-            if (btn) btn.click();
-          });
-        });
-        
-      } catch (error) {
-        console.error('Erro ao carregar lista:', error);
-        container.innerHTML = '<div class="error-text">Erro ao carregar tendas</div>';
-      }
-    }
-
-    async function getPdfCacheStatus() {
-      try {
-        const db = await initOfflineDB();
-        const tx = db.transaction(STORE_PDF_CACHE, 'readonly');
-        const store = tx.objectStore(STORE_PDF_CACHE);
-        const all = await new Promise((resolve) => {
-          const req = store.getAll();
-          req.onsuccess = () => resolve(req.result);
-        });
-        const status = {};
-        all.forEach(item => { status[item.id] = true; });
-        return status;
+        await updatePendingBadge();
       } catch(e) {
-        return {};
+        console.error('Erro ao verificar persistência:', e);
       }
     }
 
-    async function baixarPDFsSelecionadosModal() {
-      if (selectedItemsModal.size === 0) {
-        alert('Selecione pelo menos uma tenda para baixar os PDFs.');
-        return;
-      }
-      
-      const progressBar = document.getElementById('downloadProgressModal');
-      const progressFill = document.getElementById('downloadProgressFillModal');
-      const statusList = document.getElementById('downloadStatusModal');
-      
-      progressBar.style.display = 'block';
-      progressFill.style.width = '0%';
-      statusList.innerHTML = '';
-      
-      const items = await getAllItemsWithFiles();
-      const itemsSelecionados = items.filter(i => selectedItemsModal.has(i.id));
-      let concluidos = 0;
-      let erros = 0;
-      
-      for (const item of itemsSelecionados) {
-        try {
-          const pdfBlob = await gerarPDFCompleto(item);
-          await salvarPDFCache(item.id, pdfBlob);
-          
-          const statusDiv = document.createElement('div');
-          statusDiv.className = 'status-item-success';
-          statusDiv.innerHTML = `✅ ${escapeHtml(item.name)} baixado com sucesso!`;
-          statusList.appendChild(statusDiv);
-          concluidos++;
-        } catch (error) {
-          console.error(`Erro ao baixar ${item.name}:`, error);
-          const statusDiv = document.createElement('div');
-          statusDiv.className = 'status-item-error';
-          statusDiv.innerHTML = `❌ Erro ao baixar ${escapeHtml(item.name)}: ${error.message}`;
-          statusList.appendChild(statusDiv);
-          erros++;
-        }
-        
-        const percent = ((concluidos + erros) / itemsSelecionados.length) * 100;
-        progressFill.style.width = `${percent}%`;
-      }
-      
-      setTimeout(() => {
-        progressBar.style.display = 'none';
-      }, 2000);
-      
-      alert(`✅ Download concluído!\n\nSucesso: ${concluidos}\nFalhas: ${erros}`);
-      
-      await carregarListaCacheModal();
-      await updateUserModalCacheStatus();
-    }
-
-    async function gerarPDFCompleto(item) {
-      if (!window.PDFLib) await carregarPDFLib();
-      const { PDFDocument, StandardFonts, rgb } = window.PDFLib;
-      const modelBytes = await carregarModeloPDF();
-      const pdfDoc = await PDFDocument.load(modelBytes);
-      const form = pdfDoc.getForm();
-      
-      const campos = [
-        { nome: "unidade", valor: "SERRA NORTE" },
-        { nome: "localidade", valor: item.name },
-        { nome: "nome", valor: currentUser?.username || "Sistema" },
-        { nome: "matrcula", valor: "SISTEMA" },
-        { nome: "data", valor: new Date().toISOString().split('T')[0] },
-        { nome: "empresa", valor: "TENDEX" }
-      ];
-      
-      for (const campo of campos) {
-        try {
-          const textField = form.getTextField(campo.nome);
-          if (textField) textField.setText(campo.valor);
-        } catch(e) {}
-      }
-      
-      for (let i = 1; i <= 25; i++) {
-        try {
-          const textField = form.getTextField(`${i}`);
-          if (textField) textField.setText("Conforme");
-        } catch(e) {}
-      }
-      
-      const pages = pdfDoc.getPages();
-      if (pages.length > 0) {
-        const pagina = pages[0];
-        const { width, height } = pagina.getSize();
-        const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-        const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-        
-        const posX = width - 210;
-        let posY = 130;
-        pagina.drawText(`ID / TAG: ${item.code}`, { x: posX, y: posY, size: 10, font: boldFont });
-        posY -= 18;
-        pagina.drawText(`TAMANHO: ${item.tamanho || 'Não informado'}`, { x: posX, y: posY, size: 10, font: boldFont });
-        posY -= 25;
-        pagina.drawLine({ start: { x: posX - 10, y: posY + 8 }, end: { x: width - 30, y: posY + 8 }, thickness: 1 });
-        pagina.drawText("Assinatura do Responsável", { x: posX - 10, y: posY - 5, size: 8, font: font });
-        
-        if (cachedSignature) {
-          try {
-            let imagem = await pdfDoc.embedPng(cachedSignature);
-            const areaMaxWidth = 180, areaMaxHeight = 80;
-            const scale = Math.min(areaMaxWidth / imagem.width, areaMaxHeight / imagem.height);
-            const finalW = imagem.width * scale, finalH = imagem.height * scale;
-            const imgX = width - finalW - 30, imgY = posY - finalH - 10;
-            pagina.drawImage(imagem, { x: imgX, y: imgY, width: finalW, height: finalH });
-          } catch(e) {}
-        }
-      }
-      
-      const pdfBytes = await pdfDoc.save();
-      return new Blob([pdfBytes], { type: 'application/pdf' });
-    }
-
-    async function salvarPDFCache(itemId, blob) {
-      const db = await initOfflineDB();
-      const tx = db.transaction(STORE_PDF_CACHE, 'readwrite');
-      const store = tx.objectStore(STORE_PDF_CACHE);
-      const arrayBuffer = await blob.arrayBuffer();
-      store.put({ id: String(itemId), data: arrayBuffer, timestamp: Date.now() });
-      return new Promise((resolve, reject) => {
-        tx.oncomplete = () => resolve();
-        tx.onerror = () => reject(tx.error);
-      });
-    }
-
-    async function limparPDFsCacheModal() {
-      if (!confirm('⚠️ ATENÇÃO: Isso irá remover TODOS os PDFs baixados para uso offline.\n\nDeseja continuar?')) return;
-      
-      const db = await initOfflineDB();
-      const tx = db.transaction(STORE_PDF_CACHE, 'readwrite');
-      await tx.objectStore(STORE_PDF_CACHE).clear();
-      alert('✅ Cache de PDFs limpo com sucesso!');
-      selectedItemsModal.clear();
-      await carregarListaCacheModal();
-      await updateUserModalCacheStatus();
-    }
-
-    // ==================== FUNÇÕES PRINCIPAIS ====================
+    // ==================== CARREGAR ITEMS LOCAL ====================
     async function carregarItemsLocal() {
       try {
         const db = await initOfflineDB();
@@ -722,10 +416,32 @@
           const tx = db.transaction(STORE_ITEMS, 'readonly');
           const store = tx.objectStore(STORE_ITEMS);
           const request = store.getAll();
-          request.onsuccess = () => resolve(request.result || []);
+          request.onsuccess = () => {
+            const items = request.result || [];
+            console.log(`📦 carregarItemsLocal: ${items.length} itens encontrados`);
+            resolve(items);
+          };
           request.onerror = () => reject(request.error);
         });
-      } catch (e) { return []; }
+      } catch (e) { 
+        console.warn('Erro ao carregar items local:', e); 
+        return []; 
+      }
+    }
+
+    async function salvarItemsLocal(items) {
+      try {
+        const db = await initOfflineDB();
+        const tx = db.transaction(STORE_ITEMS, 'readwrite');
+        const store = tx.objectStore(STORE_ITEMS);
+        for (const item of items) {
+          store.put(item);
+        }
+        return new Promise((resolve, reject) => {
+          tx.oncomplete = () => resolve();
+          tx.onerror = () => reject(tx.error);
+        });
+      } catch (e) { console.warn('Erro ao salvar items local:', e); }
     }
 
     async function carregarFilesLocal() {
@@ -735,68 +451,126 @@
           const tx = db.transaction(STORE_FILES, 'readonly');
           const store = tx.objectStore(STORE_FILES);
           const request = store.getAll();
-          request.onsuccess = () => resolve(request.result || []);
+          request.onsuccess = () => {
+            const files = request.result || [];
+            console.log(`📎 carregarFilesLocal: ${files.length} arquivos encontrados`);
+            resolve(files);
+          };
           request.onerror = () => reject(request.error);
         });
-      } catch (e) { return []; }
+      } catch (e) { 
+        console.warn('Erro ao carregar files local:', e); 
+        return []; 
+      }
     }
 
-    async function getAllItemsWithFiles() {
-      const itemsLocal = await carregarItemsLocal();
-      const filesLocal = await carregarFilesLocal();
-      const filesByItem = {};
-      filesLocal.forEach(file => {
-        if (file && file.item_id) {
-          if (!filesByItem[file.item_id]) filesByItem[file.item_id] = [];
-          filesByItem[file.item_id].push(file);
-        }
-      });
-      return itemsLocal.map(item => ({
-        id: item.id, name: item.name, sub_localizacao: item.sub_localizacao || '',
-        tamanho: item.tamanho || '', code: item.code, status: item.status || 'active',
-        files: filesByItem[item.id] || []
-      }));
-    }
-
-    async function carregarModeloPDF() {
-      if (cachedModeloPDF) return cachedModeloPDF;
+    async function salvarFilesLocal(files) {
       try {
         const db = await initOfflineDB();
-        const tx = db.transaction(STORE_MODELO_PDF, 'readonly');
-        const store = tx.objectStore(STORE_MODELO_PDF);
-        const result = await new Promise((resolve) => {
-          const request = store.get('modelo');
-          request.onsuccess = () => resolve(request.result);
-        });
-        if (result && result.data) {
-          cachedModeloPDF = result.data;
-          return cachedModeloPDF;
+        const tx = db.transaction(STORE_FILES, 'readwrite');
+        const store = tx.objectStore(STORE_FILES);
+        for (const file of files) {
+          store.put(file);
         }
-      } catch(e) {}
-      
-      const response = await fetch(MODELO_PDF_URL);
-      const buffer = await response.arrayBuffer();
-      cachedModeloPDF = buffer;
-      const db = await initOfflineDB();
-      const tx = db.transaction(STORE_MODELO_PDF, 'readwrite');
-      tx.objectStore(STORE_MODELO_PDF).put({ id: 'modelo', data: buffer });
-      return buffer;
+        return new Promise((resolve, reject) => {
+          tx.oncomplete = () => resolve();
+          tx.onerror = () => reject(tx.error);
+        });
+      } catch (e) { console.warn('Erro ao salvar files local:', e); }
     }
 
-    // ==================== FUNÇÕES AUXILIARES ====================
-    async function testarConexao() {
-      if (!navigator.onLine) return false;
+    // ==================== PENDING ITEMS ====================
+    async function salvarItemPending(itemData) {
       try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000);
-        await fetch('https://www.google.com', { method: 'HEAD', signal: controller.signal, mode: 'no-cors' });
-        clearTimeout(timeoutId);
-        return true;
-      } catch (error) { return navigator.onLine; }
+        const db = await initOfflineDB();
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction(STORE_PENDING_ITEMS, 'readwrite');
+          const store = tx.objectStore(STORE_PENDING_ITEMS);
+          const request = store.put(itemData);
+          request.onsuccess = () => {
+            console.log('✅ Item pendente salvo:', itemData.id);
+            resolve(request.result);
+          };
+          request.onerror = () => reject(request.error);
+        });
+      } catch (error) { console.error('Erro ao salvar item pendente:', error); throw error; }
     }
 
+    async function getPendingItems() {
+      const db = await initOfflineDB();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE_PENDING_ITEMS, 'readonly');
+        const store = tx.objectStore(STORE_PENDING_ITEMS);
+        const request = store.getAll();
+        request.onsuccess = () => {
+          const items = request.result || [];
+          console.log(`📋 getPendingItems: ${items.length} itens pendentes`);
+          resolve(items);
+        };
+        request.onerror = () => reject(request.error);
+      });
+    }
+
+    async function removerItemPending(id) {
+      const db = await initOfflineDB();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE_PENDING_ITEMS, 'readwrite');
+        const store = tx.objectStore(STORE_PENDING_ITEMS);
+        const request = store.delete(id);
+        request.onsuccess = () => {
+          console.log(`✅ Item pendente removido: ${id}`);
+          resolve();
+        };
+        request.onerror = () => reject(request.error);
+      });
+    }
+
+    // ==================== PENDING INSPECTIONS ====================
+    async function salvarInspecaoPending(data) {
+      try {
+        const db = await initOfflineDB();
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction(STORE_PENDING_INSPECTIONS, 'readwrite');
+          const store = tx.objectStore(STORE_PENDING_INSPECTIONS);
+          const request = store.put(data);
+          request.onsuccess = () => {
+            console.log('✅ Inspeção pendente salva:', data.id);
+            resolve(request.result);
+          };
+          request.onerror = () => reject(request.error);
+        });
+      } catch (error) { console.error('Erro ao salvar inspeção pendente:', error); throw error; }
+    }
+
+    async function getPendingInspections() {
+      const db = await initOfflineDB();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE_PENDING_INSPECTIONS, 'readonly');
+        const store = tx.objectStore(STORE_PENDING_INSPECTIONS);
+        const request = store.getAll();
+        request.onsuccess = () => resolve(request.result || []);
+        request.onerror = () => reject(request.error);
+      });
+    }
+
+    async function removerInspecaoPending(id) {
+      const db = await initOfflineDB();
+      return new Promise((resolve, reject) => {
+        const tx = db.transaction(STORE_PENDING_INSPECTIONS, 'readwrite');
+        const store = tx.objectStore(STORE_PENDING_INSPECTIONS);
+        const request = store.delete(id);
+        request.onsuccess = () => {
+          console.log(`✅ Inspeção pendente removida: ${id}`);
+          resolve();
+        };
+        request.onerror = () => reject(request.error);
+      });
+    }
+
+    // ==================== CACHEAR ASSINATURA ====================
     async function cachearAssinatura() {
       if (!currentUser || !currentUser.username) return null;
+      
       const nomeUsuario = currentUser.username.toLowerCase();
       const assinaturaUrl = `https://jklcvyuxwxgsfczrfaco.supabase.co/storage/v1/object/public/assinaturas/${nomeUsuario}.png`;
       const cacheKey = `assinatura_${nomeUsuario}`;
@@ -809,11 +583,14 @@
           const request = store.get(cacheKey);
           request.onsuccess = () => resolve(request.result);
         });
+        
         if (cached && cached.data) {
+          console.log('✅ Assinatura carregada do cache');
           cachedSignature = cached.data;
           updateSignatureStatus(true);
           return cached.data;
         }
+        
         if (navigator.onLine) {
           const response = await fetch(assinaturaUrl);
           if (response.ok) {
@@ -822,15 +599,19 @@
             const store2 = tx2.objectStore(STORE_SIGNATURE);
             store2.put({ id: cacheKey, data: imageBytes });
             cachedSignature = imageBytes;
+            console.log('✅ Assinatura cacheada com sucesso');
             updateSignatureStatus(true);
             return imageBytes;
           } else {
+            console.warn('⚠️ Assinatura não encontrada no servidor');
             updateSignatureStatus(false);
           }
         }
       } catch (error) {
+        console.warn('Erro ao cachear assinatura:', error);
         updateSignatureStatus(false);
       }
+      
       return null;
     }
 
@@ -847,6 +628,636 @@
       }
     }
 
+    // ==================== LIMPAR DADOS SINCRONIZADOS ====================
+    async function limparDadosSincronizadosOnline() {
+      if (!navigator.onLine) {
+        console.log('📡 Offline - mantendo dados pendentes');
+        return;
+      }
+      
+      console.log('🧹 ONLINE - Limpando dados já sincronizados...');
+      try {
+        const db = await initOfflineDB();
+        
+        const tx1 = db.transaction(STORE_PENDING_ITEMS, 'readwrite');
+        await new Promise((resolve) => {
+          const req = tx1.objectStore(STORE_PENDING_ITEMS).clear();
+          req.onsuccess = () => resolve();
+        });
+        
+        const tx2 = db.transaction(STORE_PENDING_INSPECTIONS, 'readwrite');
+        await new Promise((resolve) => {
+          const req = tx2.objectStore(STORE_PENDING_INSPECTIONS).clear();
+          req.onsuccess = () => resolve();
+        });
+        
+        console.log('✅ Dados pendentes sincronizados removidos');
+      } catch (e) {
+        console.warn('Erro ao limpar dados sincronizados:', e);
+      }
+    }
+
+    // ==================== PREPARAR CACHE OFFLINE ====================
+    async function prepararCacheOffline() {
+      if (!navigator.onLine) {
+        console.log('📡 Offline - não é possível preparar cache agora');
+        return false;
+      }
+      
+      console.log('📥 Preparando cache offline (atualizando PDF)...');
+      try {
+        const response = await fetch(MODELO_PDF_URL);
+        if (!response.ok) throw new Error('Falha ao baixar modelo');
+        const buffer = await response.arrayBuffer();
+        
+        const db = await initOfflineDB();
+        const tx = db.transaction(STORE_MODELO_PDF, 'readwrite');
+        const store = tx.objectStore(STORE_MODELO_PDF);
+        
+        await new Promise((resolve, reject) => {
+          const clearReq = store.clear();
+          clearReq.onsuccess = () => {
+            const putReq = store.put({ id: 'modelo', data: buffer });
+            putReq.onsuccess = () => resolve();
+            putReq.onerror = () => reject(putReq.error);
+          };
+          clearReq.onerror = () => reject(clearReq.error);
+        });
+        
+        await new Promise((resolve) => { tx.oncomplete = () => resolve(); });
+        
+        cachedModeloPDF = buffer;
+        await updateUserModalCacheStatus();
+        
+        console.log('✅ Cache offline atualizado com sucesso');
+        return true;
+      } catch (error) {
+        console.error('❌ Erro ao preparar cache offline:', error);
+        return false;
+      }
+    }
+
+    // ==================== GET ALL ITEMS WITH FILES ====================
+    async function getAllItemsWithFiles() {
+      let items = [];
+      let files = [];
+      
+      const itemsLocal = await carregarItemsLocal();
+      const filesLocal = await carregarFilesLocal();
+      const pendentesItems = await getPendingItems();
+      
+      console.log(`📊 ESTADO COMPLETO DO CACHE:`);
+      console.log(`   - Itens no cache local: ${itemsLocal.length}`);
+      console.log(`   - Itens pendentes: ${pendentesItems.length}`);
+      
+      const pendentesComoItens = pendentesItems.map(p => ({
+        id: p.id,
+        name: p.name,
+        sub_localizacao: p.sub_localizacao || '',
+        tamanho: p.tamanho || '',
+        code: p.code,
+        status: 'active',
+        pending: true,
+        files: [],
+        createdAt: p.timestamp || new Date().toISOString()
+      }));
+      
+      const todosItens = [...itemsLocal, ...pendentesComoItens];
+      const uniqueItems = [];
+      const seenIds = new Set();
+      for (const item of todosItens) {
+        if (!seenIds.has(item.id)) {
+          seenIds.add(item.id);
+          uniqueItems.push(item);
+        }
+      }
+      
+      const isOnline = navigator.onLine && await testarConexao();
+      
+      if (isOnline) {
+        try {
+          console.log('🌐 Buscando dados do servidor...');
+          const { data: itemsData, error: itemsError } = await supabase.from('items').select('*').order('id', { ascending: true });
+          if (!itemsError && itemsData) {
+            const serverItemCodes = new Set(itemsData.map(i => i.code));
+            const pendentesNaoNoServidor = pendentesItems.filter(p => !serverItemCodes.has(p.code));
+            const pendentesComoItensFiltrados = pendentesNaoNoServidor.map(p => ({
+              id: p.id,
+              name: p.name,
+              sub_localizacao: p.sub_localizacao || '',
+              tamanho: p.tamanho || '',
+              code: p.code,
+              status: 'active',
+              pending: true,
+              files: []
+            }));
+            
+            items = [...itemsData, ...pendentesComoItensFiltrados];
+            await salvarItemsLocal(items);
+            console.log(`✅ ${items.length} itens no total (${itemsData.length} servidor + ${pendentesComoItensFiltrados.length} pendentes)`);
+          } else {
+            items = uniqueItems;
+          }
+          
+          const { data: filesData, error: filesError } = await supabase.from('files').select('*');
+          if (!filesError && filesData) {
+            files = filesData;
+            await salvarFilesLocal(files);
+          } else {
+            files = filesLocal;
+          }
+        } catch (error) {
+          console.warn('Erro ao buscar online:', error);
+          items = uniqueItems;
+          files = filesLocal;
+        }
+      } else {
+        items = uniqueItems;
+        files = filesLocal;
+        console.log(`📡 Modo OFFLINE - ${items.length} itens (${itemsLocal.length} cache + ${pendentesItems.length} pendentes)`);
+      }
+      
+      if (!items || items.length === 0) {
+        console.warn('⚠️ Nenhum item encontrado');
+        return [];
+      }
+      
+      const filesByItem = {};
+      if (files && files.length > 0) {
+        files.forEach(file => { 
+          if (file && file.item_id) {
+            if (!filesByItem[file.item_id]) filesByItem[file.item_id] = []; 
+            filesByItem[file.item_id].push(file); 
+          }
+        });
+      }
+      
+      const result = items.map(item => ({ 
+        id: item.id, 
+        name: item.name || 'Sem nome', 
+        sub_localizacao: item.sub_localizacao || '', 
+        tamanho: item.tamanho || '', 
+        code: item.code || 'SEM-CODIGO', 
+        status: item.status || 'active',
+        pending: item.pending || false,
+        files: filesByItem[item.id] || [] 
+      }));
+      
+      console.log(`🎯 RESULTADO FINAL: ${result.length} itens para exibição (${result.filter(i => i.pending).length} pendentes)`);
+      
+      currentItems = result;
+      return result;
+    }
+
+    // ==================== SAVE ITEM COMPLETE ====================
+    async function saveItemComplete(itemId, name, sub_localizacao, tamanho, code, filesToProcess) {
+      const isOnline = navigator.onLine && await testarConexao();
+      const offlineId = `offline_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      if (!isOnline) {
+        console.log('💾 Modo OFFLINE - Salvando item permanentemente...');
+        
+        const itemsLocal = await carregarItemsLocal();
+        const existeLocal = itemsLocal.some(i => i.code === code);
+        
+        if (existeLocal) {
+          alert('❌ Este código já existe localmente. Use outro código.');
+          throw new Error('Código duplicado localmente');
+        }
+        
+        const pendingData = {
+          id: offlineId,
+          name: name,
+          sub_localizacao: sub_localizacao || '',
+          tamanho: tamanho || '',
+          code: code,
+          timestamp: new Date().toISOString()
+        };
+        await salvarItemPending(pendingData);
+        console.log(`✅ Item pendente salvo: ${offlineId}`);
+        
+        const newItem = {
+          id: offlineId,
+          name: name,
+          sub_localizacao: sub_localizacao || '',
+          tamanho: tamanho || '',
+          code: code,
+          status: 'active',
+          files: [],
+          pending: true
+        };
+        
+        itemsLocal.push(newItem);
+        await salvarItemsLocal(itemsLocal);
+        console.log(`✅ Item adicionado ao cache local: ${itemsLocal.length} total`);
+        
+        await refreshData();
+        await updatePendingBadge();
+        
+        alert('⚠️ Você está offline. O item foi salvo localmente e será sincronizado quando a internet voltar.');
+        return offlineId;
+      }
+      
+      const { data: existing } = await supabase.from('items').select('id').eq('code', code).maybeSingle();
+      if (existing && existing.id !== itemId) {
+        alert(`❌ O código "${code}" já está em uso.`);
+        throw new Error(`Código "${code}" já existe`);
+      }
+      
+      const uploadedUrls = [];
+      for (const item of filesToProcess) {
+        if (item.file) {
+          const fileExt = item.file.name.split('.').pop();
+          const tempId = itemId || 'temp';
+          const filePath = `itens/${tempId}/${item.category}_${Date.now()}.${fileExt}`;
+          await supabase.storage.from(BUCKET).upload(filePath, item.file);
+          const { data: publicUrlData } = supabase.storage.from(BUCKET).getPublicUrl(filePath);
+          uploadedUrls.push({
+            category: item.category,
+            url: publicUrlData.publicUrl,
+            fileName: item.file.name
+          });
+        } else {
+          uploadedUrls.push({ category: item.category, url: null });
+        }
+      }
+
+      let itemIdFinal = itemId;
+      const itemData = { name, sub_localizacao: sub_localizacao || '', tamanho: tamanho || '', code, status: 'active' };
+      
+      if (itemId && !itemId.toString().startsWith('offline_')) {
+        await supabase.from('items').update(itemData).eq('id', itemId);
+      } else {
+        const { data: newItem, error: insertError } = await supabase.from('items').insert(itemData).select().single();
+        if (insertError) throw insertError;
+        itemIdFinal = newItem.id;
+        
+        const pendentesItems = await getPendingItems();
+        const pendenteExistente = pendentesItems.find(p => p.code === code);
+        if (pendenteExistente) {
+          await removerItemPending(pendenteExistente.id);
+          console.log(`✅ Item pendente removido: ${pendenteExistente.id}`);
+        }
+      }
+
+      for (const fileInfo of uploadedUrls) {
+        if (fileInfo.url) {
+          const { data: existingFile } = await supabase.from('files').select('id, file_url').eq('item_id', itemIdFinal).eq('category', fileInfo.category).maybeSingle();
+          if (existingFile) {
+            await deleteStorageFile(existingFile.file_url);
+            await supabase.from('files').delete().eq('id', existingFile.id);
+          }
+          await supabase.from('files').insert({
+            item_id: itemIdFinal,
+            category: fileInfo.category,
+            file_name: fileInfo.fileName,
+            file_url: fileInfo.url
+          });
+        }
+      }
+      
+      const allItems = await supabase.from('items').select('*');
+      const allFiles = await supabase.from('files').select('*');
+      await salvarItemsLocal(allItems.data || []);
+      await salvarFilesLocal(allFiles.data || []);
+      await refreshData();
+      
+      return itemIdFinal;
+    }
+
+    // ==================== TESTE DE CONEXÃO ====================
+    async function testarConexao() {
+      if (!navigator.onLine) return false;
+      try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+        await fetch('https://www.google.com', { method: 'HEAD', signal: controller.signal, mode: 'no-cors' });
+        clearTimeout(timeoutId);
+        return true;
+      } catch (error) { return navigator.onLine; }
+    }
+
+    // ==================== FUNÇÕES AUXILIARES ====================
+    function blobToBase64(blob) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result.split(',')[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    }
+
+    function base64ToBlob(base64, mimeType) {
+      const byteCharacters = atob(base64);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) byteNumbers[i] = byteCharacters.charCodeAt(i);
+      const byteArray = new Uint8Array(byteNumbers);
+      return new Blob([byteArray], { type: mimeType });
+    }
+
+    function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;'); }
+    function formatarData(dataString) { if (!dataString) return ''; const partes = dataString.split('-'); if (partes.length === 3) return `${partes[2]}/${partes[1]}/${partes[0]}`; return dataString; }
+
+    // ==================== ATUALIZAR BADGE ====================
+    async function updatePendingBadge() {
+      const badge = document.getElementById('syncPendingBadge');
+      const pendentesItems = await getPendingItems();
+      const pendentesInsp = await getPendingInspections();
+      const total = pendentesItems.length + pendentesInsp.length;
+      
+      if (total > 0) {
+        badge.style.display = 'inline-block';
+        badge.textContent = `📤 ${total} pendente${total > 1 ? 's' : ''}`;
+        console.log(`🔔 Badge atualizado: ${total} pendentes`);
+      } else {
+        badge.style.display = 'none';
+        console.log(`🔔 Badge oculto - nenhum pendente`);
+      }
+      return total;
+    }
+
+    // ==================== LISTAR PENDENTES NO MODAL ====================
+    async function listarPendentesNoModal() {
+      const container = document.getElementById('pendingItemsList');
+      const pendentesItems = await getPendingItems();
+      const pendentesInsp = await getPendingInspections();
+      
+      if (pendentesItems.length === 0 && pendentesInsp.length === 0) {
+        container.innerHTML = '<p style="color: #10b981; text-align: center;">✅ Nenhum item pendente de sincronização</p>';
+        return;
+      }
+      
+      let html = '';
+      
+      if (pendentesItems.length > 0) {
+        html += `<p><strong>📦 Itens (${pendentesItems.length}):</strong></p>`;
+        for (const item of pendentesItems) {
+          html += `<div class="pending-item">
+            <span>🏷️ ${escapeHtml(item.name)} (${escapeHtml(item.code)})</span>
+            <span style="font-size: 0.7rem; color: #92400e;">Aguardando sincronização</span>
+          </div>`;
+        }
+      }
+      
+      if (pendentesInsp.length > 0) {
+        html += `<p style="margin-top: 1rem;"><strong>📋 Inspeções (${pendentesInsp.length}):</strong></p>`;
+        for (const insp of pendentesInsp) {
+          html += `<div class="pending-item">
+            <span>📄 Inspeção - ${escapeHtml(insp.monthName)} (Item: ${escapeHtml(insp.itemInfo?.code || 'Código não informado')})</span>
+            <span style="font-size: 0.7rem; color: #92400e;">Aguardando sincronização</span>
+          </div>`;
+        }
+      }
+      
+      container.innerHTML = html;
+    }
+
+    // ==================== MODAL SINCRONIZAÇÃO ====================
+    async function mostrarModalSincronizacao() {
+      const syncModal = document.getElementById('syncModal');
+      const syncModalList = document.getElementById('syncModalList');
+      const syncModalProgress = document.getElementById('syncModalProgress');
+      
+      const pendentesItems = await getPendingItems();
+      const pendentesInsp = await getPendingInspections();
+      const total = pendentesItems.length + pendentesInsp.length;
+      
+      if (total === 0) {
+        alert('✅ Nenhum item pendente para sincronizar!');
+        return;
+      }
+      
+      syncModal.style.display = 'flex';
+      syncModalProgress.style.width = '0%';
+      
+      let html = `<p><strong>📊 Total de itens a sincronizar: ${total}</strong></p>`;
+      html += `<p style="color: #f59e0b; font-size: 0.8rem;">⚠️ Itens serão sincronizados primeiro, depois as inspeções</p>`;
+      html += `<div style="margin: 1rem 0;"><strong>📦 Itens (${pendentesItems.length}):</strong></div>`;
+      
+      for (const item of pendentesItems) {
+        html += `<div class="pending-item" id="sync-item-${item.id}">
+          <span>🏷️ ${escapeHtml(item.name)} (${escapeHtml(item.code)})</span>
+          <span style="color: #f59e0b;">⏳ Aguardando...</span>
+        </div>`;
+      }
+      
+      html += `<div style="margin: 1rem 0;"><strong>📋 Inspeções (${pendentesInsp.length}):</strong></div>`;
+      
+      for (const insp of pendentesInsp) {
+        html += `<div class="pending-item" id="sync-insp-${insp.id}">
+          <span>📄 Inspeção - ${escapeHtml(insp.monthName)} (Item: ${escapeHtml(insp.itemInfo?.code || 'Código não informado')})</span>
+          <span style="color: #f59e0b;">⏳ Aguardando...</span>
+        </div>`;
+      }
+      
+      syncModalList.innerHTML = html;
+      
+      await sincronizarComProgresso();
+      
+      setTimeout(() => {
+        syncModal.style.display = 'none';
+      }, 2000);
+    }
+
+    // ==================== SINCRONIZAR COM PROGRESSO ====================
+    async function sincronizarComProgresso() {
+      const syncModalProgress = document.getElementById('syncModalProgress');
+      const pendentesItems = await getPendingItems();
+      const pendentesInsp = await getPendingInspections();
+      const total = pendentesItems.length + pendentesInsp.length;
+      let concluidos = 0;
+      let erros = 0;
+      const mapaIds = {};
+      
+      if (total === 0) {
+        console.log('✅ Nenhum item pendente para sincronizar');
+        return;
+      }
+      
+      console.log(`🔄 Iniciando sincronização de ${total} itens...`);
+      
+      function atualizarProgresso(sucesso) {
+        concluidos++;
+        const percent = (concluidos / total) * 100;
+        if (syncModalProgress) syncModalProgress.style.width = `${percent}%`;
+      }
+      
+      // FASE 1: Sincronizar itens pendentes
+      console.log('📦 FASE 1 - Sincronizando itens pendentes...');
+      
+      for (const item of pendentesItems) {
+        try {
+          const element = document.getElementById(`sync-item-${item.id}`);
+          if (element) {
+            element.querySelector('span:last-child').innerHTML = '<span style="color: #f59e0b;">🔄 Sincronizando...</span>';
+          }
+          
+          const { data: existing, error: checkError } = await supabase
+            .from('items')
+            .select('id, code')
+            .eq('code', item.code)
+            .maybeSingle();
+          
+          if (checkError) throw checkError;
+          
+          if (existing) {
+            mapaIds[item.code] = existing.id;
+            if (element) {
+              element.querySelector('span:last-child').innerHTML = '<span style="color: #10b981;">✅ Já existe no servidor</span>';
+              element.style.background = '#d1fae5';
+            }
+            await removerItemPending(item.id);
+            atualizarProgresso(true);
+            console.log(`✅ Item ${item.code} já existia, removido da fila`);
+            continue;
+          }
+          
+          const { data: newItem, error: insertError } = await supabase.from('items').insert({
+            name: item.name,
+            sub_localizacao: item.sub_localizacao || '',
+            tamanho: item.tamanho || '',
+            code: item.code,
+            status: 'active'
+          }).select().single();
+          
+          if (insertError) throw insertError;
+          
+          mapaIds[item.code] = newItem.id;
+          await removerItemPending(item.id);
+          
+          if (element) {
+            element.querySelector('span:last-child').innerHTML = '<span style="color: #10b981;">✅ Sincronizado!</span>';
+            element.style.background = '#d1fae5';
+          }
+          atualizarProgresso(true);
+          console.log(`✅ Item ${item.name} sincronizado com ID: ${newItem.id}`);
+          
+        } catch (error) {
+          console.error(`❌ Erro ao sincronizar item:`, error);
+          erros++;
+          const element = document.getElementById(`sync-item-${item.id}`);
+          if (element) {
+            element.querySelector('span:last-child').innerHTML = `<span style="color: #ef4444;">❌ ${error.message?.substring(0, 50) || 'Erro'}</span>`;
+            element.style.background = '#fee2e2';
+          }
+          atualizarProgresso(false);
+        }
+      }
+      
+      // FASE 2: Sincronizar inspeções pendentes
+      console.log('📋 FASE 2 - Sincronizando inspeções pendentes...');
+      
+      for (const insp of pendentesInsp) {
+        try {
+          const element = document.getElementById(`sync-insp-${insp.id}`);
+          if (element) {
+            element.querySelector('span:last-child').innerHTML = '<span style="color: #f59e0b;">🔄 Sincronizando...</span>';
+          }
+          
+          let itemIdReal = mapaIds[insp.itemInfo?.code];
+          
+          if (!itemIdReal) {
+            const { data: itemData, error: itemError } = await supabase
+              .from('items')
+              .select('id')
+              .eq('code', insp.itemInfo?.code)
+              .maybeSingle();
+            
+            if (itemError) throw itemError;
+            
+            if (!itemData) {
+              throw new Error(`Item pai não encontrado: ${insp.itemInfo?.code}`);
+            }
+            itemIdReal = itemData.id;
+          }
+          
+          const pdfBlob = base64ToBlob(insp.pdfBase64, 'application/pdf');
+          const pdfFile = new File([pdfBlob], `checklist_${insp.monthName}_${Date.now()}.pdf`, { type: 'application/pdf' });
+          
+          let fotoFile = null;
+          if (insp.fotoBase64) {
+            const fotoBlob = base64ToBlob(insp.fotoBase64, 'image/jpeg');
+            fotoFile = new File([fotoBlob], `foto_${Date.now()}.jpg`, { type: 'image/jpeg' });
+          }
+          
+          await addFileToItem(itemIdReal, insp.category, pdfFile, insp.formData.data_inspecao);
+          await removerInspecaoPending(insp.id);
+          
+          if (element) {
+            element.querySelector('span:last-child').innerHTML = '<span style="color: #10b981;">✅ Sincronizado!</span>';
+            element.style.background = '#d1fae5';
+          }
+          atualizarProgresso(true);
+          console.log(`✅ Inspeção para ${insp.itemInfo?.code} sincronizada`);
+          
+        } catch (error) {
+          console.error(`❌ Erro ao sincronizar inspeção:`, error);
+          erros++;
+          const element = document.getElementById(`sync-insp-${insp.id}`);
+          if (element) {
+            element.querySelector('span:last-child').innerHTML = `<span style="color: #ef4444;">❌ ${error.message?.substring(0, 50) || 'Erro'}</span>`;
+            element.style.background = '#fee2e2';
+          }
+          atualizarProgresso(false);
+        }
+      }
+      
+      await limparDadosSincronizadosOnline();
+      
+      const sucessos = concluidos - erros;
+      console.log(`✅ Sincronização concluída: ${sucessos}/${total} itens processados`);
+      
+      return { concluidos, erros };
+    }
+
+    // ==================== ROTINA COMPLETA ONLINE ====================
+    async function rotinaCompletaOnline() {
+      if (!navigator.onLine) {
+        console.log('📡 Offline - pulando rotina online');
+        return;
+      }
+      
+      console.log('🚀 INICIANDO ROTINA COMPLETA ONLINE...');
+      const loader = document.getElementById('fullscreenLoader');
+      loader.classList.add('active');
+      
+      try {
+        const pendentesItems = await getPendingItems();
+        const pendentesInsp = await getPendingInspections();
+        const totalPendentes = pendentesItems.length + pendentesInsp.length;
+        
+        if (totalPendentes > 0) {
+          console.log(`🔄 Sincronizando ${totalPendentes} itens pendentes...`);
+          showSyncStatus(`🔄 Sincronizando ${totalPendentes} itens...`);
+          await sincronizarComProgresso();
+          console.log('✅ Sincronização concluída!');
+        } else {
+          console.log('✅ Nenhum item pendente para sincronizar');
+        }
+        
+        await limparDadosSincronizadosOnline();
+        console.log('✅ Dados sincronizados removidos');
+        
+        await prepararCacheOffline();
+        console.log('✅ Modo offline preparado');
+        
+        await cachearAssinatura();
+        console.log('✅ Assinatura verificada');
+        
+        await refreshData();
+        
+        showSyncStatus('✅ Sistema sincronizado e pronto para offline!');
+        console.log('🎯 ROTINA COMPLETA FINALIZADA!');
+        
+      } catch (error) {
+        console.error('❌ Erro na rotina online:', error);
+        showSyncStatus('❌ Erro na sincronização', true);
+      } finally {
+        loader.classList.remove('active');
+      }
+    }
+
+    // ==================== UPDATE CACHE STATUS ====================
     async function updateUserModalCacheStatus() {
       const statusDiv = document.getElementById('userModalCacheStatus');
       try {
@@ -862,7 +1273,7 @@
           statusDiv.innerHTML = `✅ PDF Cacheado ✓ (${sizeMB} MB)`;
           statusDiv.className = 'cache-info cache-ok';
         } else {
-          statusDiv.innerHTML = '⚠️ PDF não cacheado';
+          statusDiv.innerHTML = '⚠️ PDF não cacheado - Clique em "Preparar Modo Offline"';
           statusDiv.className = 'cache-info cache-missing';
         }
       } catch(e) {
@@ -871,48 +1282,568 @@
       }
     }
 
-    async function updatePendingBadge() {
-      const badge = document.getElementById('syncPendingBadge');
-      const db = await initOfflineDB();
-      const tx = db.transaction(STORE_PENDING_ITEMS, 'readonly');
-      const store = tx.objectStore(STORE_PENDING_ITEMS);
-      const items = await new Promise((resolve) => {
-        const request = store.getAll();
-        request.onsuccess = () => resolve(request.result);
-      });
-      const total = items?.length || 0;
-      if (total > 0) {
-        badge.style.display = 'inline-block';
-        badge.textContent = `📤 ${total} pendente${total > 1 ? 's' : ''}`;
-      } else {
-        badge.style.display = 'none';
+    // ==================== MOSTRAR STATUS ====================
+    function showSyncStatus(message, isError = false) {
+      const statusDiv = document.getElementById('syncStatus');
+      statusDiv.textContent = message;
+      statusDiv.style.display = 'block';
+      statusDiv.style.background = isError ? '#ef4444' : '#10b981';
+      setTimeout(() => {
+        statusDiv.style.display = 'none';
+      }, 4000);
+    }
+
+    // ==================== PREPARAR MODO OFFLINE MANUAL ====================
+    async function forcarCacheModeloPDF() {
+      const loader = document.getElementById('fullscreenLoader');
+      loader.classList.add('active');
+      
+      try {
+        console.log('📥 Preparando modo offline manualmente...');
+        
+        const response = await fetch(MODELO_PDF_URL);
+        if (!response.ok) throw new Error('Falha ao baixar modelo');
+        const buffer = await response.arrayBuffer();
+        
+        const db = await initOfflineDB();
+        const tx = db.transaction(STORE_MODELO_PDF, 'readwrite');
+        const store = tx.objectStore(STORE_MODELO_PDF);
+        
+        await new Promise((resolve, reject) => {
+          const clearReq = store.clear();
+          clearReq.onsuccess = () => {
+            const putReq = store.put({ id: 'modelo', data: buffer });
+            putReq.onsuccess = () => resolve();
+            putReq.onerror = () => reject(putReq.error);
+          };
+          clearReq.onerror = () => reject(clearReq.error);
+        });
+        
+        await new Promise((resolve) => { tx.oncomplete = () => resolve(); });
+        
+        cachedModeloPDF = buffer;
+        await updateUserModalCacheStatus();
+        
+        console.log('✅ Modo offline preparado com sucesso!');
+        showSyncStatus('✅ Modo offline pronto!');
+        alert('✅ Modo offline preparado com sucesso!\n\nAgora você pode usar o sistema sem internet.');
+        
+      } catch (error) {
+        console.error('❌ Erro ao preparar modo offline:', error);
+        alert('Erro ao preparar modo offline: ' + error.message);
+      } finally {
+        loader.classList.remove('active');
       }
     }
 
-    async function listarPendentesNoModal() {
-      const container = document.getElementById('pendingItemsList');
-      const db = await initOfflineDB();
-      const tx = db.transaction(STORE_PENDING_ITEMS, 'readonly');
-      const store = tx.objectStore(STORE_PENDING_ITEMS);
-      const items = await new Promise((resolve) => {
-        const request = store.getAll();
-        request.onsuccess = () => resolve(request.result);
-      });
+    // ==================== LIMPAR CACHE OFFLINE MANUAL ====================
+    async function limparCacheOfflineManual() {
+      if (!confirm('⚠️ ATENÇÃO: Isso irá limpar TODO o cache offline, incluindo itens pendentes não sincronizados.\n\nDeseja continuar?')) return;
       
-      if (!items || items.length === 0) {
-        container.innerHTML = '<p style="color: #10b981; text-align: center;">✅ Nenhum item pendente</p>';
+      const loader = document.getElementById('fullscreenLoader');
+      loader.classList.add('active');
+      
+      try {
+        const db = await initOfflineDB();
+        
+        const stores = [STORE_ITEMS, STORE_FILES, STORE_PENDING_ITEMS, STORE_PENDING_INSPECTIONS, STORE_SYNC_LOG, STORE_SIGNATURE];
+        for (const store of stores) {
+          const tx = db.transaction(store, 'readwrite');
+          await new Promise((resolve, reject) => {
+            const req = tx.objectStore(store).clear();
+            req.onsuccess = () => resolve();
+            req.onerror = () => reject(req.error);
+          });
+        }
+        
+        const txModelo = db.transaction(STORE_MODELO_PDF, 'readwrite');
+        await new Promise((resolve, reject) => {
+          const req = txModelo.objectStore(STORE_MODELO_PDF).clear();
+          req.onsuccess = () => resolve();
+          req.onerror = () => reject(req.error);
+        });
+        
+        cachedModeloPDF = null;
+        cachedSignature = null;
+        
+        console.log('✅ Cache offline limpo completamente');
+        showSyncStatus('✅ Cache limpo! Recarregando...');
+        
+        setTimeout(() => window.location.reload(), 2000);
+        
+      } catch (error) {
+        console.error('❌ Erro ao limpar cache:', error);
+        alert('Erro ao limpar cache: ' + error.message);
+      } finally {
+        loader.classList.remove('active');
+      }
+    }
+
+    // ==================== RECUPERAR CACHE ====================
+    async function forcarRecuperacaoCache() {
+      console.log('🔄 FORÇANDO RECUPERAÇÃO DO CACHE...');
+      const loader = document.getElementById('fullscreenLoader');
+      loader.classList.add('active');
+      
+      try {
+        const pendentesItems = await getPendingItems();
+        const pendentesInsp = await getPendingInspections();
+        const itemsLocal = await carregarItemsLocal();
+        
+        console.log(`📊 Estado atual:`);
+        console.log(`   - Itens locais: ${itemsLocal.length}`);
+        console.log(`   - Pendentes itens: ${pendentesItems.length}`);
+        console.log(`   - Pendentes inspeções: ${pendentesInsp.length}`);
+        
+        if (pendentesItems.length > 0) {
+          const pendentesComoItens = pendentesItems.map(p => ({
+            id: p.id,
+            name: p.name,
+            sub_localizacao: p.sub_localizacao || '',
+            tamanho: p.tamanho || '',
+            code: p.code,
+            status: 'active',
+            pending: true,
+            files: []
+          }));
+          
+          const todosItens = [...itemsLocal];
+          for (const pendente of pendentesComoItens) {
+            if (!todosItens.some(i => i.id === pendente.id)) {
+              todosItens.push(pendente);
+            }
+          }
+          
+          await salvarItemsLocal(todosItens);
+          console.log(`✅ Cache recuperado: ${todosItens.length} itens`);
+        }
+        
+        await cachearAssinatura();
+        await refreshData();
+        await updatePendingBadge();
+        await updateUserModalCacheStatus();
+        
+        alert(`✅ Recuperação concluída!\n\nItens locais: ${itemsLocal.length}\nPendentes: ${pendentesItems.length}\nInspeções pendentes: ${pendentesInsp.length}`);
+      } catch (error) {
+        console.error('Erro na recuperação:', error);
+        alert('Erro ao recuperar cache: ' + error.message);
+      } finally {
+        loader.classList.remove('active');
+      }
+    }
+
+    // ==================== CARREGAR MODELO PDF ====================
+    async function isModeloCacheado() {
+      try {
+        const db = await initOfflineDB();
+        const tx = db.transaction(STORE_MODELO_PDF, 'readonly');
+        const store = tx.objectStore(STORE_MODELO_PDF);
+        const result = await new Promise((resolve) => {
+          const request = store.get('modelo');
+          request.onsuccess = () => resolve(request.result);
+        });
+        return result && result.data;
+      } catch(e) {
+        return false;
+      }
+    }
+
+    async function carregarModeloPDF() {
+      if (cachedModeloPDF) return cachedModeloPDF;
+      
+      try {
+        const db = await initOfflineDB();
+        const tx = db.transaction(STORE_MODELO_PDF, 'readonly');
+        const store = tx.objectStore(STORE_MODELO_PDF);
+        const result = await new Promise((resolve, reject) => {
+          const request = store.get('modelo');
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+        });
+        
+        if (result && result.data) {
+          cachedModeloPDF = result.data;
+          console.log('✅ Modelo PDF carregado do IndexedDB');
+          return cachedModeloPDF;
+        }
+      } catch(e) {
+        console.warn('Erro ao ler IndexedDB:', e);
+      }
+      
+      if (!navigator.onLine) {
+        throw new Error('Modelo PDF não está em cache e você está offline');
+      }
+      
+      try {
+        console.log('📥 Baixando modelo PDF...');
+        const response = await fetch(MODELO_PDF_URL);
+        if (!response.ok) throw new Error('Falha ao baixar modelo');
+        const buffer = await response.arrayBuffer();
+        cachedModeloPDF = buffer;
+        
+        const db = await initOfflineDB();
+        const tx = db.transaction(STORE_MODELO_PDF, 'readwrite');
+        const store = tx.objectStore(STORE_MODELO_PDF);
+        
+        await new Promise((resolve, reject) => {
+          const req = store.put({ id: 'modelo', data: buffer });
+          req.onsuccess = () => resolve();
+          req.onerror = () => reject(req.error);
+        });
+        
+        console.log('✅ Modelo PDF salvo');
+        return buffer;
+      } catch (error) {
+        console.error('Erro ao carregar modelo PDF:', error);
+        throw error;
+      }
+    }
+
+    // ==================== REFRESH DATA ====================
+    async function refreshData() { 
+      await getAllItemsWithFiles();
+      renderCards(document.getElementById('searchInput').value);
+      await updatePendingBadge();
+      console.log(`🔄 Refresh concluído - ${currentItems.length} itens exibidos (${currentItems.filter(i => i.pending).length} pendentes)`);
+    }
+
+    // ==================== FUNÇÕES DE ARQUIVO ====================
+    function getStoragePathFromUrl(url) {
+      const regex = /\/storage\/v1\/object\/public\/pdfs\/(.+)$/;
+      const match = url.match(regex);
+      return match ? match[1] : null;
+    }
+
+    async function deleteStorageFile(fileUrl) {
+      const path = getStoragePathFromUrl(fileUrl);
+      if (!path) return false;
+      const { error } = await supabase.storage.from(BUCKET).remove([path]);
+      if (error) console.error("Erro ao deletar arquivo do storage:", error);
+      return !error;
+    }
+
+    async function addFileToItem(itemId, category, file, inspecaoData = null) {
+      const { data: existing, error: findError } = await supabase.from('files').select('id, file_url').eq('item_id', itemId).eq('category', category).maybeSingle();
+      if (findError) throw findError;
+      if (existing && existing.file_url) {
+        await deleteStorageFile(existing.file_url);
+        await supabase.from('files').delete().eq('id', existing.id);
+      }
+      const fileExt = file.name.split('.').pop();
+      const filePath = `itens/${itemId}/${category}_${Date.now()}.${fileExt}`;
+      const { error: uploadError } = await supabase.storage.from(BUCKET).upload(filePath, file);
+      if (uploadError) throw uploadError;
+      const { data: publicUrlData } = supabase.storage.from(BUCKET).getPublicUrl(filePath);
+      const fileUrl = publicUrlData.publicUrl;
+      const insertData = { item_id: itemId, category, file_name: file.name, file_url: fileUrl };
+      if (inspecaoData) insertData.inspecao_data = inspecaoData;
+      const { error: insertError } = await supabase.from('files').insert(insertData);
+      if (insertError) throw insertError;
+      
+      const allFiles = await carregarFilesLocal();
+      allFiles.push(insertData);
+      await salvarFilesLocal(allFiles);
+    }
+
+    async function deleteFileById(fileId) {
+      const { data: file, error: findError } = await supabase.from('files').select('file_url').eq('id', fileId).single();
+      if (findError) throw findError;
+      if (file && file.file_url) await deleteStorageFile(file.file_url);
+      await supabase.from('files').delete().eq('id', fileId);
+      
+      const allFiles = await carregarFilesLocal();
+      const filtered = allFiles.filter(f => f.id !== fileId);
+      await salvarFilesLocal(filtered);
+    }
+
+    async function deleteItemAndFiles(itemId) {
+      const { data: files, error: findError } = await supabase.from('files').select('file_url').eq('item_id', itemId);
+      if (findError) throw findError;
+      for (const file of files) if (file.file_url) await deleteStorageFile(file.file_url);
+      await supabase.from('items').delete().eq('id', itemId);
+      
+      const allItems = await carregarItemsLocal();
+      const filteredItems = allItems.filter(i => i.id !== itemId);
+      await salvarItemsLocal(filteredItems);
+      
+      const allFiles = await carregarFilesLocal();
+      const filteredFiles = allFiles.filter(f => f.item_id !== itemId);
+      await salvarFilesLocal(filteredFiles);
+    }
+
+    // ==================== FUNÇÃO DE ASSINATURA CORRIGIDA ====================
+    async function adicionarInfoItemEAssinatura(pdfDoc, itemCode, itemTamanho) {
+      try {
+        const pages = pdfDoc.getPages();
+        if (pages.length === 0) return pdfDoc;
+        const pagina = pages[0];
+        const { width, height } = pagina.getSize();
+        const { StandardFonts, rgb } = window.PDFLib;
+        const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+        const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+        
+        const posX = width - 210;
+        let posY = 130;
+        
+        pagina.drawText(`ID / TAG: ${itemCode}`, { x: posX, y: posY, size: 10, font: boldFont, color: rgb(0,0,0) });
+        posY -= 18;
+        pagina.drawText(`TAMANHO: ${itemTamanho || 'Não informado'}`, { x: posX, y: posY, size: 10, font: boldFont, color: rgb(0,0,0) });
+        posY -= 25;
+        
+        pagina.drawLine({ 
+          start: { x: posX - 10, y: posY + 8 }, 
+          end: { x: width - 30, y: posY + 8 }, 
+          thickness: 1, 
+          color: rgb(0.5, 0.5, 0.5) 
+        });
+        pagina.drawText("Assinatura do Responsável", { 
+          x: posX - 10, 
+          y: posY - 5, 
+          size: 8, 
+          font: font, 
+          color: rgb(0.5, 0.5, 0.5) 
+        });
+        
+        if (cachedSignature) {
+          try {
+            let imagem;
+            try {
+              imagem = await pdfDoc.embedPng(cachedSignature);
+              console.log('✅ Assinatura carregada como PNG');
+            } catch (e) {
+              try {
+                imagem = await pdfDoc.embedJpg(cachedSignature);
+                console.log('✅ Assinatura carregada como JPG');
+              } catch (e2) {
+                console.warn('❌ Falha ao carregar imagem da assinatura:', e2);
+              }
+            }
+            
+            if (imagem) {
+              const areaMaxWidth = 180;
+              const areaMaxHeight = 80;
+              const scale = Math.min(areaMaxWidth / imagem.width, areaMaxHeight / imagem.height);
+              const finalW = imagem.width * scale;
+              const finalH = imagem.height * scale;
+              const imgX = width - finalW - 30;
+              const imgY = posY - finalH - 10;
+              
+              pagina.drawImage(imagem, { 
+                x: imgX, 
+                y: imgY, 
+                width: finalW, 
+                height: finalH 
+              });
+              console.log(`✅ Assinatura desenhada no PDF (${finalW}x${finalH})`);
+            }
+          } catch (error) {
+            console.error('❌ Erro ao desenhar assinatura:', error);
+            pagina.drawText(`(Erro ao carregar assinatura)`, { 
+              x: posX - 10, 
+              y: posY - 20, 
+              size: 8, 
+              font: font, 
+              color: rgb(0.8, 0.2, 0.2) 
+            });
+          }
+        } else {
+          console.warn('⚠️ Nenhuma assinatura em cache');
+          pagina.drawText(`(Assinatura não disponível para ${currentUser?.username || 'usuário'})`, { 
+            x: posX - 10, 
+            y: posY - 20, 
+            size: 8, 
+            font: font, 
+            color: rgb(0.8, 0.2, 0.2) 
+          });
+        }
+        
+        return pdfDoc;
+      } catch(err) { 
+        console.error('❌ Erro em adicionarInfoItemEAssinatura:', err); 
+        return pdfDoc; 
+      }
+    }
+
+    // ==================== GERAR PDF BLOB (CORRIGIDO) ====================
+    async function gerarPDFBlob(formData, itemInfo, fotoFile) {
+      if (!window.PDFLib || !window.PDFLib.PDFDocument) {
+        console.log('PDF-lib não disponível, tentando carregar...');
+        await carregarPDFLib();
+      }
+      
+      if (!window.PDFLib || !window.PDFLib.PDFDocument) {
+        throw new Error("PDF-lib não pôde ser carregado. Verifique sua conexão com a internet.");
+      }
+      
+      const { PDFDocument } = window.PDFLib;
+      console.log('✅ PDFDocument disponível, gerando PDF...');
+      
+      const modelBytes = await carregarModeloPDF();
+      const pdfDoc = await PDFDocument.load(modelBytes);
+      const form = pdfDoc.getForm();
+      
+      const camposCabecalho = [
+        { nome: "unidade", valor: formData.unidade || "" },
+        { nome: "localidade", valor: formData.localidade || "" },
+        { nome: "nome", valor: formData.resp_nome || "" },
+        { nome: "matrcula", valor: formData.resp_matricula || "" },
+        { nome: "data", valor: formData.data_inspecao || "" },
+        { nome: "empresa", valor: formData.empresa || "" }
+      ];
+      
+      for (const campo of camposCabecalho) {
+        try { 
+          const textField = form.getTextField(campo.nome);
+          if (textField) textField.setText(campo.valor || '');
+        } catch(e) { console.warn(`Campo ${campo.nome} não encontrado`); }
+      }
+      
+      for (let i = 1; i <= 25; i++) {
+        const resposta = formData[`resp_${i-1}`] || "Não respondido";
+        try { 
+          const textField = form.getTextField(`${i}`);
+          if (textField) textField.setText(resposta);
+        } catch(e) { console.warn(`Campo ${i} não encontrado`); }
+      }
+      
+      await adicionarInfoItemEAssinatura(pdfDoc, itemInfo.code, itemInfo.tamanho);
+      
+      if (fotoFile) {
+        try {
+          const fotoBytes = await fotoFile.arrayBuffer();
+          let fotoImage;
+          try {
+            fotoImage = await pdfDoc.embedPng(fotoBytes);
+          } catch {
+            fotoImage = await pdfDoc.embedJpg(fotoBytes);
+          }
+          
+          if (fotoImage) {
+            const fotoMaxWidth = 300;
+            const fotoMaxHeight = 200;
+            const scale = Math.min(fotoMaxWidth / fotoImage.width, fotoMaxHeight / fotoImage.height);
+            const finalW = fotoImage.width * scale;
+            const finalH = fotoImage.height * scale;
+            const page = pdfDoc.getPages()[0];
+            page.drawImage(fotoImage, { 
+              x: 30, 
+              y: 30, 
+              width: finalW, 
+              height: finalH 
+            });
+          }
+        } catch(e) {
+          console.warn('Erro ao adicionar foto:', e);
+        }
+      }
+      
+      const pdfBytes = await pdfDoc.save();
+      console.log('✅ PDF gerado com sucesso, tamanho:', pdfBytes.length);
+      return new Blob([pdfBytes], { type: 'application/pdf' });
+    }
+
+    // ==================== GENERATE AND ATTACH PDF ====================
+    async function generateAndAttachPdf(itemId, category, monthName, formData, itemInfo, fotoFile) {
+      const temModelo = await isModeloCacheado();
+      if (!temModelo && !navigator.onLine) {
+        alert('❌ Modo offline não disponível!\n\nO modelo PDF não está cacheado.\n\nClique no seu usuário > "Preparar Modo Offline" quando tiver internet.');
         return;
       }
       
-      let html = '';
-      for (const item of items) {
-        html += `<div class="pending-item"><span>🏷️ ${escapeHtml(item.name)} (${escapeHtml(item.code)})</span><span>Aguardando</span></div>`;
+      const isOnline = navigator.onLine && await testarConexao();
+      
+      if (!isOnline) {
+        try {
+          const loader = document.getElementById('fullscreenLoader');
+          loader.classList.add('active');
+          console.log('💾 Modo offline - iniciando salvamento local...');
+          
+          if (!temModelo) {
+            throw new Error('Modelo PDF não está cacheado para uso offline');
+          }
+          
+          const pdfBlob = await gerarPDFBlob(formData, itemInfo, fotoFile);
+          const pdfBase64 = await blobToBase64(pdfBlob);
+          let fotoBase64 = null;
+          if (fotoFile) fotoBase64 = await blobToBase64(fotoFile);
+          
+          const pendingId = `insp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+          
+          const pendingData = {
+            id: pendingId,
+            type: 'inspecao',
+            itemId: itemId,
+            category: category,
+            monthName: monthName,
+            formData: formData,
+            itemInfo: {
+              code: itemInfo.code,
+              tamanho: itemInfo.tamanho,
+              name: itemInfo.name,
+              id: itemId
+            },
+            pdfBase64: pdfBase64,
+            fotoBase64: fotoBase64,
+            timestamp: new Date().toISOString()
+          };
+          await salvarInspecaoPending(pendingData);
+          
+          loader.classList.remove('active');
+          await updatePendingBadge();
+          
+          console.log(`✅ Inspeção offline salva com ID: ${pendingId}`);
+          alert('⚠️ Você está offline. O PDF foi salvo localmente e será enviado automaticamente quando a internet voltar.');
+          return;
+        } catch (error) {
+          const loader = document.getElementById('fullscreenLoader');
+          loader.classList.remove('active');
+          console.error('❌ Erro ao salvar offline:', error);
+          alert('Erro ao salvar inspeção localmente: ' + (error.message || 'Verifique o console'));
+          return;
+        }
       }
-      container.innerHTML = html;
+
+      try {
+        const pdfBlob = await gerarPDFBlob(formData, itemInfo, fotoFile);
+        const file = new File([pdfBlob], `checklist_${monthName}_${Date.now()}.pdf`, { type: 'application/pdf' });
+        
+        const { data: existingFile } = await supabase.from('files').select('id, file_url').eq('item_id', itemId).eq('category', category).maybeSingle();
+        if (existingFile && existingFile.file_url) {
+          await deleteStorageFile(existingFile.file_url);
+          await supabase.from('files').delete().eq('id', existingFile.id);
+        }
+        await addFileToItem(itemId, category, file, formData.data_inspecao);
+        
+        alert(`✅ PDF gerado!\nID: ${itemInfo.code} | Tamanho: ${itemInfo.tamanho || 'N/I'}\nAssinatura: ${currentUser?.username || 'usuário'}`);
+        await refreshData();
+        await openDetailModal(itemId);
+      } catch(err) { 
+        console.error('Erro detalhado:', err); 
+        alert("Erro ao gerar PDF: " + err.message); 
+      }
     }
 
-    function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;'); }
-    function showSyncStatus(msg, isError) { /* simplificado */ }
+    // ==================== STATUS CONEXÃO ====================
+    const connectionStatus = document.getElementById('connectionStatus');
+    function updateConnectionStatus() {
+      if (navigator.onLine) {
+        connectionStatus.className = 'online-badge';
+        connectionStatus.innerHTML = '🟢 Online';
+      } else {
+        connectionStatus.className = 'offline-badge';
+        connectionStatus.innerHTML = '🔴 Offline';
+      }
+    }
+    window.addEventListener('online', updateConnectionStatus);
+    window.addEventListener('offline', updateConnectionStatus);
+    updateConnectionStatus();
+
+    // ==================== SERVICE WORKER ====================
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/TENDEX/sw.js')
+        .then(reg => console.log('Service Worker registrado', reg))
+        .catch(err => console.error('Falha ao registrar Service Worker', err));
+    }
 
     // ==================== USUÁRIO ====================
     try {
@@ -925,157 +1856,49 @@
       userInfoDisplay.innerHTML = `👤 ${currentUser.username}`;
       document.getElementById('userModalUserName').innerText = currentUser.username;
     } else { 
+      userInfoDisplay.innerHTML = `👤 Não logado`; 
       window.location.href = 'index.html';
       return; 
     }
 
-    // ==================== EVENTOS DO MODAL USUÁRIO ====================
-    const userModal = document.getElementById('userModal');
-    const closeUserModalBtn = document.getElementById('closeUserModalBtn');
-    const cancelUserModalBtn = document.getElementById('cancelUserModalBtn');
-    const userModalPrepareBtn = document.getElementById('userModalPrepareBtn');
-    const userModalSyncBtn = document.getElementById('userModalSyncBtn');
-    const userModalRecoverBtn = document.getElementById('userModalRecoverBtn');
-    const userModalClearCacheBtn = document.getElementById('userModalClearCacheBtn');
-    const userModalLogoutBtn = document.getElementById('userModalLogoutBtn');
-    const syncPendingBadge = document.getElementById('syncPendingBadge');
+    cachearAssinatura();
 
-    // Eventos do Gerenciador de Cache
-    const selectAllCacheModal = document.getElementById('selectAllCacheModal');
-    const deselectAllCacheModal = document.getElementById('deselectAllCacheModal');
-    const refreshCacheModal = document.getElementById('refreshCacheModal');
-    const downloadSelectedModal = document.getElementById('downloadSelectedModal');
-    const clearCacheModal = document.getElementById('clearCacheModal');
+    // ==================== CONSTANTES ====================
+    const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+    const monthKeys = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 
-    userInfoDisplay.addEventListener('click', async () => {
-      await updateUserModalCacheStatus();
-      await listarPendentesNoModal();
-      await carregarListaCacheModal();
-      userModal.style.display = 'flex';
-    });
-    
-    syncPendingBadge.addEventListener('click', () => {
-      alert('Função de sincronização em desenvolvimento');
-    });
+    const checklistPerguntas = [
+      "[IMPEDITIVO] [Projeto] As tendas/ Galpões lonados possuem Projeto Estrutural e Anotação de Responsabilidade Técnica executado por um Engenheiro habilitado pelo CREA e está aderente?",
+      "[Projeto] As tendas/ Galpões lonados utilizados como abrigo seguro possuem Projeto de SPDA e Anotação de Responsabilidade Técnica executado por um Engenheiro habilitado pelo CREA e está vigente?",
+      "[Projeto] As tendas/ Galpões lonados utilizados para cobrir estruturas de canteiro, possuem aterramento conforme projeto do canteiro de obras?",
+      "[Projeto] O manual de instrução/ montagem do fabricante estão disponíveis na frente de serviço?",
+      "[Projeto] As tendas/ Galpões lonados, possuem a placa de liberação com data e responsável?",
+      "[Projeto] As tendas/ Galpões lonados possuem plano de inspeção e o mesmo está aderente, conforme projeto?",
+      "[Projeto] O formulário de inspeção anterior está disponível na frente de serviço?",
+      "[Inspeção] A aranha (estrutura de sustentação da lona), estão em bom estado de conservação, parafusadas com parafuso autotravante, tanto na parte superior e inferior do teto?",
+      "[Inspeção] As Cintas Poliéster estão tensionada e não apresentam deformação, fissuras ou cortes, conforme projeto?",
+      "[Inspeção] As colunas de escoramento e colunas de sustentação (pilares) estão alinhadas perpendicular (90°) as vigas e não apresentam corrosão e/ou deformação?",
+      "[Inspeção] As colunas de sustentação estão encaixadas e parafusadas às vigas e possuem mão francesa?",
+      "[Inspeção] As mãos francesas possuem parafusos autotravantes de encaixe nas vigas e pilares?",
+      "[Inspeção] As tendas/ Galpões lonados não estão montadas próximo à escavação, taludes ou pilhas de materiais onde exista risco de ser atingido em caso de deslizamento ou ruptura?",
+      "[Inspeção] As travas (parafusos cabeça sextavado, porcas sextavada, pino em L, arruela lisa, chumbadores, porca e contraporca, ou porca autotravante) apresentam sinais de corrosão ou folgas?",
+      "[Inspeção] As vigas (calha treliçada), estão alinhadas perpendicular (90°) aos pilares e não apresentam corrosão e/ou deformação?",
+      "[Inspeção] Os cabos de aço estão tensionados e possuem clips, não possuem fissuras ou corrosão, e possuem sapatilhas para fixação, conforme projeto?",
+      "[Inspeção] Todas as colunas de sustentação (pilares) possuem estaiamento com Cinta Poliéster e/ou cabo de aço conforme projeto e catraca vinculada a um Chumbador - Finca / Parabole?",
+      "[Inspeção] Todas as colunas de sustentação (pilares) possuem no mínimo 02 Chumbadores - Finca com ponto de solda na base / Parabole por pilar?",
+      "[Inspeção] A lona / Sombrite do fechamento lateral, esta em bom estado de conservação, não apresenta rasgos, furos, esta amarrada e esticada em todos os pontos de fixação conforme projeto?",
+      "[Inspeção] A lona / Sombrite do teto, esta em bom estado de conservação, não apresenta rasgos, furos, esta esticada e amarrada às vigas em todos os pontos de fixação, conforme projeto?",
+      "[Inspeção] As calhas de água de chuva e o interior dos pilares vazados estão totalmente desobstruídos?",
+      "[Inspeção] As tendas/ Galpões lonados estão montadas a uma distância segura de rede elétrica, equipamento ou árvores que ofereça risco de queda de peças e materiais?",
+      "[Inspeção] As tendas/galpões lonados utilizadas para ocupação de pessoas possuem sinalização de saída de emergência e alarme de emergência, conforme projeto?",
+      "[Inspeção] O sistema de iluminação (se aplicável), estão instalados corretamente?",
+      "[Inspeção] A lona de cobertura está sem nenhuma deformação ocasionada por acumulo de água, folhas, minério, etc.?"
+    ];
 
-    function closeUserModal() { userModal.style.display = 'none'; }
-    closeUserModalBtn.addEventListener('click', closeUserModal);
-    cancelUserModalBtn.addEventListener('click', closeUserModal);
-    userModal.addEventListener('click', (e) => { if (e.target === userModal) closeUserModal(); });
-
-    userModalPrepareBtn.addEventListener('click', async () => {
-      closeUserModal();
-      await forcarCacheModeloPDF();
-    });
-
-    userModalSyncBtn.addEventListener('click', () => {
-      closeUserModal();
-      alert('Função de sincronização em desenvolvimento');
-    });
-
-    userModalRecoverBtn.addEventListener('click', () => {
-      closeUserModal();
-      alert('Função de recuperação de cache em desenvolvimento');
-    });
-
-    userModalClearCacheBtn.addEventListener('click', () => {
-      closeUserModal();
-      limparCacheOfflineManual();
-    });
-
-    userModalLogoutBtn.addEventListener('click', () => {
-      localStorage.removeItem('tendex_current_user');
-      window.location.href = 'index.html';
-    });
-
-    // Eventos do Gerenciador de Cache
-    if (selectAllCacheModal) {
-      selectAllCacheModal.addEventListener('click', () => {
-        document.querySelectorAll('.select-item-cache-modal').forEach(btn => {
-          if (btn.dataset.selected === 'false') btn.click();
-        });
-      });
-    }
-    
-    if (deselectAllCacheModal) {
-      deselectAllCacheModal.addEventListener('click', () => {
-        document.querySelectorAll('.select-item-cache-modal').forEach(btn => {
-          if (btn.dataset.selected === 'true') btn.click();
-        });
-      });
-    }
-    
-    if (refreshCacheModal) {
-      refreshCacheModal.addEventListener('click', carregarListaCacheModal);
-    }
-    
-    if (downloadSelectedModal) {
-      downloadSelectedModal.addEventListener('click', baixarPDFsSelecionadosModal);
-    }
-    
-    if (clearCacheModal) {
-      clearCacheModal.addEventListener('click', limparPDFsCacheModal);
-    }
-
-    async function forcarCacheModeloPDF() {
-      const loader = document.getElementById('fullscreenLoader');
-      loader.classList.add('active');
-      try {
-        const response = await fetch(MODELO_PDF_URL);
-        const buffer = await response.arrayBuffer();
-        const db = await initOfflineDB();
-        const tx = db.transaction(STORE_MODELO_PDF, 'readwrite');
-        const store = tx.objectStore(STORE_MODELO_PDF);
-        await store.clear();
-        await store.put({ id: 'modelo', data: buffer });
-        cachedModeloPDF = buffer;
-        alert('✅ Modo offline preparado com sucesso!');
-      } catch (error) {
-        alert('Erro ao preparar modo offline: ' + error.message);
-      } finally {
-        loader.classList.remove('active');
-      }
-    }
-
-    async function limparCacheOfflineManual() {
-      if (!confirm('⚠️ ATENÇÃO: Isso irá limpar TODO o cache offline.\n\nDeseja continuar?')) return;
-      const loader = document.getElementById('fullscreenLoader');
-      loader.classList.add('active');
-      try {
-        const db = await initOfflineDB();
-        const stores = [STORE_ITEMS, STORE_FILES, STORE_PENDING_ITEMS, STORE_PENDING_INSPECTIONS, STORE_SYNC_LOG, STORE_SIGNATURE, STORE_PDF_CACHE];
-        for (const store of stores) {
-          const tx = db.transaction(store, 'readwrite');
-          await tx.objectStore(store).clear();
-        }
-        const txModelo = db.transaction(STORE_MODELO_PDF, 'readwrite');
-        await txModelo.objectStore(STORE_MODELO_PDF).clear();
-        cachedModeloPDF = null;
-        cachedSignature = null;
-        selectedItemsModal.clear();
-        alert('✅ Cache limpo! Recarregando...');
-        setTimeout(() => window.location.reload(), 2000);
-      } catch (error) {
-        alert('Erro ao limpar cache: ' + error.message);
-      } finally {
-        loader.classList.remove('active');
-      }
-    }
-
-    // ==================== INICIALIZAÇÃO ====================
-    window.addEventListener('DOMContentLoaded', async () => {
-      console.log('🚀 Inicializando TENDEX...');
-      await initOfflineDB();
-      await carregarModeloPDF();
-      await cachearAssinatura();
-      
-      // Carregar itens
-      currentItems = await getAllItemsWithFiles();
-      renderCards('');
-      await updatePendingBadge();
-      
-      console.log('✅ Inicialização concluída!');
-    });
+    // ==================== VARIÁVEIS GLOBAIS ====================
+    let currentFormItemId = null, currentFormCategory = null, currentFormMonthName = null, currentItemInfo = null;
+    let reactivatingItemId = null;
+    window.currentDetailItem = null;
 
     // ==================== RENDER CARDS ====================
     function renderCards(filterText = "") {
@@ -1086,20 +1909,20 @@
       
       const dataAtual = new Date();
       const mesAtualIndex = dataAtual.getMonth();
-      const mesAtualNome = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"][mesAtualIndex];
-      const mesAtualKey = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"][mesAtualIndex];
+      const mesAtualNome = monthNames[mesAtualIndex];
+      const mesAtualKey = monthKeys[mesAtualIndex];
       
       container.innerHTML = filtered.map(item => {
         const arquivoMesAtual = item.files.find(f => f.category === mesAtualKey);
         let inspecaoMsg = '';
         if (arquivoMesAtual) {
-          inspecaoMsg = `<p style="color: #10b981; font-size: 0.7rem; margin-top: 0.3rem;">✅ Inspeção ${mesAtualNome}: realizada</p>`;
-        } else {
-          inspecaoMsg = `<p style="color: #f59e0b; font-size: 0.7rem; margin-top: 0.3rem;">⚠️ Inspeção ${mesAtualNome}: pendente</p>`;
-        }
+          if (arquivoMesAtual.inspecao_data) inspecaoMsg = `<p style="color: #10b981; font-size: 0.7rem; margin-top: 0.3rem;">✅ Inspeção ${mesAtualNome}: ${formatarData(arquivoMesAtual.inspecao_data)}</p>`;
+          else inspecaoMsg = `<p style="color: #10b981; font-size: 0.7rem; margin-top: 0.3rem;">✅ Inspeção ${mesAtualNome}: realizada</p>`;
+        } else inspecaoMsg = `<p style="color: #f59e0b; font-size: 0.7rem; margin-top: 0.3rem;">⚠️ Inspeção ${mesAtualNome}: pendente</p>`;
         const statusClass = item.status === 'active' ? 'status-active' : 'status-inactive';
         const statusText = item.status === 'active' ? 'Ativo' : 'Inativo';
-        return `<div class="item-card" data-id="${item.id}"><div><h3>${escapeHtml(item.name)}</h3><p>TAG: ${escapeHtml(item.code)}</p>${item.sub_localizacao ? `<p>📍 ${escapeHtml(item.sub_localizacao)}</p>` : ''}${item.tamanho ? `<p>📏 ${escapeHtml(item.tamanho)}</p>` : ''}<div><span class="status-badge ${statusClass}">${statusText}</span></div>${inspecaoMsg}</div></div>`;
+        const pendingIcon = item.pending ? '<span style="background: #fef3c7; color: #92400e; padding: 2px 6px; border-radius: 12px; font-size: 0.6rem; margin-left: 8px;">⏳ Pendente</span>' : '';
+        return `<div class="item-card" data-id="${item.id}"><div><h3>${escapeHtml(item.name)}${pendingIcon}</h3><p>TAG: ${escapeHtml(item.code)}</p>${item.sub_localizacao ? `<p>📍 ${escapeHtml(item.sub_localizacao)}</p>` : ''}${item.tamanho ? `<p>📏 ${escapeHtml(item.tamanho)}</p>` : ''}<div><span class="status-badge ${statusClass}">${statusText}</span></div>${inspecaoMsg}</div></div>`;
       }).join('');
       
       document.querySelectorAll('.item-card').forEach(card => { 
@@ -1116,100 +1939,409 @@
     detailModalElem.addEventListener('click', (e) => { if (e.target === detailModalElem) detailModalElem.style.display = 'none'; });
 
     async function openDetailModal(itemId) {
-      const item = currentItems.find(i => String(i.id) === String(itemId));
+      console.log(`🔍 Abrindo detalhes do item ID: ${itemId}`);
+      
+      let item = currentItems.find(i => String(i.id) === String(itemId));
+      
       if (!item) {
-        alert('Item não encontrado.');
+        console.log(`Item não encontrado em currentItems, buscando no cache...`);
+        const itemsLocal = await carregarItemsLocal();
+        const pendentesItems = await getPendingItems();
+        
+        item = itemsLocal.find(i => String(i.id) === String(itemId));
+        
+        if (!item && pendentesItems.length > 0) {
+          const pendente = pendentesItems.find(p => String(p.id) === String(itemId));
+          if (pendente) {
+            item = {
+              id: pendente.id,
+              name: pendente.name,
+              sub_localizacao: pendente.sub_localizacao || '',
+              tamanho: pendente.tamanho || '',
+              code: pendente.code,
+              status: 'active',
+              pending: true,
+              files: []
+            };
+          }
+        }
+      }
+      
+      if (!item) {
+        console.error(`❌ Item não encontrado: ${itemId}`);
+        alert('Item não encontrado. Tente recarregar a página.');
         return;
       }
       
-      detailContent.innerHTML = `
-        <div class="item-detail-title">
-          <strong>${escapeHtml(item.name)}</strong><br>
-          ${item.sub_localizacao ? `Sub. Localização: ${escapeHtml(item.sub_localizacao)}<br>` : ''}
-          ${item.tamanho ? `Tamanho: ${escapeHtml(item.tamanho)}<br>` : ''}
-          ID: ${escapeHtml(item.code)}
-        </div>
-        <div class="pdf-group">
-          <div class="pdf-group-title">📄 Memorial de Cálculo</div>
-          <div class="pdf-row">
-            <span class="pdf-label">Memorial</span>
-            <div class="pdf-file-info">— Nenhum PDF anexado —</div>
-            <div class="pdf-actions">
-              <button class="upload-pdf-btn" data-itemid="${item.id}" data-category="memorial">➕</button>
-            </div>
-          </div>
-        </div>
-        <div class="pdf-group">
-          <div class="pdf-group-title">📅 Documentos Mensais</div>
-          ${["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"].map((month, idx) => {
-            const key = ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"][idx];
-            const file = item.files.find(f => f.category === key);
-            if (file) {
-              return `<div class="pdf-row">
-                <span class="pdf-label">${month}</span>
-                <div class="pdf-file-info"><a href="${file.file_url}" target="_blank">📄 ${escapeHtml(file.file_name)}</a></div>
-                <div class="pdf-actions">
-                  <button class="upload-pdf-btn" data-itemid="${item.id}" data-category="${key}" data-monthname="${month}">🔄</button>
-                  <button class="remove-pdf-btn" data-fileid="${file.id}">✖</button>
-                  <button class="fill-form-btn" data-itemid="${item.id}" data-category="${key}" data-monthname="${month}">📝</button>
-                </div>
-              </div>`;
-            } else {
-              return `<div class="pdf-row">
-                <span class="pdf-label">${month}</span>
-                <div class="pdf-file-info">— Nenhum PDF anexado —</div>
-                <div class="pdf-actions">
-                  <button class="upload-pdf-btn" data-itemid="${item.id}" data-category="${key}" data-monthname="${month}">➕</button>
-                  <button class="fill-form-btn" data-itemid="${item.id}" data-category="${key}" data-monthname="${month}">📝</button>
-                </div>
-              </div>`;
-            }
-          }).join('')}
-        </div>
-        <button class="delete-item-btn" id="deleteItemFromDetailBtn">🗑️ Excluir este item</button>
-        <div class="notice">* Clique nos botões + para anexar/substituir PDFs. Clique em 📝 para preencher formulário e gerar PDF.</div>
-      `;
+      console.log(`✅ Item encontrado: ${item.name} (${item.code}) - Pendente: ${item.pending}`);
       
+      window.currentDetailItem = item;
+      detailContent.innerHTML = '<div class="loading">Carregando...</div>';
       detailModalElem.style.display = 'flex';
       
-      document.querySelectorAll('.upload-pdf-btn').forEach(btn => {
-        btn.addEventListener('click', async () => {
-          alert('Função de upload em desenvolvimento');
-        });
+      let filesDoItem = item.files || [];
+      
+      if (filesDoItem.length === 0) {
+        const allFiles = await carregarFilesLocal();
+        filesDoItem = allFiles.filter(f => String(f.item_id) === String(itemId));
+      }
+      
+      renderItemDetailModal({
+        ...item,
+        files: filesDoItem
       });
-      document.querySelectorAll('.remove-pdf-btn').forEach(btn => {
-        btn.addEventListener('click', async () => {
-          alert('Função de remoção em desenvolvimento');
-        });
-      });
-      document.querySelectorAll('.fill-form-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-          alert('Função de formulário em desenvolvimento');
-        });
-      });
+    }
+
+    function renderItemDetailModal(item) {
+      const files = item.files;
+      const memorialFile = files.find(f => f.category === 'memorial');
+      const monthlyFiles = monthKeys.map(key => files.find(f => f.category === key));
+      const isActive = item.status === 'active';
+      
+      let html = `<div class="status-container"><span style="font-weight: 500;">Status:</span><label class="toggle-switch"><input type="checkbox" id="statusToggle" ${isActive ? 'checked' : ''}><span class="slider"></span></label><span class="status-text" id="statusText">${isActive ? 'Ativo' : 'Inativo'}</span></div>${!isActive ? '<div class="inactive-message">⚠️ Item inativo. Não é possível anexar PDFs ou gerar formulários.</div>' : ''}<div class="item-detail-title"><strong>${escapeHtml(item.name)}</strong><br>${item.sub_localizacao ? `Sub. Localização: ${escapeHtml(item.sub_localizacao)}<br>` : ''}${item.tamanho ? `Tamanho: ${escapeHtml(item.tamanho)}<br>` : ''}ID: ${escapeHtml(item.code)}${item.pending ? '<br><span style="background: #fef3c7; color: #92400e; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem;">⏳ Pendente de sincronização</span>' : ''}</div><div class="pdf-group"><div class="pdf-group-title">📄 Memorial de Cálculo</div>${renderDetailPdfRow('memorial', 'Memorial', memorialFile, item.id, isActive)}</div><div class="pdf-group"><div class="pdf-group-title">📅 Documentos Mensais</div>${monthNames.map((month, idx) => renderDetailPdfRow(monthKeys[idx], month, monthlyFiles[idx], item.id, isActive, true)).join('')}</div><button class="delete-item-btn" id="deleteItemFromDetailBtn">🗑️ Excluir este item</button><div class="notice">* Clique nos botões + para anexar/substituir PDFs. Clique em 📝 para preencher formulário e gerar PDF.</div>`;
+      detailContent.innerHTML = html;
+      
+      const toggle = document.getElementById('statusToggle');
+      const statusTextSpan = document.getElementById('statusText');
+      if (toggle) toggle.addEventListener('change', async (e) => { const newStatus = e.target.checked ? 'active' : 'inactive'; statusTextSpan.innerText = newStatus === 'active' ? 'Ativo' : 'Inativo'; await toggleStatusFromDetail(item.id, newStatus); });
+      
+      document.querySelectorAll('.upload-pdf-btn').forEach(btn => { btn.addEventListener('click', async (e) => { if (!isActive) { alert('Item inativo. Ative o item para anexar PDFs.'); return; } const itemId = btn.dataset.itemid; const category = btn.dataset.category; const monthName = btn.dataset.monthname || ''; await uploadManualPDF(itemId, category, monthName); }); });
+      document.querySelectorAll('.remove-pdf-btn').forEach(btn => { btn.addEventListener('click', async (e) => { if (!isActive) { alert('Item inativo. Ative o item para remover PDFs.'); return; } if (confirm('Remover este PDF?')) { const loader = document.getElementById('fullscreenLoader'); loader.classList.add('active'); try { await deleteFileById(Number(btn.dataset.fileid)); await refreshData(); await openDetailModal(item.id); } finally { loader.classList.remove('active'); } } }); });
+      document.querySelectorAll('.fill-form-btn').forEach(btn => { btn.addEventListener('click', () => { if (!isActive) { alert('Item inativo. Ative o item para preencher o formulário.'); return; } openFormModal(btn.dataset.itemid, btn.dataset.category, btn.dataset.monthname); }); });
       const deleteBtn = document.getElementById('deleteItemFromDetailBtn');
-      if (deleteBtn) {
-        deleteBtn.addEventListener('click', async () => {
-          if (confirm(`Excluir o item "${item.name}"?`)) {
-            alert('Função de exclusão em desenvolvimento');
-          }
-        });
+      if (deleteBtn) deleteBtn.addEventListener('click', async () => { if (confirm(`Excluir o item "${item.name}"?`)) { const loader = document.getElementById('fullscreenLoader'); loader.classList.add('active'); try { await deleteItemAndFiles(item.id); detailModalElem.style.display = 'none'; await refreshData(); } finally { loader.classList.remove('active'); } } });
+    }
+
+    function renderDetailPdfRow(category, label, file, itemId, isActive, showFormButton = false) {
+      const actions = `<button class="upload-pdf-btn" data-itemid="${itemId}" data-category="${category}" data-monthname="${label}" title="Substituir PDF">🔄</button>${file ? `<button class="remove-pdf-btn" data-fileid="${file.id}" title="Remover">✖</button>` : ''}${showFormButton ? `<button class="fill-form-btn" data-itemid="${itemId}" data-category="${category}" data-monthname="${label}" title="Preencher formulário">📝</button>` : ''}`;
+      const disabledClass = !isActive ? 'disabled-action' : '';
+      if (file) return `<div class="pdf-row"><span class="pdf-label">${escapeHtml(label)}</span><div class="pdf-file-info"><a href="${file.file_url}" target="_blank">📄 ${escapeHtml(file.file_name)}</a></div><div class="pdf-actions ${disabledClass}">${actions}</div></div>`;
+      else return `<div class="pdf-row"><span class="pdf-label">${escapeHtml(label)}</span><div class="pdf-file-info">— Nenhum PDF anexado —</div><div class="pdf-actions ${disabledClass}"><button class="upload-pdf-btn" data-itemid="${itemId}" data-category="${category}" data-monthname="${label}" title="Adicionar PDF">➕</button>${showFormButton ? `<button class="fill-form-btn" data-itemid="${itemId}" data-category="${category}" data-monthname="${label}" title="Preencher formulário">📝</button>` : ''}</div></div>`;
+    }
+
+    // ==================== FUNÇÕES ADICIONAIS ====================
+    async function toggleStatusFromDetail(itemId, newStatus) {
+      const item = currentItems.find(i => String(i.id) === String(itemId));
+      if (!item) return;
+      if (newStatus === 'inactive') {
+        if (confirm('Inativar este item? Os dados atuais serão salvos no histórico.')) {
+          const loader = document.getElementById('fullscreenLoader');
+          loader.classList.add('active');
+          try {
+            await supabase.from('items').update({ status: 'inactive' }).eq('id', itemId);
+            await refreshData();
+            const detailModalElem = document.getElementById('detailModal');
+            if (detailModalElem && detailModalElem.style.display === 'flex') await openDetailModal(itemId);
+          } finally { loader.classList.remove('active'); }
+        } else {
+          const toggle = document.getElementById('statusToggle');
+          if (toggle) toggle.checked = true;
+          const statusTextSpan = document.getElementById('statusText');
+          if (statusTextSpan) statusTextSpan.innerText = 'Ativo';
+        }
+      } else if (newStatus === 'active') {
+        reactivatingItemId = itemId;
+        document.getElementById('editItemName').value = item.name;
+        document.getElementById('editSubLocalizacao').value = item.sub_localizacao;
+        document.getElementById('editTamanho').value = item.tamanho;
+        document.getElementById('reactivateModal').style.display = 'flex';
       }
     }
 
-    // ==================== EVENTOS ====================
-    document.getElementById('addItemBtn').addEventListener('click', () => {
-      alert('Função de criar item em desenvolvimento');
+    async function saveReactivate() {
+      const newName = document.getElementById('editItemName').value.trim();
+      const newSub = document.getElementById('editSubLocalizacao').value.trim();
+      const newTamanho = document.getElementById('editTamanho').value.trim();
+      if (!newName) { alert("Localização é obrigatória."); return; }
+      const item = currentItems.find(i => String(i.id) === String(reactivatingItemId));
+      if (!item) return;
+      const loader = document.getElementById('fullscreenLoader');
+      loader.classList.add('active');
+      try {
+        await supabase.from('items').update({ name: newName, sub_localizacao: newSub, tamanho: newTamanho, status: 'active' }).eq('id', reactivatingItemId);
+        document.getElementById('reactivateModal').style.display = 'none';
+        const detailModalElem = document.getElementById('detailModal');
+        if (detailModalElem && detailModalElem.style.display === 'flex') await openDetailModal(reactivatingItemId);
+        await refreshData();
+      } finally { loader.classList.remove('active'); }
+    }
+
+    async function uploadManualPDF(itemId, category, monthName) {
+      return new Promise((resolve, reject) => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.pdf';
+        input.onchange = async (ev) => {
+          const file = ev.target.files[0];
+          if (file && file.type === 'application/pdf') {
+            const loader = document.getElementById('fullscreenLoader');
+            loader.classList.add('active');
+            try {
+              const inspecaoData = new Date().toISOString().split('T')[0];
+              await addFileToItem(itemId, category, file, inspecaoData);
+              await refreshData();
+              await openDetailModal(itemId);
+              resolve();
+            } catch (err) { alert('Erro ao adicionar PDF: ' + err.message); reject(err);
+            } finally { loader.classList.remove('active'); }
+          } else if (file) { alert('Selecione um PDF.'); reject(); }
+        };
+        input.click();
+      });
+    }
+
+    // ==================== FORMULÁRIO ====================
+    const formModal = document.getElementById('formModal');
+    const formFieldsContainer = document.getElementById('formFieldsContainer');
+    const closeFormModalBtn = document.getElementById('closeFormModalBtn');
+    const cancelFormBtn = document.getElementById('cancelFormBtn');
+    const generatePdfBtn = document.getElementById('generatePdfBtn');
+    const fotoInput = document.getElementById('fotoInspecao');
+    const fotoPreview = document.getElementById('fotoPreview');
+
+    if (fotoInput) fotoInput.addEventListener('change', function(e) { const file = e.target.files[0]; if (file) { const reader = new FileReader(); reader.onload = function(event) { fotoPreview.innerHTML = `<img src="${event.target.result}" class="image-preview" alt="Preview">`; }; reader.readAsDataURL(file); } else { fotoPreview.innerHTML = ''; } });
+
+    function openFormModal(itemId, category, monthName) {
+      currentFormItemId = itemId; currentFormCategory = category; currentFormMonthName = monthName;
+      const itemAtual = currentItems.find(i => String(i.id) === String(itemId));
+      currentItemInfo = itemAtual || { name: '', code: '', tamanho: '' };
+      document.getElementById('formModalTitle').innerText = `Formulário de Inspeção - ${monthName}`;
+      let html = `<div class="form-row"><div class="form-group"><label>Unidade</label><input type="text" id="unidade" placeholder="Ex: Matriz" spellcheck="false"></div><div class="form-group"><label>Nome da Localidade</label><input type="text" id="localidade" spellcheck="false"></div></div><div class="form-row"><div class="form-group"><label>Responsável - Nome</label><input type="text" id="resp_nome" spellcheck="false"></div><div class="form-group"><label>Responsável - Matrícula</label><input type="text" id="resp_matricula" spellcheck="false"></div></div><div class="form-row"><div class="form-group"><label>Data da Inspeção</label><input type="date" id="data_inspecao"></div><div class="form-group"><label>Empresa</label><input type="text" id="empresa" spellcheck="false"></div></div><hr style="margin: 1rem 0;"><h3>Checklist de Inspeção</h3>`;
+      for (let i=0; i<checklistPerguntas.length; i++) html += `<div class="question-group"><div class="question-text">${i+1}. ${escapeHtml(checklistPerguntas[i])}</div><div class="question-options"><label><input type="radio" name="resp_${i}" value="Conforme"> Conforme</label><label><input type="radio" name="resp_${i}" value="Não conforme"> Não conforme</label><label><input type="radio" name="resp_${i}" value="Não se aplica"> Não se aplica</label></div><div class="question-obs"><input type="text" placeholder="Observação (opcional)" id="obs_${i}" style="width:100%;" spellcheck="false"></div></div>`;
+      formFieldsContainer.innerHTML = html;
+      
+      const unidadeInput = document.getElementById('unidade');
+      if (unidadeInput) unidadeInput.value = 'SERRA NORTE';
+      const localidadeInput = document.getElementById('localidade');
+      if (localidadeInput) { const localizacao = itemAtual?.name || ''; const subLocal = itemAtual?.sub_localizacao || ''; const localidadeCompleta = subLocal ? `${localizacao} - ${subLocal}` : localizacao; localidadeInput.value = localidadeCompleta; }
+      if (fotoInput) fotoInput.value = '';
+      if (fotoPreview) fotoPreview.innerHTML = '';
+      formModal.style.display = 'flex';
+    }
+
+    generatePdfBtn.addEventListener('click', async () => {
+      const formData = { unidade: document.getElementById('unidade')?.value || '', localidade: document.getElementById('localidade')?.value || '', resp_nome: document.getElementById('resp_nome')?.value || '', resp_matricula: document.getElementById('resp_matricula')?.value || '', data_inspecao: document.getElementById('data_inspecao')?.value || '', empresa: document.getElementById('empresa')?.value || '' };
+      for (let i=0; i<checklistPerguntas.length; i++) { const radio = document.querySelector(`input[name="resp_${i}"]:checked`); formData[`resp_${i}`] = radio ? radio.value : "Não respondido"; }
+      if (!formData.data_inspecao || !formData.resp_nome) { alert("Preencha Data e Responsável."); return; }
+      const fotoFile = document.getElementById('fotoInspecao')?.files[0] || null;
+      if (!fotoFile) { alert("Por favor, anexe uma foto da inspeção."); return; }
+      const loader = document.getElementById('fullscreenLoader');
+      loader.classList.add('active');
+      try { await generateAndAttachPdf(currentFormItemId, currentFormCategory, currentFormMonthName, formData, currentItemInfo, fotoFile); formModal.style.display = 'none';
+      } catch(err) { alert("Erro: " + err.message);
+      } finally { loader.classList.remove('active'); }
     });
-    document.getElementById('searchInput').addEventListener('input', (e) => renderCards(e.target.value));
+
+    closeFormModalBtn.addEventListener('click', () => formModal.style.display = 'none');
+    cancelFormBtn.addEventListener('click', () => formModal.style.display = 'none');
+
+    // ==================== MODAL REATIVAR ====================
+    const reactivateModal = document.getElementById('reactivateModal');
+    const closeReactivateModalBtn = document.getElementById('closeReactivateModalBtn');
+    const cancelReactivateBtn = document.getElementById('cancelReactivateBtn');
+    const confirmReactivateBtn = document.getElementById('confirmReactivateBtn');
+    closeReactivateModalBtn.addEventListener('click', () => reactivateModal.style.display = 'none');
+    cancelReactivateBtn.addEventListener('click', () => reactivateModal.style.display = 'none');
+    confirmReactivateBtn.addEventListener('click', saveReactivate);
+
+    // ==================== MODAL CRIAR ITEM ====================
+    const createModal = document.getElementById('createItemModal');
+    const closeCreateBtn = document.getElementById('closeCreateModalBtn'), cancelCreateBtn = document.getElementById('cancelCreateBtn'), confirmCreateBtn = document.getElementById('confirmCreateBtn');
+    const newItemName = document.getElementById('newItemName'), newSubLocalizacao = document.getElementById('newSubLocalizacao'), newTamanho = document.getElementById('newTamanho'), newItemCode = document.getElementById('newItemCode'), newMemorialFile = document.getElementById('newMemorialFile'), newMonthlyContainer = document.getElementById('newMonthlyFilesContainer'), createCodeError = document.getElementById('createCodeError');
     
+    function buildNewMonthlyInputs() { 
+      newMonthlyContainer.innerHTML = ''; 
+      monthNames.forEach((month, idx) => { 
+        const div = document.createElement('div'); 
+        div.className = 'month-group'; 
+        const label = document.createElement('label'); 
+        label.textContent = month + ':'; 
+        const input = document.createElement('input'); 
+        input.type = 'file'; 
+        input.accept = '.pdf'; 
+        input.id = `new_month_${monthKeys[idx]}`; 
+        div.appendChild(label); 
+        div.appendChild(input); 
+        newMonthlyContainer.appendChild(div); 
+      }); 
+    }
+    buildNewMonthlyInputs();
+    
+    function openCreateModal() { 
+      newItemName.value = ''; 
+      newSubLocalizacao.value = ''; 
+      newTamanho.value = ''; 
+      newItemCode.value = ''; 
+      newMemorialFile.value = ''; 
+      monthKeys.forEach(key => { const inp = document.getElementById(`new_month_${key}`); if (inp) inp.value = ''; }); 
+      createCodeError.innerText = ''; 
+      createModal.style.display = 'flex'; 
+    }
+    
+    closeCreateBtn.addEventListener('click', () => createModal.style.display = 'none');
+    cancelCreateBtn.addEventListener('click', () => createModal.style.display = 'none');
+    confirmCreateBtn.addEventListener('click', async () => { 
+      const name = newItemName.value.trim(), sub_localizacao = newSubLocalizacao.value.trim(), tamanho = newTamanho.value.trim(), code = newItemCode.value.trim(); 
+      if (!name || !code) { createCodeError.innerText = 'Preencha nome e código.'; return; } 
+      createCodeError.innerText = ''; 
+      const filesToProcess = []; 
+      if (newMemorialFile.files.length > 0) filesToProcess.push({ category: 'memorial', file: newMemorialFile.files[0] }); 
+      else filesToProcess.push({ category: 'memorial', file: null }); 
+      for (let i=0; i<monthKeys.length; i++) { 
+        const key = monthKeys[i]; 
+        const inp = document.getElementById(`new_month_${key}`); 
+        if (inp && inp.files.length > 0) filesToProcess.push({ category: key, file: inp.files[0] }); 
+        else filesToProcess.push({ category: key, file: null }); 
+      } 
+      try { 
+        await saveItemComplete(null, name, sub_localizacao, tamanho, code, filesToProcess); 
+        createModal.style.display = 'none'; 
+        refreshData(); 
+      } catch(err) { 
+        if (err.message.includes('código')) createCodeError.innerText = err.message; 
+        else alert('Erro ao criar item: ' + err.message); 
+      } 
+    });
+
+    // ==================== DOWNLOAD MENSAL ====================
+    async function downloadMonthPDFs(category, monthName) {
+      try {
+        if (!window.PDFLib) throw new Error("PDF-lib não carregado.");
+        const { PDFDocument } = window.PDFLib;
+        const items = await getAllItemsWithFiles();
+        const filesToMerge = [];
+        for (const item of items) { const file = item.files.find(f => f.category === category); if (file && file.file_url) { const response = await fetch(file.file_url); if (response.ok) filesToMerge.push({ name: `${item.name} - ${item.code}.pdf`, blob: await response.blob() }); } }
+        if (filesToMerge.length === 0) { alert(`Nenhum PDF encontrado para ${monthName}.`); return; }
+        const mergedPdf = await PDFDocument.create();
+        for (const file of filesToMerge) { const pdf = await PDFDocument.load(await file.blob.arrayBuffer()); const pages = await mergedPdf.copyPages(pdf, pdf.getPageIndices()); pages.forEach(p => mergedPdf.addPage(p)); }
+        const mergedPdfBytes = await mergedPdf.save();
+        const blob = new Blob([mergedPdfBytes], { type: 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = `todos_${monthName}.pdf`; a.click(); URL.revokeObjectURL(url);
+      } catch(err) { alert(`Erro: ${err.message}`); }
+    }
+
+    // ==================== EVENTOS ====================
+    document.getElementById('addItemBtn').addEventListener('click', openCreateModal);
+    document.getElementById('searchInput').addEventListener('input', (e) => renderCards(e.target.value));
     const monthContainer = document.getElementById('monthButtonsContainer');
-    ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"].forEach((month, idx) => {
-      const btn = document.createElement('button');
-      btn.className = 'month-btn';
-      btn.textContent = month;
-      btn.addEventListener('click', () => alert(`Download de ${month} em desenvolvimento`));
-      monthContainer.appendChild(btn);
+    monthNames.forEach((month, idx) => { const btn = document.createElement('button'); btn.className = 'month-btn'; btn.textContent = month; btn.addEventListener('click', () => downloadMonthPDFs(monthKeys[idx], month)); monthContainer.appendChild(btn); });
+
+    // ==================== MODAL DO USUÁRIO ====================
+    const userModal = document.getElementById('userModal');
+    const closeUserModalBtn = document.getElementById('closeUserModalBtn');
+    const cancelUserModalBtn = document.getElementById('cancelUserModalBtn');
+    const userModalPrepareBtn = document.getElementById('userModalPrepareBtn');
+    const userModalSyncBtn = document.getElementById('userModalSyncBtn');
+    const userModalRecoverBtn = document.getElementById('userModalRecoverBtn');
+    const userModalClearCacheBtn = document.getElementById('userModalClearCacheBtn');
+    const userModalLogoutBtn = document.getElementById('userModalLogoutBtn');
+    const syncPendingBadge = document.getElementById('syncPendingBadge');
+
+    userInfoDisplay.addEventListener('click', async () => {
+      await updateUserModalCacheStatus();
+      await listarPendentesNoModal();
+      userModal.style.display = 'flex';
+    });
+    
+    syncPendingBadge.addEventListener('click', async () => {
+      await mostrarModalSincronizacao();
+    });
+
+    function closeUserModal() { userModal.style.display = 'none'; }
+    closeUserModalBtn.addEventListener('click', closeUserModal);
+    cancelUserModalBtn.addEventListener('click', closeUserModal);
+    userModal.addEventListener('click', (e) => { if (e.target === userModal) closeUserModal(); });
+
+    userModalPrepareBtn.addEventListener('click', async () => {
+      closeUserModal();
+      await forcarCacheModeloPDF();
+    });
+
+    userModalSyncBtn.addEventListener('click', async () => {
+      closeUserModal();
+      await mostrarModalSincronizacao();
+    });
+
+    userModalRecoverBtn.addEventListener('click', async () => {
+      closeUserModal();
+      await forcarRecuperacaoCache();
+    });
+
+    userModalClearCacheBtn.addEventListener('click', () => {
+      closeUserModal();
+      limparCacheOfflineManual();
+    });
+
+    userModalLogoutBtn.addEventListener('click', () => {
+      localStorage.removeItem('tendex_current_user');
+      window.location.href = 'index.html';
+    });
+
+    const closeSyncModalBtn = document.getElementById('closeSyncModalBtn');
+    const cancelSyncModalBtn = document.getElementById('cancelSyncModalBtn');
+    const syncModal = document.getElementById('syncModal');
+    
+    if (closeSyncModalBtn) closeSyncModalBtn.addEventListener('click', () => syncModal.style.display = 'none');
+    if (cancelSyncModalBtn) cancelSyncModalBtn.addEventListener('click', () => syncModal.style.display = 'none');
+    if (syncModal) syncModal.addEventListener('click', (e) => { if (e.target === syncModal) syncModal.style.display = 'none'; });
+
+    // ==================== INICIALIZAÇÃO ====================
+    let inicializacaoCompleta = false;
+    
+    window.addEventListener('DOMContentLoaded', async () => {
+      console.log('🚀 Inicializando TENDEX...');
+      
+      await initOfflineDB();
+      await verificarPersistenciaDados();
+      await refreshData();
+      
+      const modeloCacheado = await isModeloCacheado();
+      if (!modeloCacheado && navigator.onLine) {
+        console.log('📥 Preparando cache offline...');
+        await prepararCacheOffline();
+      }
+      
+      if (navigator.onLine) {
+        console.log('🌐 Sistema online - executando rotina completa...');
+        await rotinaCompletaOnline();
+      } else {
+        console.log('📡 Modo offline - dados carregados do cache local');
+        showSyncStatus('📡 Modo offline - dados do cache local', false);
+      }
+      
+      inicializacaoCompleta = true;
+      console.log('✅ Inicialização concluída!');
+      
+      setInterval(async () => {
+        if (navigator.onLine && inicializacaoCompleta) {
+          const pendentesItems = await getPendingItems();
+          const pendentesInsp = await getPendingInspections();
+          if (pendentesItems.length > 0 || pendentesInsp.length > 0) {
+            await rotinaCompletaOnline();
+          }
+        }
+      }, 30000);
+    });
+    
+    let rotinaAgendada = false;
+    window.addEventListener('online', async () => {
+      if (!inicializacaoCompleta) return;
+      
+      console.log('🌐 CONEXÃO DETECTADA! Executando rotina completa...');
+      showSyncStatus('🔄 Conectado! Sincronizando e preparando offline...');
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      if (!rotinaAgendada) { 
+        rotinaAgendada = true; 
+        await rotinaCompletaOnline();
+        rotinaAgendada = false; 
+      }
+    });
+    
+    window.addEventListener('beforeunload', async () => {
+      console.log('💾 Salvando dados antes de fechar...');
+      await refreshData();
     });
   })();
 </script>
