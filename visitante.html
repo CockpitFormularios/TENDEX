@@ -19,6 +19,8 @@
     .refresh-status { background: #e0f2fe; color: #0369a1; padding: 0.3rem 0.8rem; border-radius: 2rem; font-size: 0.7rem; display: flex; align-items: center; gap: 0.5rem; }
     .cache-status { background: #10b981; color: white; padding: 0.3rem 0.8rem; border-radius: 2rem; font-size: 0.7rem; display: flex; align-items: center; gap: 0.5rem; cursor: pointer; }
     .cache-status:hover { background: #059669; }
+    .offline-mode-btn { background: #f59e0b; color: white; border: none; padding: 0.3rem 0.8rem; border-radius: 2rem; font-size: 0.7rem; cursor: pointer; display: flex; align-items: center; gap: 0.3rem; }
+    .offline-mode-btn:hover { background: #d97706; }
     .search-area { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 1.5rem; background: white; padding: 0.5rem 1rem; border-radius: 2rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
     .search-icon { font-size: 1.2rem; color: #64748b; }
     .search-input { flex: 1; border: none; outline: none; font-size: 1rem; padding: 0.4rem 0; background: transparent; }
@@ -119,6 +121,7 @@
     <h1>Convidado - Modo Offline</h1>
   </div>
   <div style="display: flex; align-items: center; gap: 0.5rem;">
+    <button class="offline-mode-btn" id="prepareOfflineBtn">📦 Preparar Modo Offline</button>
     <div class="cache-status" id="cacheStatusBtn"><span>💾</span><span id="cacheStats">Carregando...</span></div>
     <div class="refresh-status"><span>🔄</span><span id="lastUpdateText">Verificando...</span></div>
     <button class="btn-refresh" id="manualRefreshBtn">🔄</button>
@@ -194,12 +197,14 @@
   let currentItems = [];
   let db = null;
   let selectedItemsIds = new Set();
-  let dataLoaded = false;
+  let swRegistered = false;
   
   const DB_NAME = 'TendexOfflineCache';
-  const DB_VERSION = 11;
+  const DB_VERSION = 12;
   const STORE_PDFS = 'pdf_files';
   const STORE_ITEMS = 'items_cache';
+  const CACHE_NAME = 'tendex-offline-v1';
+  const PAGE_URL = window.location.href;
   
   const monthNames = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
   const monthKeys = ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
@@ -223,6 +228,151 @@
     } catch(e) {
       return Date.now().toString();
     }
+  }
+  
+  // ==================== SERVICE WORKER CORRIGIDO ====================
+  async function registerServiceWorker() {
+    if (!('serviceWorker' in navigator)) {
+      console.log('[SW] Service Worker não suportado');
+      return false;
+    }
+    
+    try {
+      // Código do Service Worker
+      const swCode = `
+const CACHE_NAME = '${CACHE_NAME}';
+const urlsToCache = [
+  '${BASE_URL}',
+  '${BASE_URL}?source=sw'
+];
+
+self.addEventListener('install', event => {
+  console.log('[SW] Instalando...');
+  event.waitUntil(
+    caches.open(CACHE_NAME).then(cache => {
+      console.log('[SW] Cacheando arquivos');
+      return cache.addAll(urlsToCache);
+    })
+  );
+  self.skipWaiting();
+});
+
+self.addEventListener('fetch', event => {
+  event.respondWith(
+    caches.match(event.request).then(response => {
+      if (response) {
+        console.log('[SW] Cache HIT:', event.request.url);
+        return response;
+      }
+      return fetch(event.request);
+    }).catch(() => {
+      return caches.match('${BASE_URL}');
+    })
+  );
+});
+
+self.addEventListener('activate', event => {
+  console.log('[SW] Ativando...');
+  event.waitUntil(
+    caches.keys().then(cacheNames => {
+      return Promise.all(
+        cacheNames.map(cacheName => {
+          if (cacheName !== CACHE_NAME) {
+            console.log('[SW] Removendo cache antigo:', cacheName);
+            return caches.delete(cacheName);
+          }
+        })
+      );
+    })
+  );
+  self.clients.claim();
+});
+`;
+      
+      // Criar um blob URL para o Service Worker
+      const blob = new Blob([swCode], { type: 'application/javascript' });
+      const swUrl = URL.createObjectURL(blob);
+      
+      // Registrar o Service Worker
+      const registration = await navigator.serviceWorker.register(swUrl);
+      console.log('[SW] Service Worker registrado com sucesso');
+      URL.revokeObjectURL(swUrl);
+      
+      // Aguardar o Service Worker ficar ativo
+      if (registration.installing) {
+        await new Promise((resolve) => {
+          registration.installing.addEventListener('statechange', (e) => {
+            if (e.target.state === 'installed') resolve();
+          });
+        });
+      }
+      
+      swRegistered = true;
+      return true;
+    } catch (error) {
+      console.error('[SW] Falha ao registrar:', error);
+      return false;
+    }
+  }
+  
+  // ==================== PREPARAR MODO OFFLINE ====================
+  async function prepareOfflineMode() {
+    if (!navigator.onLine) {
+      alert('❌ Você está offline. Conecte-se à internet para preparar o modo offline.');
+      return;
+    }
+    
+    showLoader(true);
+    showToast('📦 Preparando modo offline...', 2000);
+    
+    try {
+      // 1. Registrar Service Worker
+      console.log('📦 1. Registrando Service Worker...');
+      await registerServiceWorker();
+      
+      // 2. Cachear a página atual
+      console.log('📦 2. Cacheando página atual...');
+      if ('caches' in window) {
+        const cache = await caches.open(CACHE_NAME);
+        const response = await fetch(BASE_URL);
+        if (response.ok) {
+          await cache.put(BASE_URL, response);
+          console.log('✅ Página cacheada com sucesso!');
+        }
+      }
+      
+      // 3. Garantir que os dados estão salvos
+      console.log('📦 3. Salvando dados no cache local...');
+      await saveItemsToCache(currentItems);
+      localStorage.setItem('tendex_guest_cache', JSON.stringify(currentItems));
+      
+      // 4. Verificar status
+      const swActive = await navigator.serviceWorker.ready;
+      console.log('✅ Service Worker ativo:', swActive);
+      
+      showLoader(false);
+      alert('✅ Modo offline preparado com sucesso!\n\nAgora você pode:\n- Fechar o navegador\n- Desconectar a internet\n- Abrir a página novamente\n\nA página funcionará offline!');
+      
+    } catch (error) {
+      console.error('Erro ao preparar offline:', error);
+      showLoader(false);
+      alert('❌ Erro ao preparar modo offline: ' + error.message);
+    }
+  }
+  
+  // ==================== VERIFICAR SE SW ESTÁ ATIVO ====================
+  async function checkOfflineStatus() {
+    if ('serviceWorker' in navigator) {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      if (registrations.length > 0) {
+        console.log('✅ Service Worker ativo - modo offline disponível');
+        document.getElementById('prepareOfflineBtn').style.background = '#10b981';
+        return true;
+      }
+    }
+    console.log('⚠️ Service Worker não registrado - modo offline não disponível');
+    document.getElementById('prepareOfflineBtn').style.background = '#f59e0b';
+    return false;
   }
   
   // ==================== INDEXEDDB ====================
@@ -362,28 +512,21 @@
     return cached.length;
   }
   
-  // ==================== CARREGAR DADOS (PRIORIDADE TOTAL PARA OFFLINE) ====================
+  // ==================== CARREGAR DADOS ====================
   async function loadData() {
     showLoader(true);
-    let itemsLoaded = false;
     
-    // PRIMEIRO: Tentar carregar do IndexedDB imediatamente
-    try {
-      let cachedItems = await loadItemsFromCache();
-      if(cachedItems && cachedItems.length > 0) {
-        console.log(`📦 Carregando ${cachedItems.length} itens do cache offline...`);
-        currentItems = cachedItems;
-        await renderCards('');
-        await updateCacheStats();
-        itemsLoaded = true;
-        dataLoaded = true;
-      }
-    } catch(e) {
-      console.error('Erro ao carregar cache local:', e);
+    // Tentar carregar do IndexedDB
+    let cachedItems = await loadItemsFromCache();
+    if(cachedItems && cachedItems.length > 0) {
+      console.log(`📦 Carregando ${cachedItems.length} itens do cache offline...`);
+      currentItems = cachedItems;
+      await renderCards('');
+      await updateCacheStats();
     }
     
-    // SEGUNDO: Tentar carregar do localStorage como fallback
-    if (!itemsLoaded) {
+    // Tentar carregar do localStorage como fallback
+    if(currentItems.length === 0) {
       try {
         const localData = localStorage.getItem('tendex_guest_cache');
         if (localData) {
@@ -391,22 +534,17 @@
           if (currentItems.length > 0) {
             console.log(`📦 Carregando ${currentItems.length} itens do localStorage...`);
             await renderCards('');
-            itemsLoaded = true;
-            dataLoaded = true;
           }
         }
       } catch(e) {}
     }
     
-    // TERCEIRO: Se estiver online e não tem dados OU força atualização
+    // Se estiver online, buscar dados atualizados
     if(navigator.onLine) {
       try {
         console.log('🌐 Buscando dados do servidor...');
-        let { data: itemsData, error: itemsError } = await supabase.from('items').select('*').order('name');
-        if (itemsError) throw itemsError;
-        
-        let { data: filesData, error: filesError } = await supabase.from('files').select('*');
-        if (filesError) throw filesError;
+        let { data: itemsData } = await supabase.from('items').select('*').order('name');
+        let { data: filesData } = await supabase.from('files').select('*');
         
         let filesByItem = {};
         if(filesData) {
@@ -426,7 +564,6 @@
           files: filesByItem[item.id] || []
         }));
         
-        // Salvar no cache
         await saveItemsToCache(newItems);
         localStorage.setItem('tendex_guest_cache', JSON.stringify(newItems));
         
@@ -442,24 +579,20 @@
         
       } catch(e) {
         console.warn('Erro ao buscar dados online:', e);
-        if (!itemsLoaded) {
-          document.getElementById('itemsContainer').innerHTML = '<div class="empty-state">❌ Erro ao carregar dados. Conecte-se à internet e recarregue.</div>';
-        }
       }
-    } else if (!itemsLoaded) {
+    } else if (currentItems.length === 0) {
       console.log('📡 Modo OFFLINE - sem dados em cache');
       document.getElementById('connectionStatus').innerHTML = '🔴 Offline (Sem Cache)';
       document.getElementById('connectionStatus').className = 'connection-status offline-badge';
-      document.getElementById('lastUpdateText').innerHTML = `📅 (Offline - Sem dados)`;
-      document.getElementById('itemsContainer').innerHTML = '<div class="empty-state">📡 Modo offline. Conecte-se à internet para carregar os dados pela primeira vez.</div>';
+      document.getElementById('itemsContainer').innerHTML = '<div class="empty-state">📡 Modo offline. Conecte-se à internet e clique em "Preparar Modo Offline" primeiro.</div>';
     } else {
       console.log('📡 Modo OFFLINE - usando cache local');
       document.getElementById('connectionStatus').innerHTML = '🔴 Offline (Cache)';
       document.getElementById('connectionStatus').className = 'connection-status offline-badge';
-      document.getElementById('lastUpdateText').innerHTML = `📅 ${new Date().toLocaleTimeString()} (Offline)`;
     }
     
     showLoader(false);
+    await checkOfflineStatus();
     return currentItems;
   }
   
@@ -585,7 +718,7 @@
           window.open(url, '_blank');
         }
       } else {
-        alert(`❌ Documento não disponível offline.\n\nConecte-se à internet e baixe os PDFs desejados.`);
+        alert(`❌ Documento não disponível offline.\n\nConecte-se à internet e clique em "Preparar Modo Offline" primeiro.`);
       }
     }
   }
@@ -816,6 +949,13 @@
     }
   }
   
+  function formatarData(dataString) { 
+    if(!dataString) return ''; 
+    let partes = dataString.split('-'); 
+    if(partes.length === 3) return `${partes[2]}/${partes[1]}/${partes[0]}`; 
+    return dataString; 
+  }
+  
   async function renderCards(filter = "") {
     let container = document.getElementById('itemsContainer');
     let lower = filter.toLowerCase();
@@ -880,13 +1020,6 @@
         });
       }
     }
-  }
-  
-  function formatarData(dataString) { 
-    if(!dataString) return ''; 
-    let partes = dataString.split('-'); 
-    if(partes.length === 3) return `${partes[2]}/${partes[1]}/${partes[0]}`; 
-    return dataString; 
   }
   
   // ==================== MODAL DETALHE ====================
@@ -1028,6 +1161,7 @@
   document.getElementById('deselectAllBtn').onclick = deselectAllItems;
   document.getElementById('refreshCacheStatusBtn').onclick = refreshCacheStatus;
   document.getElementById('closeQRGeneralModalBtn').onclick = () => document.getElementById('qrGeneralModal').style.display = 'none';
+  document.getElementById('prepareOfflineBtn').onclick = prepareOfflineMode;
   
   let qrGeneralModalElem = document.getElementById('qrGeneralModal');
   if(qrGeneralModalElem) {
@@ -1046,7 +1180,7 @@
     await loadData();
   };
   window.onoffline = () => {
-    document.getElementById('connectionStatus').innerHTML = '🔴 Offline (Cache)';
+    document.getElementById('connectionStatus').innerHTML = '🔴 Offline';
     document.getElementById('connectionStatus').className = 'connection-status offline-badge';
   };
   
@@ -1057,9 +1191,9 @@
     await generateGeneralQRCode();
     await loadData();
     checkHash();
+    await checkOfflineStatus();
     console.log('✅ Sistema pronto!');
-    console.log('📦 Todos os itens são cacheados automaticamente');
-    console.log('💾 Baixe os PDFs desejados para acesso offline');
+    console.log('📦 Clique em "Preparar Modo Offline" para cachear a página');
   })();
 })();
 </script>
