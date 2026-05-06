@@ -121,8 +121,8 @@
     <h1>Convidado - Modo Offline</h1>
   </div>
   <div style="display: flex; align-items: center; gap: 0.5rem;">
-    <button class="offline-mode-btn" id="prepareOfflineBtn">📦 Preparar Modo Offline</button>
-    <div class="cache-status" id="cacheStatusBtn"><span>💾</span><span id="cacheStats">Carregando...</span></div>
+    <button class="offline-mode-btn" id="prepareOfflineBtn">💾 Salvar para Offline</button>
+    <div class="cache-status" id="cacheStatusBtn"><span>📄</span><span id="cacheStats">Carregando...</span></div>
     <div class="refresh-status"><span>🔄</span><span id="lastUpdateText">Verificando...</span></div>
     <button class="btn-refresh" id="manualRefreshBtn">🔄</button>
     <div class="guest-badge">👁️ Convidado</div>
@@ -151,7 +151,7 @@
 </div>
 
 <!-- Modais -->
-<div id="detailModal" class="modal"><div class="modal-content"><div class="modal-header"><h2>📄 Detalhes</h2><button class="close-modal" id="closeDetailModalBtn">&times;</button></div><div id="detailContent"></div><div class="notice-guest">🔒 Modo leitura | Clique em 💾 Offline para baixar e ver documentos sem internet</div></div></div>
+<div id="detailModal" class="modal"><div class="modal-content"><div class="modal-header"><h2>📄 Detalhes</h2><button class="close-modal" id="closeDetailModalBtn">&times;</button></div><div id="detailContent"></div><div class="notice-guest">🔒 Modo leitura | Clique em 💾 Offline para ver documentos sem internet</div></div></div>
 
 <div id="cacheModal" class="modal">
   <div class="modal-content">
@@ -197,14 +197,12 @@
   let currentItems = [];
   let db = null;
   let selectedItemsIds = new Set();
-  let swRegistered = false;
+  let isSaving = false;
   
   const DB_NAME = 'TendexOfflineCache';
-  const DB_VERSION = 12;
+  const DB_VERSION = 14;
   const STORE_PDFS = 'pdf_files';
   const STORE_ITEMS = 'items_cache';
-  const CACHE_NAME = 'tendex-offline-v1';
-  const PAGE_URL = window.location.href;
   
   const monthNames = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
   const monthKeys = ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
@@ -230,155 +228,13 @@
     }
   }
   
-  // ==================== SERVICE WORKER CORRIGIDO ====================
-  async function registerServiceWorker() {
-    if (!('serviceWorker' in navigator)) {
-      console.log('[SW] Service Worker não suportado');
-      return false;
-    }
-    
-    try {
-      // Código do Service Worker
-      const swCode = `
-const CACHE_NAME = '${CACHE_NAME}';
-const urlsToCache = [
-  '${BASE_URL}',
-  '${BASE_URL}?source=sw'
-];
-
-self.addEventListener('install', event => {
-  console.log('[SW] Instalando...');
-  event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => {
-      console.log('[SW] Cacheando arquivos');
-      return cache.addAll(urlsToCache);
-    })
-  );
-  self.skipWaiting();
-});
-
-self.addEventListener('fetch', event => {
-  event.respondWith(
-    caches.match(event.request).then(response => {
-      if (response) {
-        console.log('[SW] Cache HIT:', event.request.url);
-        return response;
-      }
-      return fetch(event.request);
-    }).catch(() => {
-      return caches.match('${BASE_URL}');
-    })
-  );
-});
-
-self.addEventListener('activate', event => {
-  console.log('[SW] Ativando...');
-  event.waitUntil(
-    caches.keys().then(cacheNames => {
-      return Promise.all(
-        cacheNames.map(cacheName => {
-          if (cacheName !== CACHE_NAME) {
-            console.log('[SW] Removendo cache antigo:', cacheName);
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    })
-  );
-  self.clients.claim();
-});
-`;
-      
-      // Criar um blob URL para o Service Worker
-      const blob = new Blob([swCode], { type: 'application/javascript' });
-      const swUrl = URL.createObjectURL(blob);
-      
-      // Registrar o Service Worker
-      const registration = await navigator.serviceWorker.register(swUrl);
-      console.log('[SW] Service Worker registrado com sucesso');
-      URL.revokeObjectURL(swUrl);
-      
-      // Aguardar o Service Worker ficar ativo
-      if (registration.installing) {
-        await new Promise((resolve) => {
-          registration.installing.addEventListener('statechange', (e) => {
-            if (e.target.state === 'installed') resolve();
-          });
-        });
-      }
-      
-      swRegistered = true;
-      return true;
-    } catch (error) {
-      console.error('[SW] Falha ao registrar:', error);
-      return false;
-    }
-  }
-  
-  // ==================== PREPARAR MODO OFFLINE ====================
-  async function prepareOfflineMode() {
-    if (!navigator.onLine) {
-      alert('❌ Você está offline. Conecte-se à internet para preparar o modo offline.');
-      return;
-    }
-    
-    showLoader(true);
-    showToast('📦 Preparando modo offline...', 2000);
-    
-    try {
-      // 1. Registrar Service Worker
-      console.log('📦 1. Registrando Service Worker...');
-      await registerServiceWorker();
-      
-      // 2. Cachear a página atual
-      console.log('📦 2. Cacheando página atual...');
-      if ('caches' in window) {
-        const cache = await caches.open(CACHE_NAME);
-        const response = await fetch(BASE_URL);
-        if (response.ok) {
-          await cache.put(BASE_URL, response);
-          console.log('✅ Página cacheada com sucesso!');
-        }
-      }
-      
-      // 3. Garantir que os dados estão salvos
-      console.log('📦 3. Salvando dados no cache local...');
-      await saveItemsToCache(currentItems);
-      localStorage.setItem('tendex_guest_cache', JSON.stringify(currentItems));
-      
-      // 4. Verificar status
-      const swActive = await navigator.serviceWorker.ready;
-      console.log('✅ Service Worker ativo:', swActive);
-      
-      showLoader(false);
-      alert('✅ Modo offline preparado com sucesso!\n\nAgora você pode:\n- Fechar o navegador\n- Desconectar a internet\n- Abrir a página novamente\n\nA página funcionará offline!');
-      
-    } catch (error) {
-      console.error('Erro ao preparar offline:', error);
-      showLoader(false);
-      alert('❌ Erro ao preparar modo offline: ' + error.message);
-    }
-  }
-  
-  // ==================== VERIFICAR SE SW ESTÁ ATIVO ====================
-  async function checkOfflineStatus() {
-    if ('serviceWorker' in navigator) {
-      const registrations = await navigator.serviceWorker.getRegistrations();
-      if (registrations.length > 0) {
-        console.log('✅ Service Worker ativo - modo offline disponível');
-        document.getElementById('prepareOfflineBtn').style.background = '#10b981';
-        return true;
-      }
-    }
-    console.log('⚠️ Service Worker não registrado - modo offline não disponível');
-    document.getElementById('prepareOfflineBtn').style.background = '#f59e0b';
-    return false;
-  }
-  
   // ==================== INDEXEDDB ====================
   function initDB() {
     return new Promise((resolve, reject) => {
-      if(db) { resolve(db); return; }
+      if(db && db.version === DB_VERSION && !isSaving) { 
+        resolve(db); 
+        return; 
+      }
       let req = indexedDB.open(DB_NAME, DB_VERSION);
       req.onerror = () => reject(req.error);
       req.onsuccess = () => { 
@@ -403,29 +259,38 @@ self.addEventListener('activate', event => {
   
   async function saveItemsToCache(items) {
     await initDB();
-    return new Promise((resolve) => {
-      let tx = db.transaction(STORE_ITEMS, 'readwrite');
-      let store = tx.objectStore(STORE_ITEMS);
-      for(let item of items) {
-        store.put({ id: String(item.id), data: item, timestamp: Date.now() });
+    return new Promise((resolve, reject) => {
+      try {
+        const tx = db.transaction(STORE_ITEMS, 'readwrite');
+        const store = tx.objectStore(STORE_ITEMS);
+        for(let item of items) {
+          store.put({ id: String(item.id), data: item, timestamp: Date.now() });
+        }
+        tx.oncomplete = () => resolve();
+        tx.onerror = (err) => reject(err);
+      } catch(e) {
+        reject(e);
       }
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => resolve();
     });
   }
   
   async function loadItemsFromCache() {
     await initDB();
     return new Promise((resolve) => {
-      let tx = db.transaction(STORE_ITEMS, 'readonly');
-      let store = tx.objectStore(STORE_ITEMS);
-      let req = store.getAll();
-      req.onsuccess = () => {
-        let items = (req.result || []).map(r => r.data);
-        console.log(`📦 Itens carregados do cache: ${items.length}`);
-        resolve(items);
-      };
-      req.onerror = () => resolve([]);
+      try {
+        const tx = db.transaction(STORE_ITEMS, 'readonly');
+        const store = tx.objectStore(STORE_ITEMS);
+        const req = store.getAll();
+        req.onsuccess = () => {
+          const items = (req.result || []).map(r => r.data);
+          console.log(`📦 Itens carregados do cache: ${items.length}`);
+          resolve(items);
+        };
+        req.onerror = () => resolve([]);
+      } catch(e) {
+        console.warn('Erro ao carregar items:', e);
+        resolve([]);
+      }
     });
   }
   
@@ -433,9 +298,9 @@ self.addEventListener('activate', event => {
     await initDB();
     let pdfId = getPDFId(url);
     return new Promise((resolve, reject) => {
-      let tx = db.transaction(STORE_PDFS, 'readwrite');
-      let store = tx.objectStore(STORE_PDFS);
-      let record = { 
+      const tx = db.transaction(STORE_PDFS, 'readwrite');
+      const store = tx.objectStore(STORE_PDFS);
+      const record = { 
         id: pdfId, 
         itemId: String(itemId), 
         url: url, 
@@ -444,7 +309,7 @@ self.addEventListener('activate', event => {
         timestamp: Date.now(), 
         size: blob.size 
       };
-      let req = store.put(record);
+      const req = store.put(record);
       req.onsuccess = () => {
         console.log(`✅ PDF salvo: ${fileName} (${(blob.size/1024).toFixed(0)}KB)`);
         resolve();
@@ -457,9 +322,9 @@ self.addEventListener('activate', event => {
     await initDB();
     let pdfId = getPDFId(url);
     return new Promise((resolve) => {
-      let tx = db.transaction(STORE_PDFS, 'readonly');
-      let store = tx.objectStore(STORE_PDFS);
-      let req = store.get(pdfId);
+      const tx = db.transaction(STORE_PDFS, 'readonly');
+      const store = tx.objectStore(STORE_PDFS);
+      const req = store.get(pdfId);
       req.onsuccess = () => resolve(!!req.result);
       req.onerror = () => resolve(false);
     });
@@ -469,9 +334,9 @@ self.addEventListener('activate', event => {
     await initDB();
     let pdfId = getPDFId(url);
     return new Promise((resolve) => {
-      let tx = db.transaction(STORE_PDFS, 'readonly');
-      let store = tx.objectStore(STORE_PDFS);
-      let req = store.get(pdfId);
+      const tx = db.transaction(STORE_PDFS, 'readonly');
+      const store = tx.objectStore(STORE_PDFS);
+      const req = store.get(pdfId);
       req.onsuccess = () => resolve(req.result ? req.result.blob : null);
       req.onerror = () => resolve(null);
     });
@@ -480,9 +345,9 @@ self.addEventListener('activate', event => {
   async function getAllCachedPDFs() {
     await initDB();
     return new Promise((resolve) => {
-      let tx = db.transaction(STORE_PDFS, 'readonly');
-      let store = tx.objectStore(STORE_PDFS);
-      let req = store.getAll();
+      const tx = db.transaction(STORE_PDFS, 'readonly');
+      const store = tx.objectStore(STORE_PDFS);
+      const req = store.getAll();
       req.onsuccess = () => resolve(req.result || []);
       req.onerror = () => resolve([]);
     });
@@ -497,7 +362,7 @@ self.addEventListener('activate', event => {
     await initDB();
     selectedItemsIds.clear();
     return new Promise((resolve) => {
-      let tx = db.transaction(STORE_PDFS, 'readwrite');
+      const tx = db.transaction(STORE_PDFS, 'readwrite');
       tx.objectStore(STORE_PDFS).clear();
       tx.oncomplete = () => resolve();
       tx.onerror = () => resolve();
@@ -508,38 +373,90 @@ self.addEventListener('activate', event => {
     let cached = await getAllCachedPDFs();
     let totalSize = cached.reduce((s,i)=> s + (i.size||0), 0);
     let sizeMB = (totalSize / (1024*1024)).toFixed(1);
-    document.getElementById('cacheStats').innerHTML = `📁 ${cached.length} PDFs | ${sizeMB}MB`;
+    document.getElementById('cacheStats').innerHTML = `📁 ${cached.length} | ${sizeMB}MB`;
     return cached.length;
+  }
+  
+  // ==================== PREPARAR DADOS PARA OFFLINE (CORRIGIDO) ====================
+  async function prepararDadosOffline() {
+    if (!navigator.onLine) {
+      alert('❌ Você está offline. Conecte-se à internet primeiro.');
+      return;
+    }
+    
+    if (isSaving) {
+      alert('⏳ Salvamento em andamento, aguarde...');
+      return;
+    }
+    
+    isSaving = true;
+    showLoader(true);
+    showToast('📦 Salvando dados para modo offline...', 2000);
+    
+    try {
+      // 1. Salvar itens no localStorage (mais rápido e confiável)
+      console.log('📦 1. Salvando itens no localStorage...');
+      localStorage.setItem('tendex_guest_cache', JSON.stringify(currentItems));
+      localStorage.setItem('tendex_cache_date', new Date().toISOString());
+      
+      // 2. Salvar itens no IndexedDB (como backup)
+      console.log('📦 2. Salvando itens no IndexedDB...');
+      await saveItemsToCache(currentItems);
+      
+      // 3. Verificar quantos PDFs estão em cache
+      const cachedPDFs = await getAllCachedPDFs();
+      const pdfSize = cachedPDFs.reduce((s,i)=> s + (i.size||0), 0);
+      
+      showLoader(false);
+      alert(`✅ Dados salvos com sucesso!\n\n📦 Itens salvos: ${currentItems.length}\n📄 PDFs em cache: ${cachedPDFs.length}\n💾 Espaço: ${(pdfSize / (1024*1024)).toFixed(1)} MB\n\nAgora você pode usar o sistema OFFLINE!`);
+      
+    } catch (error) {
+      console.error('Erro ao salvar dados offline:', error);
+      showLoader(false);
+      alert('❌ Erro ao salvar dados: ' + error.message);
+    } finally {
+      isSaving = false;
+    }
   }
   
   // ==================== CARREGAR DADOS ====================
   async function loadData() {
     showLoader(true);
+    let dataLoaded = false;
     
-    // Tentar carregar do IndexedDB
-    let cachedItems = await loadItemsFromCache();
-    if(cachedItems && cachedItems.length > 0) {
-      console.log(`📦 Carregando ${cachedItems.length} itens do cache offline...`);
-      currentItems = cachedItems;
-      await renderCards('');
-      await updateCacheStats();
-    }
-    
-    // Tentar carregar do localStorage como fallback
-    if(currentItems.length === 0) {
-      try {
-        const localData = localStorage.getItem('tendex_guest_cache');
-        if (localData) {
-          currentItems = JSON.parse(localData);
-          if (currentItems.length > 0) {
-            console.log(`📦 Carregando ${currentItems.length} itens do localStorage...`);
-            await renderCards('');
-          }
+    // Tentar carregar do localStorage primeiro (mais rápido)
+    try {
+      const localData = localStorage.getItem('tendex_guest_cache');
+      if (localData) {
+        currentItems = JSON.parse(localData);
+        if (currentItems.length > 0) {
+          console.log(`📦 Carregando ${currentItems.length} itens do localStorage...`);
+          await renderCards('');
+          await updateCacheStats();
+          dataLoaded = true;
         }
-      } catch(e) {}
+      }
+    } catch(e) {
+      console.warn('Erro ao carregar localStorage:', e);
     }
     
-    // Se estiver online, buscar dados atualizados
+    // Tentar carregar do IndexedDB como fallback
+    if(!dataLoaded) {
+      try {
+        let cachedItems = await loadItemsFromCache();
+        if(cachedItems && cachedItems.length > 0) {
+          console.log(`📦 Carregando ${cachedItems.length} itens do IndexedDB...`);
+          currentItems = cachedItems;
+          await renderCards('');
+          await updateCacheStats();
+          dataLoaded = true;
+        }
+      } catch(e) {
+        console.warn('Erro ao carregar IndexedDB:', e);
+      }
+    }
+    
+    // Se estiver online, buscar dados atualizados do servidor
     if(navigator.onLine) {
       try {
         console.log('🌐 Buscando dados do servidor...');
@@ -564,8 +481,9 @@ self.addEventListener('activate', event => {
           files: filesByItem[item.id] || []
         }));
         
-        await saveItemsToCache(newItems);
+        // Atualizar cache
         localStorage.setItem('tendex_guest_cache', JSON.stringify(newItems));
+        await saveItemsToCache(newItems);
         
         currentItems = newItems;
         await renderCards('');
@@ -576,23 +494,24 @@ self.addEventListener('activate', event => {
         document.getElementById('connectionStatus').innerHTML = '🟢 Online';
         document.getElementById('connectionStatus').className = 'connection-status online-badge';
         console.log(`✅ ${currentItems.length} itens salvos no cache offline`);
+        dataLoaded = true;
         
       } catch(e) {
         console.warn('Erro ao buscar dados online:', e);
       }
-    } else if (currentItems.length === 0) {
-      console.log('📡 Modo OFFLINE - sem dados em cache');
-      document.getElementById('connectionStatus').innerHTML = '🔴 Offline (Sem Cache)';
+    }
+    
+    if (!dataLoaded) {
+      document.getElementById('connectionStatus').innerHTML = '🔴 Offline (Sem Dados)';
       document.getElementById('connectionStatus').className = 'connection-status offline-badge';
-      document.getElementById('itemsContainer').innerHTML = '<div class="empty-state">📡 Modo offline. Conecte-se à internet e clique em "Preparar Modo Offline" primeiro.</div>';
-    } else {
-      console.log('📡 Modo OFFLINE - usando cache local');
+      document.getElementById('itemsContainer').innerHTML = '<div class="empty-state">📡 Modo offline. Clique em "💾 Salvar para Offline" quando estiver online.</div>';
+    } else if (!navigator.onLine) {
       document.getElementById('connectionStatus').innerHTML = '🔴 Offline (Cache)';
       document.getElementById('connectionStatus').className = 'connection-status offline-badge';
+      document.getElementById('lastUpdateText').innerHTML = `📅 ${new Date().toLocaleTimeString()} (Offline)`;
     }
     
     showLoader(false);
-    await checkOfflineStatus();
     return currentItems;
   }
   
@@ -718,7 +637,7 @@ self.addEventListener('activate', event => {
           window.open(url, '_blank');
         }
       } else {
-        alert(`❌ Documento não disponível offline.\n\nConecte-se à internet e clique em "Preparar Modo Offline" primeiro.`);
+        alert(`❌ Documento não disponível offline.\n\nConecte-se à internet e clique em "💾 Salvar para Offline" primeiro.`);
       }
     }
   }
@@ -1161,7 +1080,7 @@ self.addEventListener('activate', event => {
   document.getElementById('deselectAllBtn').onclick = deselectAllItems;
   document.getElementById('refreshCacheStatusBtn').onclick = refreshCacheStatus;
   document.getElementById('closeQRGeneralModalBtn').onclick = () => document.getElementById('qrGeneralModal').style.display = 'none';
-  document.getElementById('prepareOfflineBtn').onclick = prepareOfflineMode;
+  document.getElementById('prepareOfflineBtn').onclick = prepararDadosOffline;
   
   let qrGeneralModalElem = document.getElementById('qrGeneralModal');
   if(qrGeneralModalElem) {
@@ -1184,16 +1103,15 @@ self.addEventListener('activate', event => {
     document.getElementById('connectionStatus').className = 'connection-status offline-badge';
   };
   
-  // ==================== INICIALIZAÇÃO RÁPIDA ====================
+  // ==================== INICIALIZAÇÃO ====================
   (async function init() {
     console.log('🚀 Iniciando sistema offline...');
     await initDB();
     await generateGeneralQRCode();
     await loadData();
     checkHash();
-    await checkOfflineStatus();
     console.log('✅ Sistema pronto!');
-    console.log('📦 Clique em "Preparar Modo Offline" para cachear a página');
+    console.log('📦 Clique em "💾 Salvar para Offline" para garantir o cache');
   })();
 })();
 </script>
