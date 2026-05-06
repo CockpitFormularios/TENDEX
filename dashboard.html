@@ -43,7 +43,7 @@
     .modal-header h2 { font-size: 1.3rem; }
     .close-modal { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #64748b; padding: 0 0.5rem; }
     .close-modal:hover { color: #ef4444; }
-    .logout-modal-content { max-width: 500px; text-align: center; }
+    .logout-modal-content { max-width: 600px; text-align: center; }
     .logout-modal-content p { margin: 1rem 0; font-size: 1.1rem; }
     .logout-buttons { display: flex; gap: 1rem; justify-content: center; margin-top: 1rem; }
     .btn-confirm { background: #ef4444; color: white; border: none; padding: 0.5rem 1.5rem; border-radius: 2rem; cursor: pointer; font-weight: 600; }
@@ -132,6 +132,87 @@
     .sync-status { position: fixed; top: 10px; right: 10px; background: rgba(0,0,0,0.7); color: white; padding: 4px 8px; border-radius: 20px; font-size: 10px; z-index: 10; display: none; }
     .sync-pending-badge { background: #f59e0b; color: white; border-radius: 20px; padding: 2px 8px; font-size: 10px; margin-left: 8px; cursor: pointer; }
     .sync-pending-badge:hover { background: #d97706; }
+
+    /* Estilos do Gerenciador de PDF Offline */
+    .cache-manager-section {
+      margin-top: 1rem;
+      border-top: 1px solid #e2e8f0;
+      padding-top: 1rem;
+    }
+    .cache-item-list-modal {
+      max-height: 300px;
+      overflow-y: auto;
+      margin: 0.5rem 0;
+      border: 1px solid #e2e8f0;
+      border-radius: 0.5rem;
+      padding: 0.5rem;
+    }
+    .cache-item-modal {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.5rem;
+      border-bottom: 1px solid #e2e8f0;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+      cursor: pointer;
+    }
+    .cache-item-modal:last-child { border-bottom: none; }
+    .cache-item-modal:hover { background: #f8fafc; }
+    .cache-item-info-modal { flex: 1; min-width: 150px; }
+    .cache-item-name-modal { font-weight: 600; font-size: 0.8rem; }
+    .cache-item-code-modal { font-size: 0.65rem; color: #64748b; }
+    .cache-item-stats-modal {
+      font-size: 0.6rem;
+      padding: 0.2rem 0.4rem;
+      border-radius: 1rem;
+    }
+    .cache-item-stats-modal.complete { background: #d1fae5; color: #065f46; }
+    .cache-item-stats-modal.pending { background: #fee2e2; color: #991b1b; }
+    .selection-info-modal {
+      background: #e0f2fe;
+      padding: 0.3rem;
+      border-radius: 0.5rem;
+      margin-bottom: 0.5rem;
+      font-size: 0.7rem;
+      text-align: center;
+    }
+    .selected-count-modal { font-weight: bold; color: #1e4a76; }
+    .btn-small {
+      padding: 0.2rem 0.5rem;
+      font-size: 0.7rem;
+      border-radius: 1rem;
+      cursor: pointer;
+      border: none;
+    }
+    .btn-small-success { background: #10b981; color: white; }
+    .btn-small-success:hover { background: #059669; }
+    .btn-small-danger { background: #ef4444; color: white; }
+    .btn-small-danger:hover { background: #dc2626; }
+    .btn-small-primary { background: #3b82f6; color: white; }
+    .btn-small-primary:hover { background: #2563eb; }
+    .download-progress-bar {
+      width: 100%;
+      height: 4px;
+      background: #e2e8f0;
+      border-radius: 2px;
+      overflow: hidden;
+      margin: 0.5rem 0;
+    }
+    .download-progress-fill {
+      height: 100%;
+      background: #10b981;
+      width: 0%;
+      transition: width 0.3s;
+    }
+    .download-status-list {
+      max-height: 150px;
+      overflow-y: auto;
+      font-size: 0.65rem;
+      margin-top: 0.5rem;
+    }
+    .status-item-success { color: #065f46; background: #d1fae5; padding: 0.2rem; margin: 0.1rem 0; border-radius: 0.2rem; }
+    .status-item-error { color: #991b1b; background: #fee2e2; padding: 0.2rem; margin: 0.1rem 0; border-radius: 0.2rem; }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
@@ -176,6 +257,36 @@
       <div class="progress-bar" id="syncProgressBar" style="display: none;">
         <div class="progress-fill" id="syncProgressFill"></div>
       </div>
+    </div>
+
+    <!-- ==================== GERENCIADOR DE PDF OFFLINE ==================== -->
+    <div class="user-modal-section cache-manager-section">
+      <h4>📥 Gerenciar PDFs Offline</h4>
+      <div class="selection-info-modal" id="selectionInfoModal">
+        ⚡ <span id="selectedCountModal" class="selected-count-modal">0</span> tenda(s) selecionada(s)
+      </div>
+      
+      <div style="display: flex; gap: 0.5rem; margin-bottom: 0.5rem; flex-wrap: wrap;">
+        <button id="selectAllCacheModal" class="btn-small btn-small-primary">✅ Selecionar Todos</button>
+        <button id="deselectAllCacheModal" class="btn-small" style="background:#64748b; color:white;">❌ Desmarcar Todos</button>
+        <button id="refreshCacheModal" class="btn-small btn-small-primary">🔄 Verificar Cache</button>
+      </div>
+      
+      <div id="cacheItemsModalList" class="cache-item-list-modal">
+        <p style="text-align: center; color: #64748b;">Carregando tendas...</p>
+      </div>
+      
+      <div class="download-progress-bar" id="downloadProgressModal" style="display: none;">
+        <div class="download-progress-fill" id="downloadProgressFillModal"></div>
+      </div>
+      
+      <div id="downloadStatusModal" class="download-status-list"></div>
+      
+      <div style="display: flex; gap: 0.5rem; justify-content: center; margin-top: 0.5rem;">
+        <button id="downloadSelectedModal" class="btn-small btn-small-success">📥 Baixar Selecionados</button>
+        <button id="clearCacheModal" class="btn-small btn-small-danger">🗑️ Limpar PDFs</button>
+      </div>
+      <p class="notice" style="font-size:0.6rem; margin-top:0.5rem;">✨ Selecione as tendas para baixar os PDFs e usar offline.</p>
     </div>
     
     <div class="user-modal-section">
@@ -333,6 +444,7 @@
     const STORE_MODELO_PDF = 'modelo_pdf';
     const STORE_SYNC_LOG = 'sync_log';
     const STORE_SIGNATURE = 'signature_cache';
+    const STORE_PDF_CACHE = 'pdf_cache'; // Nova store para PDFs baixados
 
     let dbInstance = null;
     let cachedModeloPDF = null;
@@ -340,32 +452,33 @@
     let currentItems = [];
     let currentUser = null;
     let cachedSignature = null;
+    let selectedItemsModal = new Set(); // Para o gerenciador de PDFs
 
     const MODELO_PDF_URL = "https://jklcvyuxwxgsfczrfaco.supabase.co/storage/v1/object/public/pdfs/modelo_checklist_com_campos%20(3).pdf";
 
     // ==================== INICIALIZAR INDEXEDDB ====================
     function initOfflineDB() {
       return new Promise((resolve, reject) => {
-        if (dbInstance && dbInstance.version >= 33) {
+        if (dbInstance && dbInstance.version >= 34) {
           resolve(dbInstance);
           return;
         }
-        const request = indexedDB.open(DB_NAME_OFFLINE, 33);
+        const request = indexedDB.open(DB_NAME_OFFLINE, 34);
         request.onerror = (event) => {
           console.error('IndexedDB erro:', event);
           reject(request.error);
         };
         request.onsuccess = (event) => {
           dbInstance = request.result;
-          console.log('IndexedDB aberto com sucesso - versão 33');
+          console.log('IndexedDB aberto com sucesso - versão 34');
           verificarPersistenciaDados();
           resolve(dbInstance);
         };
         request.onupgradeneeded = (event) => {
           const db = event.target.result;
-          console.log('Criando stores versão 33...');
+          console.log('Criando stores versão 34...');
           
-          const storesToRemove = ['items_cache', 'files_cache', 'pending_items', 'pending_inspections', 'modelo_pdf', 'sync_log', 'signature_cache'];
+          const storesToRemove = ['items_cache', 'files_cache', 'pending_items', 'pending_inspections', 'modelo_pdf', 'sync_log', 'signature_cache', 'pdf_cache'];
           for (const store of storesToRemove) {
             if (db.objectStoreNames.contains(store)) {
               db.deleteObjectStore(store);
@@ -379,6 +492,7 @@
           db.createObjectStore(STORE_MODELO_PDF, { keyPath: 'id' });
           db.createObjectStore(STORE_SYNC_LOG, { keyPath: 'id', autoIncrement: true });
           db.createObjectStore(STORE_SIGNATURE, { keyPath: 'id' });
+          db.createObjectStore(STORE_PDF_CACHE, { keyPath: 'id' });
         };
       });
     }
@@ -565,6 +679,228 @@
         };
         request.onerror = () => reject(request.error);
       });
+    }
+
+    // ==================== GERENCIADOR DE PDF OFFLINE ====================
+    async function carregarListaCacheModal() {
+      const container = document.getElementById('cacheItemsModalList');
+      if (!container) return;
+      
+      container.innerHTML = '<div class="loading">Carregando tendas...</div>';
+      
+      try {
+        const items = await getAllItemsWithFiles();
+        const pdfCacheados = await getPdfCacheStatus();
+        
+        let html = '';
+        let selectedCount = 0;
+        
+        for (const item of items) {
+          const temPDF = pdfCacheados[item.id];
+          const statusClass = temPDF ? 'complete' : 'pending';
+          const statusText = temPDF ? '✅ PDF baixado' : '⚠️ Aguardando download';
+          const isSelected = selectedItemsModal.has(item.id);
+          if (isSelected) selectedCount++;
+          
+          html += `
+            <div class="cache-item-modal" data-id="${item.id}">
+              <div class="cache-item-info-modal">
+                <div class="cache-item-name-modal">${escapeHtml(item.name)}</div>
+                <div class="cache-item-code-modal">Código: ${escapeHtml(item.code)}</div>
+              </div>
+              <div class="cache-item-stats-modal ${statusClass}">${statusText}</div>
+              <div>
+                <button class="select-item-cache-modal btn-small" data-id="${item.id}" data-selected="${isSelected}" style="background:${isSelected ? '#ef4444' : '#10b981'}; color:white;">
+                  ${isSelected ? 'Desmarcar' : 'Selecionar'}
+                </button>
+              </div>
+            </div>
+          `;
+        }
+        
+        document.getElementById('selectedCountModal').innerText = selectedCount;
+        container.innerHTML = html;
+        
+        document.querySelectorAll('.select-item-cache-modal').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const id = btn.dataset.id;
+            const isSelected = btn.dataset.selected === 'true';
+            
+            if (isSelected) {
+              selectedItemsModal.delete(id);
+              btn.dataset.selected = 'false';
+              btn.style.background = '#10b981';
+              btn.innerText = 'Selecionar';
+            } else {
+              selectedItemsModal.add(id);
+              btn.dataset.selected = 'true';
+              btn.style.background = '#ef4444';
+              btn.innerText = 'Desmarcar';
+            }
+            
+            document.getElementById('selectedCountModal').innerText = selectedItemsModal.size;
+          });
+        });
+        
+        document.querySelectorAll('.cache-item-modal').forEach(itemDiv => {
+          itemDiv.addEventListener('click', (e) => {
+            if (e.target.tagName === 'BUTTON') return;
+            const btn = itemDiv.querySelector('.select-item-cache-modal');
+            if (btn) btn.click();
+          });
+        });
+        
+      } catch (error) {
+        console.error('Erro ao carregar lista:', error);
+        container.innerHTML = '<div class="error-text">Erro ao carregar tendas</div>';
+      }
+    }
+
+    async function getPdfCacheStatus() {
+      try {
+        const db = await initOfflineDB();
+        const tx = db.transaction(STORE_PDF_CACHE, 'readonly');
+        const store = tx.objectStore(STORE_PDF_CACHE);
+        const all = await new Promise((resolve) => {
+          const req = store.getAll();
+          req.onsuccess = () => resolve(req.result);
+        });
+        const status = {};
+        all.forEach(item => { status[item.id] = true; });
+        return status;
+      } catch(e) {
+        return {};
+      }
+    }
+
+    async function gerarPDFParaCache(item) {
+      if (!window.PDFLib) await carregarPDFLib();
+      const { PDFDocument, StandardFonts } = window.PDFLib;
+      const modelBytes = await carregarModeloPDF();
+      const pdfDoc = await PDFDocument.load(modelBytes);
+      const form = pdfDoc.getForm();
+      
+      const campos = [
+        { nome: "unidade", valor: "SERRA NORTE" },
+        { nome: "localidade", valor: item.name },
+        { nome: "nome", valor: currentUser?.username || "Sistema" },
+        { nome: "matrcula", valor: "SISTEMA" },
+        { nome: "data", valor: new Date().toISOString().split('T')[0] },
+        { nome: "empresa", valor: "TENDEX" }
+      ];
+      
+      for (const c of campos) {
+        try { form.getTextField(c.nome)?.setText(c.valor); } catch(e) {}
+      }
+      
+      for (let i = 1; i <= 25; i++) {
+        try { form.getTextField(`${i}`)?.setText("Conforme"); } catch(e) {}
+      }
+      
+      const pages = pdfDoc.getPages();
+      if (pages.length > 0) {
+        const pagina = pages[0];
+        const { width, height } = pagina.getSize();
+        const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+        const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+        
+        let y = 130;
+        pagina.drawText(`ID / TAG: ${item.code}`, { x: width - 210, y: y, size: 10, font: boldFont });
+        y -= 18;
+        pagina.drawText(`TAMANHO: ${item.tamanho || 'Não informado'}`, { x: width - 210, y: y, size: 10, font: boldFont });
+        y -= 25;
+        pagina.drawLine({ start: { x: width - 220, y: y + 8 }, end: { x: width - 30, y: y + 8 }, thickness: 1 });
+        pagina.drawText("Assinatura do Responsável", { x: width - 220, y: y - 5, size: 8, font: font });
+        
+        if (cachedSignature) {
+          try {
+            let img = await pdfDoc.embedPng(cachedSignature);
+            const scale = Math.min(180 / img.width, 80 / img.height);
+            pagina.drawImage(img, { x: width - (img.width * scale) - 30, y: y - (img.height * scale) - 10, width: img.width * scale, height: img.height * scale });
+          } catch(e) {}
+        }
+      }
+      
+      const pdfBytes = await pdfDoc.save();
+      return new Blob([pdfBytes], { type: 'application/pdf' });
+    }
+
+    async function salvarPDFCache(itemId, blob) {
+      const db = await initOfflineDB();
+      const tx = db.transaction(STORE_PDF_CACHE, 'readwrite');
+      const store = tx.objectStore(STORE_PDF_CACHE);
+      const arrayBuffer = await blob.arrayBuffer();
+      store.put({ id: String(itemId), data: arrayBuffer, timestamp: Date.now() });
+      return new Promise((resolve, reject) => {
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+      });
+    }
+
+    async function baixarPDFsSelecionadosModal() {
+      if (selectedItemsModal.size === 0) {
+        alert('Selecione pelo menos uma tenda para baixar os PDFs.');
+        return;
+      }
+      
+      const progressBar = document.getElementById('downloadProgressModal');
+      const progressFill = document.getElementById('downloadProgressFillModal');
+      const statusList = document.getElementById('downloadStatusModal');
+      
+      progressBar.style.display = 'block';
+      progressFill.style.width = '0%';
+      statusList.innerHTML = '';
+      
+      const items = await getAllItemsWithFiles();
+      const itemsSelecionados = items.filter(i => selectedItemsModal.has(i.id));
+      let concluidos = 0;
+      let erros = 0;
+      
+      for (const item of itemsSelecionados) {
+        try {
+          const pdfBlob = await gerarPDFParaCache(item);
+          await salvarPDFCache(item.id, pdfBlob);
+          
+          const statusDiv = document.createElement('div');
+          statusDiv.className = 'status-item-success';
+          statusDiv.innerHTML = `✅ ${escapeHtml(item.name)} baixado com sucesso!`;
+          statusList.appendChild(statusDiv);
+          concluidos++;
+        } catch (error) {
+          console.error(`Erro ao baixar ${item.name}:`, error);
+          const statusDiv = document.createElement('div');
+          statusDiv.className = 'status-item-error';
+          statusDiv.innerHTML = `❌ Erro ao baixar ${escapeHtml(item.name)}: ${error.message}`;
+          statusList.appendChild(statusDiv);
+          erros++;
+        }
+        
+        const percent = ((concluidos + erros) / itemsSelecionados.length) * 100;
+        progressFill.style.width = `${percent}%`;
+      }
+      
+      setTimeout(() => {
+        progressBar.style.display = 'none';
+        setTimeout(() => { statusList.innerHTML = ''; }, 3000);
+      }, 3000);
+      
+      alert(`✅ Download concluído!\n\nSucesso: ${concluidos}\nFalhas: ${erros}`);
+      
+      await carregarListaCacheModal();
+      await updateUserModalCacheStatus();
+    }
+
+    async function limparPDFsCacheModal() {
+      if (!confirm('⚠️ ATENÇÃO: Isso irá remover TODOS os PDFs baixados para uso offline.\n\nDeseja continuar?')) return;
+      
+      const db = await initOfflineDB();
+      const tx = db.transaction(STORE_PDF_CACHE, 'readwrite');
+      await tx.objectStore(STORE_PDF_CACHE).clear();
+      alert('✅ Cache de PDFs limpo com sucesso!');
+      selectedItemsModal.clear();
+      await carregarListaCacheModal();
+      await updateUserModalCacheStatus();
     }
 
     // ==================== CACHEAR ASSINATURA ====================
@@ -1346,7 +1682,7 @@
       try {
         const db = await initOfflineDB();
         
-        const stores = [STORE_ITEMS, STORE_FILES, STORE_PENDING_ITEMS, STORE_PENDING_INSPECTIONS, STORE_SYNC_LOG, STORE_SIGNATURE];
+        const stores = [STORE_ITEMS, STORE_FILES, STORE_PENDING_ITEMS, STORE_PENDING_INSPECTIONS, STORE_SYNC_LOG, STORE_SIGNATURE, STORE_PDF_CACHE];
         for (const store of stores) {
           const tx = db.transaction(store, 'readwrite');
           await new Promise((resolve, reject) => {
@@ -1365,6 +1701,7 @@
         
         cachedModeloPDF = null;
         cachedSignature = null;
+        selectedItemsModal.clear();
         
         console.log('✅ Cache offline limpo completamente');
         showSyncStatus('✅ Cache limpo! Recarregando...');
@@ -1571,7 +1908,7 @@
       await salvarFilesLocal(filteredFiles);
     }
 
-    // ==================== FUNÇÃO DE ASSINATURA CORRIGIDA ====================
+    // ==================== FUNÇÃO DE ASSINATURA ====================
     async function adicionarInfoItemEAssinatura(pdfDoc, itemCode, itemTamanho) {
       try {
         const pages = pdfDoc.getPages();
@@ -1664,7 +2001,7 @@
       }
     }
 
-    // ==================== GERAR PDF BLOB (CORRIGIDO) ====================
+    // ==================== GERAR PDF BLOB ====================
     async function gerarPDFBlob(formData, itemInfo, fotoFile) {
       if (!window.PDFLib || !window.PDFLib.PDFDocument) {
         console.log('PDF-lib não disponível, tentando carregar...');
@@ -2238,9 +2575,17 @@
     const userModalLogoutBtn = document.getElementById('userModalLogoutBtn');
     const syncPendingBadge = document.getElementById('syncPendingBadge');
 
+    // Eventos do Gerenciador de Cache
+    const selectAllCacheModal = document.getElementById('selectAllCacheModal');
+    const deselectAllCacheModal = document.getElementById('deselectAllCacheModal');
+    const refreshCacheModal = document.getElementById('refreshCacheModal');
+    const downloadSelectedModal = document.getElementById('downloadSelectedModal');
+    const clearCacheModal = document.getElementById('clearCacheModal');
+
     userInfoDisplay.addEventListener('click', async () => {
       await updateUserModalCacheStatus();
       await listarPendentesNoModal();
+      await carregarListaCacheModal();
       userModal.style.display = 'flex';
     });
     
@@ -2277,6 +2622,35 @@
       localStorage.removeItem('tendex_current_user');
       window.location.href = 'index.html';
     });
+
+    // Eventos do Gerenciador de Cache
+    if (selectAllCacheModal) {
+      selectAllCacheModal.addEventListener('click', () => {
+        document.querySelectorAll('.select-item-cache-modal').forEach(btn => {
+          if (btn.dataset.selected === 'false') btn.click();
+        });
+      });
+    }
+    
+    if (deselectAllCacheModal) {
+      deselectAllCacheModal.addEventListener('click', () => {
+        document.querySelectorAll('.select-item-cache-modal').forEach(btn => {
+          if (btn.dataset.selected === 'true') btn.click();
+        });
+      });
+    }
+    
+    if (refreshCacheModal) {
+      refreshCacheModal.addEventListener('click', carregarListaCacheModal);
+    }
+    
+    if (downloadSelectedModal) {
+      downloadSelectedModal.addEventListener('click', baixarPDFsSelecionadosModal);
+    }
+    
+    if (clearCacheModal) {
+      clearCacheModal.addEventListener('click', limparPDFsCacheModal);
+    }
 
     const closeSyncModalBtn = document.getElementById('closeSyncModalBtn');
     const cancelSyncModalBtn = document.getElementById('cancelSyncModalBtn');
