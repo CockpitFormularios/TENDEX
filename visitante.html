@@ -1,55 +1,1050 @@
-// sw-visitante.js - Service Worker específico para o Modo Visitante
-const CACHE_NAME = 'tendex-visitante-v1';
-const urlsToCache = [
-  '/TENDEX/visitante.html',
-  '/TENDEX/'
-];
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>TENDEX | Modo Visitante - Offline</title>
+  <link rel="manifest" href="https://cockpitformularios.github.io/TENDEX/manifest.json">
+  <link rel="icon" type="image/x-icon" href="https://jklcvyuxwxgsfczrfaco.supabase.co/storage/v1/object/public/assinaturas/favicon.ico">
+  <link rel="icon" type="image/png" sizes="192x192" href="https://jklcvyuxwxgsfczrfaco.supabase.co/storage/v1/object/public/assinaturas/icon-180.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="https://jklcvyuxwxgsfczrfaco.supabase.co/storage/v1/object/public/assinaturas/icon-180.png">
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: system-ui, 'Segoe UI', 'Inter', sans-serif; }
+    body { background: #f3f6fc; padding: 2rem 1.5rem; }
+    .dashboard-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem; padding-bottom: 0.75rem; border-bottom: 2px solid #cbd5e1; }
+    .dashboard-header h1 { font-size: 1.8rem; background: linear-gradient(135deg, #0f2b3d, #1e4a76); background-clip: text; -webkit-background-clip: text; color: transparent; }
+    .logo { height: 50px; width: auto; object-fit: contain; }
+    .guest-badge { background: #64748b; color: white; padding: 0.3rem 1rem; border-radius: 2rem; font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem; }
+    .refresh-status { background: #e0f2fe; color: #0369a1; padding: 0.3rem 0.8rem; border-radius: 2rem; font-size: 0.7rem; display: flex; align-items: center; gap: 0.5rem; }
+    .cache-status { background: #10b981; color: white; padding: 0.3rem 0.8rem; border-radius: 2rem; font-size: 0.7rem; display: flex; align-items: center; gap: 0.5rem; cursor: pointer; }
+    .cache-status:hover { background: #059669; }
+    .sw-status { background: #8b5cf6; color: white; padding: 0.3rem 0.8rem; border-radius: 2rem; font-size: 0.7rem; display: flex; align-items: center; gap: 0.3rem; }
+    .sw-active { background: #10b981; }
+    .sw-inactive { background: #ef4444; }
+    .sw-loading { background: #f59e0b; animation: pulse 1s infinite; }
+    @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
+    .search-area { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 1.5rem; background: white; padding: 0.5rem 1rem; border-radius: 2rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .search-icon { font-size: 1.2rem; color: #64748b; }
+    .search-input { flex: 1; border: none; outline: none; font-size: 1rem; padding: 0.4rem 0; background: transparent; }
+    .items-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.2rem; margin-top: 1rem; }
+    .item-card { background: white; border-radius: 1rem; padding: 1rem; cursor: pointer; transition: 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid #e2edff; position: relative; }
+    .item-card:hover { transform: translateY(-2px); box-shadow: 0 8px 16px rgba(0,0,0,0.08); background: #fafcff; }
+    .item-card h3 { font-size: 1.1rem; color: #0f172a; margin-bottom: 0.3rem; }
+    .item-card p { font-size: 0.8rem; color: #5b6e8c; margin: 0.2rem 0; }
+    .status-badge { display: inline-block; padding: 0.2rem 0.5rem; border-radius: 2rem; font-size: 0.7rem; font-weight: 600; margin-top: 0.5rem; }
+    .status-active { background: #d1fae5; color: #065f46; }
+    .status-inactive { background: #fee2e2; color: #991b1b; }
+    .cached-badge { display: inline-block; padding: 0.15rem 0.4rem; border-radius: 2rem; font-size: 0.6rem; font-weight: 600; background: #d1fae5; color: #065f46; margin-left: 0.5rem; }
+    .qr-code-mini { position: absolute; bottom: 12px; right: 12px; width: 45px; height: 45px; cursor: pointer; background: white; border-radius: 8px; padding: 4px; transition: transform 0.2s; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .qr-code-mini:hover { transform: scale(1.05); background: #f1f5f9; }
+    .qr-code-mini canvas { width: 100% !important; height: 100% !important; }
+    .empty-state { text-align: center; color: #6c86a3; margin-top: 3rem; }
+    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; z-index: 1000; }
+    .modal-content { background: white; max-width: 900px; width: 90%; border-radius: 1.5rem; padding: 1.5rem; max-height: 85vh; overflow-y: auto; }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem; }
+    .modal-header h2 { font-size: 1.3rem; }
+    .close-modal { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #64748b; padding: 0 0.5rem; }
+    .close-modal:hover { color: #ef4444; }
+    .item-detail-title { background: #f1f5f9; padding: 0.8rem; border-radius: 1rem; margin-bottom: 1.2rem; }
+    .pdf-group { margin-bottom: 1.2rem; }
+    .pdf-group-title { font-weight: 600; font-size: 0.9rem; border-left: 3px solid #3b82f6; padding-left: 0.6rem; margin-bottom: 0.5rem; }
+    .pdf-row { display: flex; align-items: center; justify-content: space-between; background: #f9fafb; margin-bottom: 0.5rem; padding: 0.4rem 0.8rem; border-radius: 2rem; font-size: 0.75rem; flex-wrap: wrap; gap: 0.5rem; }
+    .pdf-label { font-weight: 600; background: #e2e8f0; padding: 0.2rem 0.6rem; border-radius: 2rem; min-width: 85px; text-align: center; }
+    .pdf-file-info { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .pdf-file-info a { text-decoration: none; color: #1e4a76; }
+    .btn-view-pdf { background: #3b82f6; color: white; border: none; padding: 0.2rem 0.6rem; border-radius: 2rem; font-size: 0.7rem; cursor: pointer; text-decoration: none; display: inline-block; }
+    .btn-view-pdf:hover { background: #2563eb; }
+    .btn-view-offline { background: #10b981; color: white; border: none; padding: 0.2rem 0.6rem; border-radius: 2rem; font-size: 0.7rem; cursor: pointer; margin-left: 0.3rem; display: inline-block; }
+    .btn-view-offline:hover { background: #059669; }
+    .view-only-badge { background: #fef9c3; color: #854d0e; padding: 0.2rem 0.8rem; border-radius: 2rem; font-size: 0.7rem; font-weight: 600; display: inline-block; margin-bottom: 1rem; }
+    .notice-guest { font-size: 0.7rem; color: #5b6e8c; margin-top: 1rem; text-align: center; background: #f8fafc; padding: 0.5rem; border-radius: 1rem; }
+    .connection-status { position: fixed; bottom: 1rem; right: 1rem; background: rgba(0,0,0,0.7); color: white; padding: 0.3rem 0.8rem; border-radius: 2rem; font-size: 0.7rem; z-index: 10; }
+    .online-badge { background: #10b981; }
+    .offline-badge { background: #ef4444; }
+    .qr-modal-content { max-width: 450px; text-align: center; }
+    .qr-large { display: flex; justify-content: center; margin: 1rem 0; }
+    .qr-large canvas { width: 250px !important; height: 250px !important; }
+    .qr-actions { display: flex; gap: 1rem; justify-content: center; margin-top: 1rem; flex-wrap: wrap; }
+    .btn-secondary { background: #64748b; color: white; border: none; padding: 0.5rem 1rem; border-radius: 2rem; cursor: pointer; font-weight: 600; }
+    .btn-secondary:hover { background: #475569; }
+    .btn-primary { background: #1e4a76; color: white; border: none; padding: 0.5rem 1rem; border-radius: 2rem; cursor: pointer; font-weight: 600; }
+    .btn-primary:hover { background: #0f2b3d; }
+    .btn-success { background: #10b981; color: white; border: none; padding: 0.5rem 1rem; border-radius: 2rem; cursor: pointer; font-weight: 600; }
+    .btn-success:hover { background: #059669; }
+    .btn-refresh { background: #f59e0b; color: white; border: none; padding: 0.3rem 0.8rem; border-radius: 2rem; cursor: pointer; font-weight: 600; font-size: 0.7rem; }
+    .btn-refresh:hover { background: #d97706; }
+    .general-qr-section { background: linear-gradient(135deg, #e0f2fe, #f1f5f9); border-radius: 1rem; padding: 1rem; margin-bottom: 1.5rem; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; }
+    .general-qr-left { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+    .general-qr-code { width: 100px; height: 100px; cursor: pointer; background: white; border-radius: 12px; padding: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; }
+    .general-qr-code canvas { width: 100% !important; height: 100% !important; }
+    .general-qr-code:hover { transform: scale(1.02); }
+    .general-qr-info h4 { margin-bottom: 0.2rem; color: #0f172a; font-size: 1rem; }
+    .general-qr-info p { font-size: 0.75rem; color: #475569; }
+    .progress-bar { width: 100%; height: 6px; background: #e2e8f0; border-radius: 3px; overflow: hidden; margin: 0.5rem 0; }
+    .progress-fill { height: 100%; background: #10b981; width: 0%; transition: width 0.3s; }
+    .downloading-toast { position: fixed; bottom: 70px; right: 20px; background: #1e4a76; color: white; padding: 0.4rem 0.8rem; border-radius: 2rem; font-size: 0.65rem; z-index: 100; display: none; align-items: center; gap: 0.5rem; }
+    .select-all-btn { background: #3b82f6; color: white; border: none; padding: 0.3rem 0.8rem; border-radius: 2rem; font-size: 0.7rem; cursor: pointer; }
+    .select-all-btn:hover { background: #2563eb; }
+    .cache-item-list { max-height: 400px; overflow-y: auto; margin: 1rem 0; border: 1px solid #e2e8f0; border-radius: 1rem; padding: 0.5rem; }
+    .cache-item { display: flex; align-items: center; justify-content: space-between; padding: 0.5rem; border-bottom: 1px solid #e2e8f0; gap: 0.5rem; flex-wrap: wrap; cursor: pointer; }
+    .cache-item:last-child { border-bottom: none; }
+    .cache-item:hover { background: #f8fafc; }
+    .cache-item-info { flex: 1; min-width: 150px; }
+    .cache-item-name { font-weight: 600; font-size: 0.85rem; }
+    .cache-item-code { font-size: 0.7rem; color: #64748b; }
+    .cache-item-stats { font-size: 0.65rem; padding: 0.2rem 0.4rem; border-radius: 1rem; }
+    .cache-item-stats.complete { background: #d1fae5; color: #065f46; }
+    .cache-item-stats.partial { background: #fef3c7; color: #92400e; }
+    .cache-item-stats.pending { background: #fee2e2; color: #991b1b; }
+    .selection-info { background: #e0f2fe; padding: 0.5rem; border-radius: 0.5rem; margin-bottom: 1rem; font-size: 0.75rem; text-align: center; }
+    .selected-count { font-weight: bold; color: #1e4a76; font-size: 1.1rem; }
+    @media print {
+      body * { visibility: hidden; }
+      .print-sheet, .print-sheet * { visibility: visible; }
+      .print-sheet { position: absolute; top: 0; left: 0; width: 100%; margin: 0; padding: 15mm; background: white; }
+    }
+    .print-sheet { display: none; background: white; width: 210mm; min-height: 297mm; margin: 0 auto; padding: 15mm; position: fixed; top: 0; left: 0; z-index: 9999; }
+    .print-sheet h2 { text-align: center; color: #1e4a76; margin-bottom: 10mm; font-size: 18pt; }
+    .qr-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10mm; margin-top: 5mm; }
+    .qr-item { text-align: center; border: 1px dashed #ccc; padding: 5mm; border-radius: 8px; }
+    .qr-item canvas { width: 85px !important; height: 85px !important; margin: 0 auto; }
+    .qr-item .qr-title { font-weight: bold; font-size: 11pt; margin-top: 3mm; color: #1e4a76; }
+    .qr-item .qr-sub { font-size: 9pt; color: #555; margin-top: 2mm; }
+    .footer-print { text-align: center; font-size: 9pt; color: #888; margin-top: 10mm; padding-top: 5mm; border-top: 1px solid #eee; }
+    @media (max-width: 640px) { body { padding: 1rem; } .dashboard-header h1 { font-size: 1.2rem; } .items-grid { grid-template-columns: 1fr; } .general-qr-code { width: 80px; height: 80px; } }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
 
-self.addEventListener('install', event => {
-  console.log('[SW Visitante] Instalando...');
-  event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => {
-      console.log('[SW Visitante] Cacheando arquivos');
-      return cache.addAll(urlsToCache);
-    }).catch(err => console.error('[SW Visitante] Erro ao cachear:', err))
-  );
-  self.skipWaiting();
-});
+<div class="dashboard-header">
+  <div class="header-left" style="display: flex; align-items: center; gap: 1rem;">
+    <img src="https://jklcvyuxwxgsfczrfaco.supabase.co/storage/v1/object/public/assinaturas/Tenda_logo2.png" alt="Logo" class="logo">
+    <h1>Visitante - Modo Offline</h1>
+  </div>
+  <div style="display: flex; align-items: center; gap: 0.5rem;">
+    <div class="sw-status sw-loading" id="swStatus">⚙️ Ativando...</div>
+    <div class="cache-status" id="cacheStatusBtn"><span>📄</span><span id="cacheStats">Carregando...</span></div>
+    <div class="refresh-status"><span>🔄</span><span id="lastUpdateText">Verificando...</span></div>
+    <button class="btn-refresh" id="manualRefreshBtn">🔄</button>
+    <div class="guest-badge">👁️ Visitante</div>
+  </div>
+</div>
 
-self.addEventListener('activate', event => {
-  console.log('[SW Visitante] Ativando...');
-  event.waitUntil(
-    caches.keys().then(cacheNames => {
-      return Promise.all(
-        cacheNames.map(cacheName => {
-          if (cacheName !== CACHE_NAME && cacheName.startsWith('tendex-visitante')) {
-            console.log('[SW Visitante] Removendo cache antigo:', cacheName);
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    })
-  );
-  self.clients.claim();
-});
+<div class="downloading-toast" id="downloadingToast"><span>📥</span><span id="toastText">Baixando...</span></div>
 
-self.addEventListener('fetch', event => {
-  if (event.request.url.includes('supabase.co') || 
-      event.request.url.includes('google.com') ||
-      event.request.url.includes('cdn.jsdelivr.net') ||
-      event.request.url.includes('qrcode')) {
-    return;
+<div class="general-qr-section">
+  <div class="general-qr-left">
+    <div id="generalQRCode" class="general-qr-code clickable"></div>
+    <div class="general-qr-info">
+      <h4>📱 QR Code de Acesso</h4>
+      <p>Escaneie para acessar a lista de tendas</p>
+    </div>
+  </div>
+</div>
+
+<div class="search-area">
+  <span class="search-icon">🔍</span>
+  <input type="text" id="searchInput" class="search-input" placeholder="Filtrar por nome ou TAG...">
+</div>
+
+<div id="itemsContainer" class="items-grid">
+  <div class="empty-state">🔄 Carregando dados...</div>
+</div>
+
+<!-- Modais -->
+<div id="detailModal" class="modal"><div class="modal-content"><div class="modal-header"><h2>📄 Detalhes</h2><button class="close-modal" id="closeDetailModalBtn">&times;</button></div><div id="detailContent"></div><div class="notice-guest">🔒 Modo leitura | Clique em 💾 Offline para ver documentos sem internet</div></div></div>
+
+<div id="cacheModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>💾 Gerenciar PDFs Offline</h2>
+      <button class="close-modal" id="closeCacheModalBtn">&times;</button>
+    </div>
+    <div class="selection-info" id="selectionInfo">
+      ⚡ <span id="selectedCountText" class="selected-count">0</span> tenda(s) selecionada(s)
+    </div>
+    <div id="selectionActions" style="display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap;">
+      <button id="selectAllBtn" class="select-all-btn">✅ Selecionar Todos</button>
+      <button id="deselectAllBtn" class="select-all-btn" style="background:#64748b;">❌ Desmarcar Todos</button>
+      <button id="refreshCacheStatusBtn" class="select-all-btn" style="background:#10b981;">🔄 Verificar Cache</button>
+    </div>
+    <div id="cacheItemsList" class="cache-item-list"></div>
+    <div class="progress-bar"><div class="progress-fill" id="cacheProgressFill"></div></div>
+    <div id="cacheStatusList" style="margin: 0.5rem 0;"></div>
+    <div class="qr-actions">
+      <button id="downloadSelectedBtn" class="btn-success">📥 Baixar/Atualizar PDFs</button>
+      <button id="clearCacheBtn" class="btn-secondary" style="background:#ef4444;">🗑️ Limpar PDFs</button>
+    </div>
+    <p class="notice-guest">✨ Selecione as tendas e baixe os PDFs. Arquivos existentes serão atualizados!</p>
+  </div>
+</div>
+
+<div id="qrModal" class="modal"><div class="modal-content qr-modal-content"><div class="modal-header"><h2>📱 QR Code</h2><button class="close-modal" id="closeQRModalBtn">&times;</button></div><div id="qrLargeContainer" class="qr-large"></div><div id="qrItemInfo" class="item-link-info"></div><div class="qr-actions"><button id="downloadQRBtn" class="btn-primary">💾 Baixar</button><button id="printQRBtn" class="btn-secondary">🖨️ Imprimir</button></div></div></div>
+
+<div id="qrGeneralModal" class="modal"><div class="modal-content qr-modal-content"><div class="modal-header"><h2>📱 QR Code Geral</h2><button class="close-modal" id="closeQRGeneralModalBtn">&times;</button></div><div id="qrGeneralLargeContainer" class="qr-large"></div><div class="qr-actions"><button id="downloadGeneralQRModalBtn" class="btn-primary">💾 Baixar</button><button id="printMultipleQRFromModalBtn" class="btn-primary" style="background:#f59e0b;">🖨️ Imprimir 12 QR</button></div></div></div>
+
+<div id="printQRSheet" class="print-sheet"></div>
+<div id="fullscreenLoader" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); align-items:center; justify-content:center; z-index:9999;"><div style="width:50px; height:50px; border:5px solid rgba(255,255,255,0.3); border-top-color:#3b82f6; border-radius:50%; animation:spin 1s linear infinite;"></div><div style="color:white; margin-top:1rem;">Processando...</div></div>
+<div id="connectionStatus" class="connection-status online-badge">🟢 Online</div>
+
+<style>@keyframes spin{to{transform:rotate(360deg)}}</style>
+
+<script>
+(function() {
+  const SUPABASE_URL = "https://jklcvyuxwxgsfczrfaco.supabase.co";
+  const SUPABASE_ANON_KEY = "sb_publishable_oCE8y5qaLovVj0BU-rANHA__Zmy3XVl";
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  
+  let currentItems = [];
+  let db = null;
+  let selectedItemsIds = new Set();
+  let swRegistered = false;
+  
+  const DB_NAME = 'TendexVisitanteCache';
+  const DB_VERSION = 1;
+  const STORE_PDFS = 'pdf_files';
+  const STORE_ITEMS = 'items_cache';
+  
+  const monthNames = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
+  const monthKeys = ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
+  const BASE_URL = window.location.origin + window.location.pathname;
+  const SW_URL = '/TENDEX/sw-visitante.js';
+  
+  function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;'); }
+  function showLoader(show) { document.getElementById('fullscreenLoader').style.display = show ? 'flex' : 'none'; }
+  function showToast(text, duration=1500) { 
+    let t = document.getElementById('downloadingToast'); 
+    document.getElementById('toastText').textContent = text; 
+    t.style.display = 'flex'; 
+    setTimeout(() => { t.style.display = 'none'; }, duration); 
   }
   
-  event.respondWith(
-    caches.match(event.request).then(response => {
-      if (response) {
-        console.log('[SW Visitante] Cache HIT:', event.request.url);
-        return response;
+  function getPDFId(url) {
+    try {
+      let parts = url.split('/');
+      let fileName = parts[parts.length - 1];
+      fileName = fileName.split('?')[0].replace(/\.pdf$/i, '');
+      return fileName.replace(/[^a-zA-Z0-9_-]/g, '_').substring(0, 100);
+    } catch(e) {
+      return Date.now().toString();
+    }
+  }
+  
+  // ==================== SERVICE WORKER (ATIVAÇÃO AUTOMÁTICA) ====================
+  async function registerServiceWorker() {
+    if (!('serviceWorker' in navigator)) {
+      console.log('[SW] Service Worker não suportado');
+      document.getElementById('swStatus').innerHTML = '⚠️ Não suportado';
+      document.getElementById('swStatus').className = 'sw-status sw-inactive';
+      return false;
+    }
+    
+    try {
+      // Desregistrar Service Workers antigos (do dashboard)
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      for (const registration of registrations) {
+        if (registration.active && registration.active.scriptURL.includes('sw.js')) {
+          console.log('[SW] Desregistrando SW antigo do dashboard');
+          await registration.unregister();
+        }
       }
-      return fetch(event.request);
-    }).catch(() => {
-      return caches.match('/TENDEX/visitante.html');
-    })
-  );
-});
+      
+      // Registrar o novo Service Worker do visitante
+      const registration = await navigator.serviceWorker.register(SW_URL);
+      console.log('[SW] Service Worker do visitante registrado:', registration);
+      
+      // Aguardar o SW ficar ativo
+      if (registration.installing) {
+        await new Promise((resolve) => {
+          registration.installing.addEventListener('statechange', (e) => {
+            if (e.target.state === 'activated') resolve();
+          });
+        });
+      }
+      
+      // Atualizar status visual
+      document.getElementById('swStatus').innerHTML = '✅ SW: Ativo';
+      document.getElementById('swStatus').className = 'sw-status sw-active';
+      swRegistered = true;
+      return true;
+      
+    } catch (error) {
+      console.error('[SW] Erro ao registrar:', error);
+      document.getElementById('swStatus').innerHTML = '❌ SW: Erro';
+      document.getElementById('swStatus').className = 'sw-status sw-inactive';
+      return false;
+    }
+  }
+  
+  // ==================== SALVAR CACHE DO VISITANTE AUTOMATICAMENTE ====================
+  async function salvarCacheVisitante() {
+    if (!navigator.onLine) return;
+    if (!currentItems.length) return;
+    
+    try {
+      console.log('📦 Salvando cache do visitante automaticamente...');
+      
+      // Salvar no localStorage
+      localStorage.setItem('tendex_visitante_cache', JSON.stringify(currentItems));
+      localStorage.setItem('tendex_visitante_date', new Date().toISOString());
+      
+      // Salvar no IndexedDB
+      if (db) {
+        await saveItemsToCache(currentItems);
+      }
+      
+      console.log(`✅ Cache do visitante salvo: ${currentItems.length} itens`);
+      
+    } catch (error) {
+      console.warn('Erro ao salvar cache automático:', error);
+    }
+  }
+  
+  // ==================== INDEXEDDB ====================
+  function initDB() {
+    return new Promise((resolve, reject) => {
+      if(db) { resolve(db); return; }
+      let req = indexedDB.open(DB_NAME, DB_VERSION);
+      req.onerror = () => reject(req.error);
+      req.onsuccess = () => { 
+        db = req.result;
+        console.log('✅ DB Visitante aberto');
+        resolve(db);
+      };
+      req.onupgradeneeded = (e) => {
+        let dbEvent = e.target.result;
+        if(!dbEvent.objectStoreNames.contains(STORE_PDFS)) {
+          let store = dbEvent.createObjectStore(STORE_PDFS, { keyPath: 'id' });
+          store.createIndex('by_itemId', 'itemId', { unique: false });
+          console.log('📦 Store PDFs criada');
+        }
+        if(!dbEvent.objectStoreNames.contains(STORE_ITEMS)) {
+          dbEvent.createObjectStore(STORE_ITEMS, { keyPath: 'id' });
+          console.log('📦 Store Items criada');
+        }
+      };
+    });
+  }
+  
+  async function saveItemsToCache(items) {
+    await initDB();
+    return new Promise((resolve) => {
+      const tx = db.transaction(STORE_ITEMS, 'readwrite');
+      const store = tx.objectStore(STORE_ITEMS);
+      for(let item of items) {
+        store.put({ id: String(item.id), data: item, timestamp: Date.now() });
+      }
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => resolve();
+    });
+  }
+  
+  async function loadItemsFromCache() {
+    await initDB();
+    return new Promise((resolve) => {
+      try {
+        const tx = db.transaction(STORE_ITEMS, 'readonly');
+        const store = tx.objectStore(STORE_ITEMS);
+        const req = store.getAll();
+        req.onsuccess = () => {
+          const items = (req.result || []).map(r => r.data);
+          console.log(`📦 Itens IndexedDB: ${items.length}`);
+          resolve(items);
+        };
+        req.onerror = () => resolve([]);
+      } catch(e) {
+        resolve([]);
+      }
+    });
+  }
+  
+  async function savePDFToCache(itemId, url, blob, fileName) {
+    await initDB();
+    let pdfId = getPDFId(url);
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_PDFS, 'readwrite');
+      const store = tx.objectStore(STORE_PDFS);
+      const record = { 
+        id: pdfId, 
+        itemId: String(itemId), 
+        url: url, 
+        blob: blob, 
+        fileName: fileName,
+        timestamp: Date.now(), 
+        size: blob.size 
+      };
+      const req = store.put(record);
+      req.onsuccess = () => {
+        console.log(`✅ PDF salvo: ${fileName}`);
+        resolve();
+      };
+      req.onerror = () => reject(req.error);
+    });
+  }
+  
+  async function isPDFCached(url) {
+    await initDB();
+    let pdfId = getPDFId(url);
+    return new Promise((resolve) => {
+      const tx = db.transaction(STORE_PDFS, 'readonly');
+      const store = tx.objectStore(STORE_PDFS);
+      const req = store.get(pdfId);
+      req.onsuccess = () => resolve(!!req.result);
+      req.onerror = () => resolve(false);
+    });
+  }
+  
+  async function getPDFFromCache(url) {
+    await initDB();
+    let pdfId = getPDFId(url);
+    return new Promise((resolve) => {
+      const tx = db.transaction(STORE_PDFS, 'readonly');
+      const store = tx.objectStore(STORE_PDFS);
+      const req = store.get(pdfId);
+      req.onsuccess = () => resolve(req.result ? req.result.blob : null);
+      req.onerror = () => resolve(null);
+    });
+  }
+  
+  async function getAllCachedPDFs() {
+    await initDB();
+    return new Promise((resolve) => {
+      const tx = db.transaction(STORE_PDFS, 'readonly');
+      const store = tx.objectStore(STORE_PDFS);
+      const req = store.getAll();
+      req.onsuccess = () => resolve(req.result || []);
+      req.onerror = () => resolve([]);
+    });
+  }
+  
+  async function clearPDFsCache() {
+    await initDB();
+    selectedItemsIds.clear();
+    return new Promise((resolve) => {
+      const tx = db.transaction(STORE_PDFS, 'readwrite');
+      tx.objectStore(STORE_PDFS).clear();
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => resolve();
+    });
+  }
+  
+  async function updateCacheStats() {
+    let cached = await getAllCachedPDFs();
+    let totalSize = cached.reduce((s,i)=> s + (i.size||0), 0);
+    let sizeMB = (totalSize / (1024*1024)).toFixed(1);
+    document.getElementById('cacheStats').innerHTML = `📁 ${cached.length} | ${sizeMB}MB`;
+    return cached.length;
+  }
+  
+  // ==================== CARREGAR DADOS ====================
+  async function loadData() {
+    showLoader(true);
+    let dataLoaded = false;
+    
+    // Tentar carregar do localStorage primeiro
+    try {
+      const localData = localStorage.getItem('tendex_visitante_cache');
+      if (localData) {
+        currentItems = JSON.parse(localData);
+        if (currentItems.length > 0) {
+          console.log(`📦 Carregando ${currentItems.length} itens do localStorage...`);
+          await renderCards('');
+          await updateCacheStats();
+          dataLoaded = true;
+        }
+      }
+    } catch(e) {
+      console.warn('Erro ao carregar localStorage:', e);
+    }
+    
+    // Tentar carregar do IndexedDB
+    if(!dataLoaded) {
+      let cachedItems = await loadItemsFromCache();
+      if(cachedItems && cachedItems.length > 0) {
+        console.log(`📦 Carregando ${cachedItems.length} itens do IndexedDB...`);
+        currentItems = cachedItems;
+        await renderCards('');
+        await updateCacheStats();
+        dataLoaded = true;
+      }
+    }
+    
+    // Se estiver online, buscar dados do servidor
+    if(navigator.onLine) {
+      try {
+        console.log('🌐 Buscando dados do servidor...');
+        let { data: itemsData } = await supabase.from('items').select('*').order('name');
+        let { data: filesData } = await supabase.from('files').select('*');
+        
+        let filesByItem = {};
+        if(filesData) {
+          filesData.forEach(f => { 
+            if(!filesByItem[f.item_id]) filesByItem[f.item_id] = []; 
+            filesByItem[f.item_id].push(f); 
+          });
+        }
+        
+        let newItems = (itemsData || []).map(item => ({
+          id: String(item.id), 
+          name: item.name || 'Sem nome', 
+          sub_localizacao: item.sub_localizacao || '',
+          tamanho: item.tamanho || '', 
+          code: item.code || 'SEM-CODIGO', 
+          status: item.status || 'active',
+          files: filesByItem[item.id] || []
+        }));
+        
+        localStorage.setItem('tendex_visitante_cache', JSON.stringify(newItems));
+        await saveItemsToCache(newItems);
+        
+        currentItems = newItems;
+        await renderCards('');
+        await updateCacheStats();
+        
+        let now = new Date();
+        document.getElementById('lastUpdateText').innerHTML = `📅 ${now.toLocaleTimeString()}`;
+        console.log(`✅ ${currentItems.length} itens salvos`);
+        dataLoaded = true;
+        
+      } catch(e) {
+        console.warn('Erro ao buscar online:', e);
+      }
+    }
+    
+    if (!dataLoaded) {
+      document.getElementById('itemsContainer').innerHTML = '<div class="empty-state">📡 Conecte-se à internet para carregar os dados pela primeira vez.</div>';
+    }
+    
+    showLoader(false);
+    return currentItems;
+  }
+  
+  // ==================== BAIXAR PDFs ====================
+  let isDownloading = false;
+  
+  async function downloadSelectedItems() {
+    if(!navigator.onLine) { 
+      alert('❌ Conecte-se à internet para baixar os PDFs.');
+      return;
+    }
+    
+    if(selectedItemsIds.size === 0) { 
+      alert('⚠️ Selecione pelo menos uma tenda.');
+      return;
+    }
+    
+    if(isDownloading) { 
+      alert('⏳ Download em andamento...');
+      return;
+    }
+    
+    isDownloading = true;
+    showLoader(true);
+    
+    let selectedIdsArray = Array.from(selectedItemsIds).map(id => String(id));
+    let itemsToDownload = currentItems.filter(item => selectedIdsArray.includes(String(item.id)));
+    
+    let pdfsToDownload = [];
+    
+    for(let item of itemsToDownload) {
+      for(let file of item.files) {
+        if(file.file_url && (file.category === 'memorial' || monthKeys.includes(file.category))) {
+          let isCached = await isPDFCached(file.file_url);
+          if(!isCached) {
+            pdfsToDownload.push({ 
+              url: file.file_url, 
+              itemId: item.id, 
+              fileName: file.file_name
+            });
+          }
+        }
+      }
+    }
+    
+    if(pdfsToDownload.length === 0) {
+      alert(`✅ Todos os PDFs já estão em cache!`);
+      showLoader(false);
+      isDownloading = false;
+      return;
+    }
+    
+    let progressFill = document.getElementById('cacheProgressFill');
+    let downloaded = 0;
+    let errors = 0;
+    
+    for(let i=0; i<pdfsToDownload.length; i++) {
+      let pdf = pdfsToDownload[i];
+      let progress = ((i+1)/pdfsToDownload.length)*100;
+      if(progressFill) progressFill.style.width = `${progress}%`;
+      
+      showToast(`📥 ${pdf.fileName.substring(0, 35)}...`, 800);
+      
+      try {
+        let response = await fetch(pdf.url);
+        if(response.ok) {
+          let blob = await response.blob();
+          await savePDFToCache(pdf.itemId, pdf.url, blob, pdf.fileName);
+          downloaded++;
+        } else {
+          errors++;
+        }
+      } catch(e) {
+        errors++;
+      }
+    }
+    
+    await updateCacheStats();
+    showLoader(false);
+    alert(`✅ Baixados: ${downloaded}\n❌ Erros: ${errors}`);
+    
+    isDownloading = false;
+    if(document.getElementById('cacheModal').style.display === 'flex') {
+      await loadCacheItemsList();
+    }
+  }
+  
+  // ==================== VISUALIZAR PDF OFFLINE ====================
+  async function viewPDFOffline(url, fileName, itemId) {
+    let blob = await getPDFFromCache(url);
+    
+    if(blob) {
+      let blobUrl = URL.createObjectURL(blob);
+      window.open(blobUrl, '_blank');
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 30000);
+    } else if(navigator.onLine) {
+      if(confirm(`📄 "${fileName}" não está offline. Baixar agora?`)) {
+        showLoader(true);
+        let response = await fetch(url);
+        if(response.ok) {
+          let blob = await response.blob();
+          await savePDFToCache(itemId, url, blob, fileName);
+          let blobUrl = URL.createObjectURL(blob);
+          window.open(blobUrl, '_blank');
+          await updateCacheStats();
+        }
+        showLoader(false);
+      } else {
+        window.open(url, '_blank');
+      }
+    } else {
+      alert(`❌ Documento não disponível offline. Conecte-se à internet para baixar.`);
+    }
+  }
+  
+  window.viewPDFOffline = viewPDFOffline;
+  
+  // ==================== CARREGAR LISTA DO MODAL ====================
+  async function loadCacheItemsList() {
+    let listContainer = document.getElementById('cacheItemsList');
+    let cached = await getAllCachedPDFs();
+    let cachedUrls = new Set(cached.map(pdf => pdf.url));
+    
+    let itemsHtml = '';
+    for(let item of currentItems) {
+      let totalFiles = 0;
+      let cachedCount = 0;
+      
+      for(let file of item.files) {
+        if(file.file_url && (file.category === 'memorial' || monthKeys.includes(file.category))) {
+          totalFiles++;
+          if(cachedUrls.has(file.file_url)) cachedCount++;
+        }
+      }
+      
+      let isSelected = selectedItemsIds.has(String(item.id));
+      let statusText = totalFiles === 0 ? '📭 Sem PDFs' :
+                       cachedCount === totalFiles ? `✓ Completo (${cachedCount}/${totalFiles})` :
+                       cachedCount > 0 ? `⚠️ Parcial (${cachedCount}/${totalFiles})` :
+                       `⬜ Pendente (0/${totalFiles})`;
+      
+      itemsHtml += `<div class="cache-item" data-id="${item.id}" onclick="toggleSelectItem('${item.id}')">
+        <input type="checkbox" class="item-checkbox" data-id="${item.id}" ${isSelected ? 'checked' : ''} onclick="event.stopPropagation()">
+        <div class="cache-item-info">
+          <div class="cache-item-name">${escapeHtml(item.name)}</div>
+          <div class="cache-item-code">${escapeHtml(item.code)}</div>
+        </div>
+        <div class="cache-item-stats ${cachedCount === totalFiles && totalFiles > 0 ? 'complete' : (cachedCount > 0 ? 'partial' : 'pending')}">${statusText}</div>
+      </div>`;
+    }
+    
+    listContainer.innerHTML = itemsHtml;
+    
+    document.querySelectorAll('.item-checkbox').forEach(cb => {
+      cb.addEventListener('change', (e) => {
+        e.stopPropagation();
+        let id = cb.dataset.id;
+        if(cb.checked) selectedItemsIds.add(String(id));
+        else selectedItemsIds.delete(String(id));
+        updateSelectionInfo();
+      });
+    });
+    
+    updateSelectionInfo();
+    let totalSize = cached.reduce((s,i)=> s + (i.size||0), 0);
+    document.getElementById('cacheStatusList').innerHTML = `<p><strong>📊 PDFs:</strong> ${cached.length} | ${(totalSize/(1024*1024)).toFixed(1)} MB</p>`;
+  }
+  
+  window.toggleSelectItem = function(itemId) {
+    let cb = document.querySelector(`.item-checkbox[data-id="${itemId}"]`);
+    if(cb) {
+      cb.checked = !cb.checked;
+      if(cb.checked) selectedItemsIds.add(String(itemId));
+      else selectedItemsIds.delete(String(itemId));
+      updateSelectionInfo();
+    }
+  };
+  
+  function updateSelectionInfo() {
+    document.getElementById('selectedCountText').textContent = selectedItemsIds.size;
+  }
+  
+  // ==================== QR CODE ====================
+  async function generateQRCodeCanvas(text, size=250) {
+    try {
+      let canvas = document.createElement('canvas');
+      await QRCode.toCanvas(canvas, text, { width: size, margin: 2, errorCorrectionLevel: 'H' });
+      return canvas;
+    } catch(e) { return null; }
+  }
+  
+  async function generateQRCode(element, text, size=200) {
+    if(!element) return;
+    element.innerHTML = '';
+    let canvas = await generateQRCodeCanvas(text, size);
+    if(canvas) element.appendChild(canvas);
+    else element.innerHTML = '<div style="color:red;">Erro</div>';
+    return canvas;
+  }
+  
+  async function printMultipleQRCodes() {
+    showLoader(true);
+    try {
+      let printSheet = document.getElementById('printQRSheet');
+      printSheet.innerHTML = `<h2>📱 TENDEX</h2><div id="qrGridContainer" class="qr-grid"></div><div class="footer-print">TENDEX - Inspeção de Tendas</div>`;
+      let container = document.getElementById('qrGridContainer');
+      for(let i=0;i<12;i++) {
+        let canvas = await generateQRCodeCanvas(BASE_URL, 90);
+        if(canvas) {
+          let div = document.createElement('div'); div.className = 'qr-item';
+          let cdiv = document.createElement('div'); cdiv.appendChild(canvas);
+          let title = document.createElement('div'); title.className = 'qr-title'; title.textContent = 'TENDEX';
+          let sub = document.createElement('div'); sub.className = 'qr-sub'; sub.textContent = 'Acesse as inspeções';
+          div.appendChild(cdiv); div.appendChild(title); div.appendChild(sub);
+          container.appendChild(div);
+        }
+      }
+      printSheet.style.display = 'block';
+      showLoader(false);
+      setTimeout(() => { window.print(); setTimeout(() => { printSheet.style.display = 'none'; }, 500); }, 200);
+    } catch(e) { showLoader(false); alert('Erro'); }
+  }
+  
+  async function generateGeneralQRCode() {
+    let div = document.getElementById('generalQRCode');
+    if(div) await generateQRCode(div, BASE_URL, 100);
+  }
+  
+  async function openGeneralQRModal() {
+    let container = document.getElementById('qrGeneralLargeContainer');
+    container.innerHTML = '';
+    await generateQRCode(container, BASE_URL, 280);
+    document.getElementById('qrGeneralModal').style.display = 'flex';
+  }
+  
+  function downloadGeneralQR() {
+    let canvas = document.querySelector('#qrGeneralLargeContainer canvas');
+    if(canvas) { 
+      let a = document.createElement('a'); 
+      a.download = 'qrcode_tendex.png'; 
+      a.href = canvas.toDataURL(); 
+      a.click(); 
+    }
+  }
+  
+  // ==================== RENDER ====================
+  async function generateMiniQR(card, id) {
+    let div = card.querySelector('.qr-code-mini');
+    if(div && !div.hasAttribute('data-generated')) {
+      div.setAttribute('data-generated', 'true');
+      await generateQRCode(div, getItemUrl(id), 45);
+    }
+  }
+  
+  function getItemUrl(id) { return `${BASE_URL}#item=${id}`; }
+  
+  function formatarData(dataString) { 
+    if(!dataString) return ''; 
+    let p = dataString.split('-'); 
+    if(p.length === 3) return `${p[2]}/${p[1]}/${p[0]}`; 
+    return dataString; 
+  }
+  
+  async function renderCards(filter = "") {
+    let container = document.getElementById('itemsContainer');
+    let lower = filter.toLowerCase();
+    let filtered = currentItems.filter(i => 
+      i.name.toLowerCase().includes(lower) || i.code.toLowerCase().includes(lower)
+    );
+    
+    if(filtered.length === 0) { 
+      container.innerHTML = '<div class="empty-state">📭 Nenhuma tenda</div>'; 
+      return; 
+    }
+    
+    const mesAtualKey = monthKeys[new Date().getMonth()];
+    const mesAtualNome = monthNames[new Date().getMonth()];
+    
+    container.innerHTML = filtered.map(i => {
+      const arquivoMesAtual = i.files.find(f => f.category === mesAtualKey);
+      let inspecaoMsg = arquivoMesAtual ? 
+        `<p style="color:#10b981;font-size:0.7rem;margin-top:0.3rem;">✅ Inspeção ${mesAtualNome}: ${arquivoMesAtual.inspecao_data ? formatarData(arquivoMesAtual.inspecao_data) : 'realizada'}</p>` :
+        `<p style="color:#f59e0b;font-size:0.7rem;margin-top:0.3rem;">⚠️ Inspeção ${mesAtualNome}: pendente</p>`;
+      
+      const statusClass = i.status === 'active' ? 'status-active' : 'status-inactive';
+      const statusText = i.status === 'active' ? 'Ativo' : 'Inativo';
+      
+      return `<div class="item-card" data-id="${i.id}">
+        <div>
+          <h3>${escapeHtml(i.name)}</h3>
+          <p>ID: ${escapeHtml(i.code)}</p>
+          ${i.tamanho ? `<p>📏 ${escapeHtml(i.tamanho)}</p>` : ''}
+          <div><span class="status-badge ${statusClass}">${statusText}</span></div>
+          ${inspecaoMsg}
+        </div>
+        <div class="qr-code-mini"></div>
+      </div>`;
+    }).join('');
+    
+    for(let card of document.querySelectorAll('.item-card')) {
+      let id = card.dataset.id;
+      card.addEventListener('click', (e) => { 
+        if(!e.target.classList.contains('qr-code-mini')) openDetailModal(id); 
+      });
+      await generateMiniQR(card, id);
+      card.querySelector('.qr-code-mini')?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        let item = currentItems.find(i => String(i.id) === String(id));
+        if(item) openQRModal(item);
+      });
+    }
+  }
+  
+  // ==================== MODAL DETALHE ====================
+  let detailModal = document.getElementById('detailModal');
+  let detailContent = document.getElementById('detailContent');
+  document.getElementById('closeDetailModalBtn').onclick = () => detailModal.style.display = 'none';
+  detailModal.onclick = (e) => { if(e.target === detailModal) detailModal.style.display = 'none'; };
+  
+  async function renderDetail(item) {
+    let files = item.files || [];
+    let memorial = files.find(f => f.category === 'memorial');
+    let html = `<div class="view-only-badge">🔒 Modo consulta</div>`;
+    html += `<div class="item-detail-title"><strong>${escapeHtml(item.name)}</strong><br>ID: ${escapeHtml(item.code)}<br>Status: ${item.status === 'active' ? 'Ativo' : 'Inativo'}</div>`;
+    html += `<div style="margin-bottom:1rem;text-align:right"><button id="showQRFromDetailBtn" class="btn-secondary" style="background:#1e4a76;">📱 QR</button></div>`;
+    
+    html += `<div class="pdf-group"><div class="pdf-group-title">📄 Memorial</div>`;
+    if(memorial) {
+      let isCached = await isPDFCached(memorial.file_url);
+      html += `<div class="pdf-row">
+        <span class="pdf-label">Memorial</span>
+        <div class="pdf-file-info">${escapeHtml(memorial.file_name)}</div>
+        <div>
+          <a href="${memorial.file_url}" target="_blank" class="btn-view-pdf">🌐 Online</a>
+          <button onclick="viewPDFOffline('${memorial.file_url}', '${escapeHtml(memorial.file_name)}', '${item.id}')" class="btn-view-offline">💾 Offline</button>
+          ${isCached ? '<span class="cached-badge">✓</span>' : ''}
+        </div>
+      </div>`;
+    } else {
+      html += `<div class="pdf-row"><span class="pdf-label">Memorial</span><div>— Nenhum —</div></div>`;
+    }
+    html += `</div><div class="pdf-group"><div class="pdf-group-title">📅 Inspeções</div>`;
+    
+    for(let i=0;i<monthNames.length;i++) {
+      let file = files.find(f => f.category === monthKeys[i]);
+      if(file) {
+        let isCached = await isPDFCached(file.file_url);
+        html += `<div class="pdf-row">
+          <span class="pdf-label">${escapeHtml(monthNames[i])}</span>
+          <div class="pdf-file-info">${escapeHtml(file.file_name)}</div>
+          <div>
+            <a href="${file.file_url}" target="_blank" class="btn-view-pdf">🌐 Online</a>
+            <button onclick="viewPDFOffline('${file.file_url}', '${escapeHtml(file.file_name)}', '${item.id}')" class="btn-view-offline">💾 Offline</button>
+            ${isCached ? '<span class="cached-badge">✓</span>' : ''}
+          </div>
+        </div>`;
+      } else {
+        html += `<div class="pdf-row"><span class="pdf-label">${escapeHtml(monthNames[i])}</span><div>— Nenhuma —</div></div>`;
+      }
+    }
+    html += `</div>`;
+    
+    detailContent.innerHTML = html;
+    document.getElementById('showQRFromDetailBtn')?.addEventListener('click', () => {
+      detailModal.style.display = 'none';
+      openQRModal(item);
+    });
+  }
+  
+  async function openDetailModal(id) {
+    let item = currentItems.find(i => String(i.id) === String(id));
+    if(!item) { alert('Item não encontrado'); return; }
+    await renderDetail(item);
+    detailModal.style.display = 'flex';
+  }
+  
+  // ==================== MODAL QR ITEM ====================
+  let currentQRItem = null;
+  
+  async function openQRModal(item) {
+    currentQRItem = item;
+    let container = document.getElementById('qrLargeContainer');
+    let info = document.getElementById('qrItemInfo');
+    container.innerHTML = '';
+    await generateQRCode(container, getItemUrl(item.id), 280);
+    info.innerHTML = `<strong>${escapeHtml(item.name)}</strong><br>TAG: ${escapeHtml(item.code)}`;
+    document.getElementById('qrModal').style.display = 'flex';
+  }
+  
+  async function printItemQR() {
+    if(!currentQRItem) return;
+    showLoader(true);
+    let canvas = await generateQRCodeCanvas(getItemUrl(currentQRItem.id), 250);
+    if(canvas) {
+      let imgData = canvas.toDataURL();
+      let win = window.open('', '_blank');
+      win.document.write(`<html><head><title>QR - ${escapeHtml(currentQRItem.name)}</title><style>body{display:flex;justify-content:center;align-items:center;height:100vh}.card{text-align:center;border:1px solid #ccc;padding:20px;border-radius:12px;width:320px}img{width:200px}.footer{font-size:10px;color:gray;margin-top:15px}</style></head><body><div class="card"><h3>${escapeHtml(currentQRItem.name)}</h3><p>ID: ${escapeHtml(currentQRItem.code)}</p><img src="${imgData}"/><div class="footer">TENDEX</div></div><script>window.onload=function(){window.print();setTimeout(function(){window.close()},500)}<\/script></body></html>`);
+      win.document.close();
+    }
+    showLoader(false);
+  }
+  
+  function downloadQR() {
+    let canvas = document.querySelector('#qrLargeContainer canvas');
+    if(canvas && currentQRItem) {
+      let a = document.createElement('a');
+      a.download = `qrcode_${currentQRItem.code}.png`;
+      a.href = canvas.toDataURL();
+      a.click();
+    }
+  }
+  
+  // ==================== EVENTOS ====================
+  async function openCacheModal() {
+    await loadCacheItemsList();
+    document.getElementById('cacheModal').style.display = 'flex';
+  }
+  
+  function selectAllItems() {
+    currentItems.forEach(item => selectedItemsIds.add(String(item.id)));
+    document.querySelectorAll('.item-checkbox').forEach(cb => cb.checked = true);
+    updateSelectionInfo();
+  }
+  
+  function deselectAllItems() {
+    selectedItemsIds.clear();
+    document.querySelectorAll('.item-checkbox').forEach(cb => cb.checked = false);
+    updateSelectionInfo();
+  }
+  
+  async function clearPDFsCache() {
+    if(confirm('⚠️ Limpar todos os PDFs baixados?')) {
+      showLoader(true);
+      await clearPDFsCache();
+      selectedItemsIds.clear();
+      await updateCacheStats();
+      showLoader(false);
+      alert('✅ PDFs removidos!');
+      if(document.getElementById('cacheModal').style.display === 'flex') await loadCacheItemsList();
+    }
+  }
+  
+  async function refreshCacheStatus() {
+    showLoader(true);
+    await updateCacheStats();
+    if(document.getElementById('cacheModal').style.display === 'flex') await loadCacheItemsList();
+    showLoader(false);
+    showToast('✅ Status atualizado!', 1000);
+  }
+  
+  async function manualRefresh() {
+    if(!navigator.onLine) {
+      alert('📡 Offline. Conecte-se para atualizar.');
+      return;
+    }
+    await loadData();
+    await salvarCacheVisitante();
+    showToast('✅ Dados atualizados!', 1000);
+  }
+  
+  function checkHash() {
+    let hash = window.location.hash;
+    if(hash && hash.startsWith('#item=')) {
+      let id = hash.substring(6);
+      setTimeout(() => {
+        let item = currentItems.find(i => String(i.id) === String(id));
+        if(item) openDetailModal(item.id);
+        window.history.replaceState({}, document.title, BASE_URL);
+      }, 300);
+    }
+  }
+  
+  // Registrar eventos
+  document.getElementById('closeQRModalBtn').onclick = () => document.getElementById('qrModal').style.display = 'none';
+  document.getElementById('downloadQRBtn').onclick = downloadQR;
+  document.getElementById('printQRBtn').onclick = printItemQR;
+  document.getElementById('downloadGeneralQRModalBtn').onclick = downloadGeneralQR;
+  document.getElementById('manualRefreshBtn').onclick = manualRefresh;
+  document.getElementById('printMultipleQRFromModalBtn').onclick = printMultipleQRCodes;
+  document.getElementById('cacheStatusBtn').onclick = openCacheModal;
+  document.getElementById('closeCacheModalBtn').onclick = () => document.getElementById('cacheModal').style.display = 'none';
+  document.getElementById('downloadSelectedBtn').onclick = downloadSelectedItems;
+  document.getElementById('clearCacheBtn').onclick = clearPDFsCache;
+  document.getElementById('selectAllBtn').onclick = selectAllItems;
+  document.getElementById('deselectAllBtn').onclick = deselectAllItems;
+  document.getElementById('refreshCacheStatusBtn').onclick = refreshCacheStatus;
+  document.getElementById('closeQRGeneralModalBtn').onclick = () => document.getElementById('qrGeneralModal').style.display = 'none';
+  document.getElementById('generalQRCode').onclick = openGeneralQRModal;
+  document.getElementById('searchInput').oninput = (e) => renderCards(e.target.value);
+  
+  window.onhashchange = checkHash;
+  window.ononline = async () => {
+    document.getElementById('connectionStatus').innerHTML = '🟢 Online';
+    await loadData();
+    await salvarCacheVisitante();
+  };
+  window.onoffline = () => {
+    document.getElementById('connectionStatus').innerHTML = '🔴 Offline (Cache)';
+  };
+  
+  // ==================== INICIALIZAÇÃO COM ATIVAÇÃO AUTOMÁTICA ====================
+  (async function init() {
+    console.log('🚀 Iniciando sistema visitante...');
+    
+    // 1. Inicializar IndexedDB
+    await initDB();
+    
+    // 2. Carregar dados (do cache ou servidor)
+    await loadData();
+    
+    // 3. ATIVAR SERVICE WORKER AUTOMATICAMENTE
+    console.log('📦 Ativando Service Worker para modo offline...');
+    await registerServiceWorker();
+    
+    // 4. Salvar cache automaticamente
+    await salvarCacheVisitante();
+    
+    // 5. Gerar QR Code
+    await generateGeneralQRCode();
+    
+    // 6. Verificar hash na URL
+    checkHash();
+    
+    console.log('✅ Sistema pronto! Modo offline ativado automaticamente.');
+    console.log('💡 Agora você pode fechar o navegador, desconectar a internet e abrir novamente - a página funcionará offline!');
+  })();
+})();
+</script>
+</body>
+</html>
