@@ -192,9 +192,10 @@
   let currentItems = [];
   let db = null;
   let selectedItemsIds = new Set();
+  let isOnline = navigator.onLine;
   
   const DB_NAME = 'TendexOfflineCache';
-  const DB_VERSION = 6;
+  const DB_VERSION = 7;
   const STORE_PDFS = 'pdf_files';
   const STORE_ITEMS = 'items_cache';
   
@@ -206,12 +207,10 @@
   function showLoader(show) { document.getElementById('fullscreenLoader').style.display = show ? 'flex' : 'none'; }
   function showToast(text, duration=1500) { let t=document.getElementById('downloadingToast'); document.getElementById('toastText').textContent=text; t.style.display='flex'; setTimeout(()=>{t.style.display='none'},duration); }
   
-  // ==================== FUNÇÃO PARA GERAR ID ÚNICO DO PDF ====================
+  // Função para gerar ID único do PDF baseado na URL
   function getPDFId(url) {
-    // Extrair o nome do arquivo da URL
     let parts = url.split('/');
     let fileName = parts[parts.length - 1];
-    // Remover extensão e parâmetros
     fileName = fileName.split('?')[0].replace(/\.pdf$/i, '');
     return fileName;
   }
@@ -224,7 +223,7 @@
       req.onerror = () => reject(req.error);
       req.onsuccess = () => { 
         db = req.result;
-        console.log('✅ DB aberto versão:', DB_VERSION);
+        console.log('✅ DB aberto');
         resolve(db);
       };
       req.onupgradeneeded = (e) => {
@@ -233,17 +232,15 @@
           let store = dbEvent.createObjectStore(STORE_PDFS, { keyPath: 'id' });
           store.createIndex('by_itemId', 'itemId', { unique: false });
           store.createIndex('by_url', 'url', { unique: false });
-          store.createIndex('by_fileName', 'fileName', { unique: false });
         }
         if(!dbEvent.objectStoreNames.contains(STORE_ITEMS)) {
           dbEvent.createObjectStore(STORE_ITEMS, { keyPath: 'id' });
         }
-        console.log('📦 Stores atualizadas');
+        console.log('📦 Stores criadas');
       };
     });
   }
   
-  // Salvar itens no cache local
   async function saveItemsToCache(items) {
     await initDB();
     return new Promise((resolve) => {
@@ -257,7 +254,6 @@
     });
   }
   
-  // Carregar itens do cache local
   async function loadItemsFromCache() {
     await initDB();
     return new Promise((resolve) => {
@@ -266,18 +262,16 @@
       let req = store.getAll();
       req.onsuccess = () => {
         let items = (req.result || []).map(r => r.data);
-        console.log(`📦 Itens carregados do cache: ${items.length}`);
+        console.log(`📦 Itens do cache: ${items.length}`);
         resolve(items);
       };
       req.onerror = () => resolve([]);
     });
   }
   
-  // Salvar PDF no cache (usando fileName como ID)
   async function savePDFToCache(itemId, url, blob, fileName) {
     await initDB();
     let pdfId = getPDFId(url);
-    
     return new Promise((resolve, reject) => {
       let tx = db.transaction(STORE_PDFS, 'readwrite');
       let store = tx.objectStore(STORE_PDFS);
@@ -286,57 +280,43 @@
         itemId: String(itemId), 
         url: url, 
         blob: blob, 
-        fileName: fileName, 
-        originalName: fileName,
+        fileName: fileName,
         timestamp: Date.now(), 
         size: blob.size 
       };
       let req = store.put(record);
       req.onsuccess = () => {
-        console.log(`✅ PDF salvo: ${fileName} (${(blob.size/1024).toFixed(0)}KB) - ID: ${pdfId}`);
+        console.log(`✅ PDF salvo: ${fileName}`);
         resolve();
       };
       req.onerror = () => reject(req.error);
     });
   }
   
-  // Verificar se PDF está em cache por URL
   async function isPDFCached(url) {
     await initDB();
     let pdfId = getPDFId(url);
-    
     return new Promise((resolve) => {
       let tx = db.transaction(STORE_PDFS, 'readonly');
       let store = tx.objectStore(STORE_PDFS);
       let req = store.get(pdfId);
-      req.onsuccess = () => {
-        let isCached = !!req.result;
-        if(isCached) {
-          console.log(`✅ PDF em cache: ${pdfId}`);
-        }
-        resolve(isCached);
-      };
+      req.onsuccess = () => resolve(!!req.result);
       req.onerror = () => resolve(false);
     });
   }
   
-  // Obter PDF do cache por URL
   async function getPDFFromCache(url) {
     await initDB();
     let pdfId = getPDFId(url);
-    
     return new Promise((resolve) => {
       let tx = db.transaction(STORE_PDFS, 'readonly');
       let store = tx.objectStore(STORE_PDFS);
       let req = store.get(pdfId);
-      req.onsuccess = () => {
-        resolve(req.result ? req.result.blob : null);
-      };
+      req.onsuccess = () => resolve(req.result ? req.result.blob : null);
       req.onerror = () => resolve(null);
     });
   }
   
-  // Obter todos os PDFs em cache
   async function getAllCachedPDFs() {
     await initDB();
     return new Promise((resolve) => {
@@ -348,20 +328,16 @@
     });
   }
   
-  // Contar PDFs em cache para um item específico
-  async function getCacheCountForItem(itemId) {
-    let all = await getAllCachedPDFs();
-    let itemIdStr = String(itemId);
-    return all.filter(c => String(c.itemId) === itemIdStr).length;
-  }
-  
-  // Obter lista de URLs cacheadas
   async function getCachedUrls() {
     let all = await getAllCachedPDFs();
     return new Set(all.map(pdf => pdf.url));
   }
   
-  // Limpar todo o cache
+  async function getCacheCountForItem(itemId) {
+    let all = await getAllCachedPDFs();
+    return all.filter(c => String(c.itemId) === String(itemId)).length;
+  }
+  
   async function clearAllCache() {
     await initDB();
     selectedItemsIds.clear();
@@ -374,54 +350,32 @@
     });
   }
   
-  // Atualizar estatísticas do cache
   async function updateCacheStats() {
     let cached = await getAllCachedPDFs();
     let totalSize = cached.reduce((s,i)=> s + (i.size||0), 0);
     let sizeMB = (totalSize / (1024*1024)).toFixed(1);
-    let statsElem = document.getElementById('cacheStats');
-    if(statsElem) statsElem.innerHTML = `📁 ${cached.length} | ${sizeMB}MB`;
-    
-    // Atualizar badges nos cards
-    for(let item of currentItems) {
-      let card = document.querySelector(`.item-card[data-id="${item.id}"]`);
-      if(card) {
-        let count = await getCacheCountForItem(item.id);
-        let totalFiles = item.files.filter(f => f.category === 'memorial' || monthKeys.includes(f.category)).length;
-        let badge = card.querySelector('.cache-status-indicator');
-        if(count > 0 && count === totalFiles && totalFiles > 0) {
-          if(!badge) {
-            let indicator = document.createElement('span');
-            indicator.className = 'cached-badge cache-status-indicator';
-            indicator.style.marginLeft = '0.5rem';
-            indicator.textContent = '✓ Offline';
-            card.querySelector('h3')?.appendChild(indicator);
-          }
-        } else if(badge && (count !== totalFiles || totalFiles === 0)) { 
-          badge.remove(); 
-        }
-      }
-    }
+    document.getElementById('cacheStats').innerHTML = `📁 ${cached.length} | ${sizeMB}MB`;
     return cached.length;
   }
   
-  // ==================== CARREGAR DADOS ====================
+  // ==================== CARREGAR DADOS (OTIMIZADO PARA OFFLINE) ====================
+  let dataLoaded = false;
+  
   async function loadData() {
-    showLoader(true);
-    
-    // Carregar do cache local primeiro
+    // PRIMEIRO: Carregar do cache local imediatamente
     let cachedItems = await loadItemsFromCache();
     if(cachedItems && cachedItems.length > 0) {
       console.log('📦 Carregando dados do cache local...');
       currentItems = cachedItems;
       await renderCards('');
       await updateCacheStats();
+      dataLoaded = true;
     }
     
-    // Se estiver online, buscar dados atualizados
+    // SEGUNDO: Se estiver online, buscar atualizações em segundo plano
     if(navigator.onLine) {
       try {
-        console.log('🌐 Buscando dados online...');
+        console.log('🌐 Buscando atualizações online...');
         let { data: itemsData } = await supabase.from('items').select('*').order('name');
         let { data: filesData } = await supabase.from('files').select('*');
         
@@ -437,7 +391,8 @@
         let hasChanges = JSON.stringify(currentItems.map(i => ({id:i.id, code:i.code}))) !== 
                          JSON.stringify(newItems.map(i => ({id:i.id, code:i.code})));
         
-        if(hasChanges || currentItems.length === 0) {
+        if(hasChanges) {
+          console.log('📦 Atualizando dados do servidor...');
           currentItems = newItems;
           await saveItemsToCache(currentItems);
           await renderCards('');
@@ -445,21 +400,23 @@
         }
         
         document.getElementById('lastUpdateText').innerHTML = `📅 ${new Date().toLocaleTimeString()}`;
+        document.getElementById('connectionStatus').innerHTML = '🟢 Online';
+        document.getElementById('connectionStatus').className = 'connection-status online-badge';
         
       } catch(e) {
-        console.warn('Erro ao buscar dados online:', e);
+        console.warn('Erro ao buscar online:', e);
       }
     } else {
-      console.log('📡 Modo OFFLINE');
+      console.log('📡 Modo OFFLINE - usando cache');
       document.getElementById('connectionStatus').innerHTML = '🔴 Offline (Cache)';
       document.getElementById('connectionStatus').className = 'connection-status offline-badge';
+      document.getElementById('lastUpdateText').innerHTML = `📅 ${new Date().toLocaleTimeString()} (Offline)`;
     }
     
-    showLoader(false);
     return currentItems;
   }
   
-  // ==================== DOWNLOAD SELECIONADO (CORRIGIDO) ====================
+  // ==================== DOWNLOAD SELECIONADO ====================
   let isDownloading = false;
   
   async function downloadSelectedItems() {
@@ -484,14 +441,6 @@
     let selectedIdsArray = Array.from(selectedItemsIds).map(id => String(id));
     let itemsToDownload = currentItems.filter(item => selectedIdsArray.includes(String(item.id)));
     
-    if(itemsToDownload.length === 0) {
-      alert('Nenhum item válido encontrado.');
-      showLoader(false);
-      isDownloading = false;
-      return;
-    }
-    
-    // Coletar URLs que precisam ser baixadas
     let pdfsToDownload = [];
     let cachedUrls = await getCachedUrls();
     
@@ -506,22 +455,17 @@
               fileName: file.file_name,
               category: file.category
             });
-            console.log(`📄 Pendente: ${file.file_name}`);
-          } else {
-            console.log(`✅ Já em cache: ${file.file_name}`);
           }
         }
       }
     }
     
     if(pdfsToDownload.length === 0) {
-      alert(`✅ Todos os documentos das ${itemsToDownload.length} tenda(s) já estão em cache!`);
+      alert(`✅ Todos os documentos já estão em cache!`);
       showLoader(false);
       isDownloading = false;
       return;
     }
-    
-    console.log(`📥 Baixando ${pdfsToDownload.length} PDFs...`);
     
     let progressFill = document.getElementById('cacheProgressFill');
     let downloaded = 0;
@@ -540,30 +484,24 @@
           let blob = await response.blob();
           await savePDFToCache(pdf.itemId, pdf.url, blob, pdf.fileName);
           downloaded++;
-          console.log(`✅ [${downloaded}/${pdfsToDownload.length}] ${pdf.fileName}`);
         } else {
           errors++;
-          console.error(`❌ Erro ${response.status}: ${pdf.fileName}`);
         }
       } catch(e) {
         errors++;
-        console.error(`❌ Erro: ${pdf.fileName}`, e);
       }
     }
     
     await updateCacheStats();
     showLoader(false);
     
-    alert(`📥 Download concluído!\n\n✅ Baixados: ${downloaded}\n❌ Erros: ${errors}\n📁 Total: ${pdfsToDownload.length} PDFs`);
+    alert(`📥 Download concluído!\n\n✅ Baixados: ${downloaded}\n❌ Erros: ${errors}`);
     
     isDownloading = false;
     
     if(document.getElementById('cacheModal').style.display === 'flex') {
       await loadCacheItemsList();
     }
-    
-    // Atualizar badges nos cards
-    await updateCacheStats();
   }
   
   // ==================== VISUALIZAR PDF OFFLINE ====================
@@ -596,16 +534,13 @@
     
     let itemsHtml = '';
     for(let item of currentItems) {
-      // Contar quantos PDFs deste item estão em cache
       let totalFiles = 0;
       let cachedCount = 0;
       
       for(let file of item.files) {
         if(file.file_url && (file.category === 'memorial' || monthKeys.includes(file.category))) {
           totalFiles++;
-          if(cachedUrls.has(file.file_url)) {
-            cachedCount++;
-          }
+          if(cachedUrls.has(file.file_url)) cachedCount++;
         }
       }
       
@@ -645,10 +580,8 @@
         let id = cb.dataset.id;
         if(cb.checked) {
           selectedItemsIds.add(String(id));
-          console.log(`✅ Adicionado: ${id}`);
         } else {
           selectedItemsIds.delete(String(id));
-          console.log(`❌ Removido: ${id}`);
         }
         updateSelectionInfo();
       });
@@ -679,9 +612,7 @@
   function updateSelectionInfo() {
     let count = selectedItemsIds.size;
     let countSpan = document.getElementById('selectedCountText');
-    if(countSpan) {
-      countSpan.textContent = count;
-    }
+    if(countSpan) countSpan.textContent = count;
   }
   
   // ==================== QR CODE ====================
@@ -886,7 +817,7 @@
   }
   
   async function clearCacheManual() {
-    if(confirm('⚠️ Limpar todos os documentos do cache offline?\n\nIsso removerá todos os PDFs baixados.')) {
+    if(confirm('⚠️ Limpar todos os documentos do cache offline?')) {
       showLoader(true);
       await clearAllCache();
       selectedItemsIds.clear();
@@ -943,22 +874,20 @@
   
   window.onhashchange = checkHash;
   window.ononline = async () => {
-    let statusDiv = document.getElementById('connectionStatus');
-    if(statusDiv) { statusDiv.innerHTML = '🟢 Online'; statusDiv.className = 'connection-status online-badge'; }
     await loadData();
   };
   window.onoffline = () => {
-    let statusDiv = document.getElementById('connectionStatus');
-    if(statusDiv) { statusDiv.innerHTML = '🔴 Offline (Cache)'; statusDiv.className = 'connection-status offline-badge'; }
+    document.getElementById('connectionStatus').innerHTML = '🔴 Offline (Cache)';
+    document.getElementById('connectionStatus').className = 'connection-status offline-badge';
   };
   
   // ==================== INIT ====================
   (async function init() {
     await initDB();
     await generateGeneralQRCode();
-    await loadData();
+    await loadData(); // Carrega do cache primeiro, depois atualiza se online
     checkHash();
-    console.log('✅ Sistema offline pronto!');
+    console.log('✅ Sistema pronto! Funciona completamente offline após primeiro acesso.');
   })();
 })();
 </script>
