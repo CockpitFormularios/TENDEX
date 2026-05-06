@@ -3,795 +3,208 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="theme-color" content="#1e4a76">
-  <meta name="description" content="TENDEX - Sistema de Inspeção de Tendas - Modo Visitante">
-  <title>TENDEX | Inspeção de Tendas</title>
-  
-  <!-- Link do Manifest -->
-  <link rel="manifest" href="manifest.json">
-  
-  <!-- Favicons -->
+  <title>TENDEX | Modo Convidado</title>
+  <link rel="manifest" href="https://cockpitformularios.github.io/TENDEX/manifest.json">
   <link rel="icon" type="image/x-icon" href="https://jklcvyuxwxgsfczrfaco.supabase.co/storage/v1/object/public/assinaturas/favicon.ico">
   <link rel="icon" type="image/png" sizes="192x192" href="https://jklcvyuxwxgsfczrfaco.supabase.co/storage/v1/object/public/assinaturas/icon-180.png">
   <link rel="apple-touch-icon" sizes="180x180" href="https://jklcvyuxwxgsfczrfaco.supabase.co/storage/v1/object/public/assinaturas/icon-180.png">
-  
-  <!-- Bibliotecas -->
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-      font-family: system-ui, 'Segoe UI', 'Inter', -apple-system, sans-serif;
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: system-ui, 'Segoe UI', 'Inter', sans-serif; }
+    body { background: #f3f6fc; padding: 2rem 1.5rem; }
+    .dashboard-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem; padding-bottom: 0.75rem; border-bottom: 2px solid #cbd5e1; }
+    .dashboard-header h1 { font-size: 1.8rem; background: linear-gradient(135deg, #0f2b3d, #1e4a76); background-clip: text; -webkit-background-clip: text; color: transparent; }
+    .logo { height: 50px; width: auto; object-fit: contain; }
+    .guest-badge { background: #64748b; color: white; padding: 0.3rem 1rem; border-radius: 2rem; font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem; }
+    .refresh-status { background: #e0f2fe; color: #0369a1; padding: 0.3rem 0.8rem; border-radius: 2rem; font-size: 0.7rem; display: flex; align-items: center; gap: 0.5rem; }
+    .search-area { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 1.5rem; background: white; padding: 0.5rem 1rem; border-radius: 2rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .search-icon { font-size: 1.2rem; color: #64748b; }
+    .search-input { flex: 1; border: none; outline: none; font-size: 1rem; padding: 0.4rem 0; background: transparent; }
+    .download-section { background: white; border-radius: 1rem; padding: 1rem; margin-bottom: 2rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .download-section h3 { font-size: 1rem; margin-bottom: 0.8rem; color: #1e4a76; }
+    .month-buttons { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+    .month-btn { background: #e2e8f0; border: none; padding: 0.4rem 0.9rem; border-radius: 2rem; font-size: 0.8rem; cursor: pointer; transition: 0.2s; }
+    .month-btn:hover { background: #cbd5e1; transform: scale(0.96); }
+    .items-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1.2rem; margin-top: 1rem; }
+    .item-card { background: white; border-radius: 1rem; padding: 1rem; cursor: pointer; transition: 0.2s; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid #e2edff; position: relative; }
+    .item-card:hover { transform: translateY(-2px); box-shadow: 0 8px 16px rgba(0,0,0,0.08); background: #fafcff; }
+    .item-card h3 { font-size: 1.1rem; color: #0f172a; margin-bottom: 0.3rem; }
+    .item-card p { font-size: 0.8rem; color: #5b6e8c; margin: 0.2rem 0; }
+    .status-badge { display: inline-block; padding: 0.2rem 0.5rem; border-radius: 2rem; font-size: 0.7rem; font-weight: 600; margin-top: 0.5rem; }
+    .status-active { background: #d1fae5; color: #065f46; }
+    .status-inactive { background: #fee2e2; color: #991b1b; }
+    .qr-code-mini { position: absolute; bottom: 12px; right: 12px; width: 45px; height: 45px; cursor: pointer; background: white; border-radius: 8px; padding: 4px; transition: transform 0.2s; display: flex; align-items: center; justify-content: center; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .qr-code-mini:hover { transform: scale(1.05); background: #f1f5f9; }
+    .qr-code-mini canvas { width: 100% !important; height: 100% !important; }
+    .empty-state { text-align: center; color: #6c86a3; margin-top: 3rem; }
+    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; z-index: 1000; }
+    .modal-content { background: white; max-width: 800px; width: 90%; border-radius: 1.5rem; padding: 1.5rem; max-height: 85vh; overflow-y: auto; }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+    .modal-header h2 { font-size: 1.3rem; }
+    .close-modal { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #64748b; padding: 0 0.5rem; }
+    .close-modal:hover { color: #ef4444; }
+    .item-detail-title { background: #f1f5f9; padding: 0.8rem; border-radius: 1rem; margin-bottom: 1.2rem; }
+    .pdf-group { margin-bottom: 1.2rem; }
+    .pdf-group-title { font-weight: 600; font-size: 0.9rem; border-left: 3px solid #3b82f6; padding-left: 0.6rem; margin-bottom: 0.5rem; }
+    .pdf-row { display: flex; align-items: center; justify-content: space-between; background: #f9fafb; margin-bottom: 0.5rem; padding: 0.4rem 0.8rem; border-radius: 2rem; font-size: 0.75rem; flex-wrap: wrap; gap: 0.5rem; }
+    .pdf-label { font-weight: 600; background: #e2e8f0; padding: 0.2rem 0.6rem; border-radius: 2rem; min-width: 85px; text-align: center; }
+    .pdf-file-info { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .pdf-file-info a { text-decoration: none; color: #1e4a76; }
+    .btn-view-pdf { background: #3b82f6; color: white; border: none; padding: 0.2rem 0.8rem; border-radius: 2rem; font-size: 0.7rem; cursor: pointer; text-decoration: none; }
+    .btn-view-pdf:hover { background: #2563eb; }
+    .view-only-badge { background: #fef9c3; color: #854d0e; padding: 0.2rem 0.8rem; border-radius: 2rem; font-size: 0.7rem; font-weight: 600; display: inline-block; margin-bottom: 1rem; }
+    .notice-guest { font-size: 0.7rem; color: #5b6e8c; margin-top: 1rem; text-align: center; background: #f8fafc; padding: 0.5rem; border-radius: 1rem; }
+    .connection-status { position: fixed; bottom: 1rem; right: 1rem; background: rgba(0,0,0,0.7); color: white; padding: 0.3rem 0.8rem; border-radius: 2rem; font-size: 0.7rem; z-index: 10; }
+    .online-badge { background: #10b981; }
+    .offline-badge { background: #ef4444; }
+    .qr-modal-content { max-width: 450px; text-align: center; }
+    .qr-large { display: flex; justify-content: center; margin: 1rem 0; }
+    .qr-large canvas { width: 250px !important; height: 250px !important; }
+    .qr-actions { display: flex; gap: 1rem; justify-content: center; margin-top: 1rem; flex-wrap: wrap; }
+    .btn-secondary { background: #64748b; color: white; border: none; padding: 0.5rem 1rem; border-radius: 2rem; cursor: pointer; font-weight: 600; }
+    .btn-secondary:hover { background: #475569; }
+    .btn-primary { background: #1e4a76; color: white; border: none; padding: 0.5rem 1rem; border-radius: 2rem; cursor: pointer; font-weight: 600; }
+    .btn-primary:hover { background: #0f2b3d; }
+    .btn-success { background: #10b981; color: white; border: none; padding: 0.5rem 1rem; border-radius: 2rem; cursor: pointer; font-weight: 600; }
+    .btn-success:hover { background: #059669; }
+    .btn-refresh { background: #f59e0b; color: white; border: none; padding: 0.3rem 0.8rem; border-radius: 2rem; cursor: pointer; font-weight: 600; font-size: 0.7rem; display: flex; align-items: center; gap: 0.3rem; }
+    .btn-refresh:hover { background: #d97706; }
+    .item-link-info { background: #eef2ff; padding: 0.5rem; border-radius: 0.5rem; font-size: 0.7rem; word-break: break-all; margin: 0.5rem 0; }
+    .general-qr-section { background: linear-gradient(135deg, #e0f2fe, #f1f5f9); border-radius: 1rem; padding: 1rem; margin-bottom: 1.5rem; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; }
+    .general-qr-left { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+    .general-qr-code { width: 100px; height: 100px; cursor: pointer; background: white; border-radius: 12px; padding: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; transition: transform 0.2s; }
+    .general-qr-code canvas { width: 100% !important; height: 100% !important; }
+    .general-qr-code:hover { transform: scale(1.02); }
+    .general-qr-info h4 { margin-bottom: 0.2rem; color: #0f172a; font-size: 1rem; }
+    .general-qr-info p { font-size: 0.75rem; color: #475569; }
+    .clickable { cursor: pointer; }
+    
+    /* Estilos para impressão dos 12 QR Codes */
+    @media print {
+      body * { visibility: hidden; }
+      .print-sheet, .print-sheet * { visibility: visible; }
+      .print-sheet { position: absolute; top: 0; left: 0; width: 100%; margin: 0; padding: 15mm; background: white; }
+      .no-print { display: none; }
     }
     
-    body {
-      background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-      min-height: 100vh;
-      padding: 1rem;
+    .print-sheet { 
+      display: none; 
+      background: white; 
+      width: 210mm; 
+      min-height: 297mm; 
+      margin: 0 auto; 
+      padding: 15mm;
+      font-family: Arial, sans-serif;
     }
-    
-    /* Header */
-    .dashboard-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 1rem;
-      margin-bottom: 1.5rem;
-      padding: 1rem 1.5rem;
-      background: white;
-      border-radius: 1rem;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    .print-sheet h2 { 
+      text-align: center; 
+      color: #1e4a76; 
+      margin-bottom: 10mm;
+      font-size: 18pt;
     }
-    
-    .header-left {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
+    .qr-grid { 
+      display: grid; 
+      grid-template-columns: repeat(3, 1fr); 
+      gap: 10mm;
+      margin-top: 5mm;
     }
-    
-    .logo {
-      height: 45px;
-      width: auto;
-      object-fit: contain;
+    .qr-item { 
+      text-align: center; 
+      border: 1px dashed #ccc;
+      padding: 5mm;
+      border-radius: 8px;
+      page-break-inside: avoid;
     }
-    
-    .dashboard-header h1 {
-      font-size: 1.5rem;
-      background: linear-gradient(135deg, #0f2b3d, #1e4a76);
-      background-clip: text;
-      -webkit-background-clip: text;
-      color: transparent;
+    .qr-item canvas { 
+      width: 85px !important; 
+      height: 85px !important; 
+      margin: 0 auto;
     }
-    
-    .header-buttons {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      flex-wrap: wrap;
-    }
-    
-    .guest-badge {
-      background: #64748b;
-      color: white;
-      padding: 0.4rem 1rem;
-      border-radius: 2rem;
-      font-size: 0.8rem;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-    
-    .cache-status {
-      background: #10b981;
-      color: white;
-      padding: 0.4rem 1rem;
-      border-radius: 2rem;
-      font-size: 0.75rem;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-    
-    .cache-status:hover {
-      background: #059669;
-      transform: scale(1.02);
-    }
-    
-    .refresh-status {
-      background: #e0f2fe;
-      color: #0369a1;
-      padding: 0.4rem 1rem;
-      border-radius: 2rem;
-      font-size: 0.7rem;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-    
-    .btn-refresh {
-      background: #f59e0b;
-      color: white;
-      border: none;
-      padding: 0.4rem 1rem;
-      border-radius: 2rem;
-      cursor: pointer;
-      font-weight: 600;
-      font-size: 0.75rem;
-      transition: all 0.2s;
-    }
-    
-    .btn-refresh:hover {
-      background: #d97706;
-      transform: scale(1.02);
-    }
-    
-    .offline-mode-btn {
-      background: #8b5cf6;
-      color: white;
-      border: none;
-      padding: 0.5rem 1rem;
-      border-radius: 2rem;
-      font-size: 0.8rem;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      font-weight: 600;
-      transition: all 0.2s;
-    }
-    
-    .offline-mode-btn:hover {
-      background: #7c3aed;
-      transform: scale(1.02);
-    }
-    
-    /* Aviso offline */
-    .offline-warning {
-      background: #fef3c7;
-      border-left: 4px solid #f59e0b;
-      padding: 0.75rem 1rem;
-      border-radius: 0.75rem;
-      margin-bottom: 1rem;
-      display: none;
-      align-items: center;
-      gap: 0.75rem;
-      font-size: 0.85rem;
-    }
-    
-    .offline-warning.show {
-      display: flex;
-    }
-    
-    /* QR Code Geral */
-    .general-qr-section {
-      background: white;
-      border-radius: 1rem;
-      padding: 1rem 1.5rem;
-      margin-bottom: 1.5rem;
-      display: flex;
-      flex-wrap: wrap;
-      align-items: center;
-      justify-content: space-between;
-      gap: 1rem;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-    }
-    
-    .general-qr-left {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-      flex-wrap: wrap;
-    }
-    
-    .general-qr-code {
-      width: 80px;
-      height: 80px;
-      cursor: pointer;
-      background: white;
-      border-radius: 12px;
-      padding: 6px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      transition: transform 0.2s;
-    }
-    
-    .general-qr-code:hover {
-      transform: scale(1.05);
-    }
-    
-    .general-qr-code canvas {
-      width: 100% !important;
-      height: 100% !important;
-    }
-    
-    .general-qr-info h4 {
-      margin-bottom: 0.25rem;
-      color: #0f172a;
-    }
-    
-    .general-qr-info p {
-      font-size: 0.75rem;
-      color: #475569;
-    }
-    
-    /* Busca */
-    .search-area {
-      display: flex;
-      gap: 0.75rem;
-      align-items: center;
-      background: white;
-      padding: 0.75rem 1.25rem;
-      border-radius: 2rem;
-      margin-bottom: 1.5rem;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-    }
-    
-    .search-icon {
-      font-size: 1.2rem;
-      color: #64748b;
-    }
-    
-    .search-input {
-      flex: 1;
-      border: none;
-      outline: none;
-      font-size: 1rem;
-      padding: 0.4rem 0;
-      background: transparent;
-    }
-    
-    .search-input::placeholder {
-      color: #94a3b8;
-    }
-    
-    /* Estatísticas */
-    .stats-bar {
-      display: flex;
-      gap: 1rem;
-      margin-bottom: 1.5rem;
-      flex-wrap: wrap;
-    }
-    
-    .stat-card {
-      background: white;
-      padding: 0.75rem 1.25rem;
-      border-radius: 1rem;
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-    }
-    
-    .stat-number {
-      font-size: 1.5rem;
-      font-weight: bold;
+    .qr-item .qr-title { 
+      font-weight: bold; 
+      font-size: 11pt; 
+      margin-top: 3mm;
       color: #1e4a76;
     }
-    
-    .stat-label {
-      font-size: 0.7rem;
-      color: #64748b;
+    .qr-item .qr-sub { 
+      font-size: 9pt; 
+      color: #555; 
+      margin-top: 2mm;
     }
-    
-    /* Grid de itens */
-    .items-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-      gap: 1.25rem;
+    .footer-print { 
+      text-align: center; 
+      font-size: 9pt; 
+      color: #888; 
+      margin-top: 10mm;
+      padding-top: 5mm;
+      border-top: 1px solid #eee;
     }
-    
-    .item-card {
-      background: white;
-      border-radius: 1rem;
-      padding: 1.25rem;
-      cursor: pointer;
-      transition: all 0.2s;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-      border: 1px solid #e2edff;
-      position: relative;
-    }
-    
-    .item-card:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 12px 20px rgba(0,0,0,0.1);
-      background: #fafcff;
-    }
-    
-    .item-card h3 {
-      font-size: 1.1rem;
-      color: #0f172a;
-      margin-bottom: 0.5rem;
-      padding-right: 50px;
-    }
-    
-    .item-card p {
-      font-size: 0.8rem;
-      color: #5b6e8c;
-      margin: 0.25rem 0;
-    }
-    
-    .status-badge {
-      display: inline-block;
-      padding: 0.25rem 0.6rem;
-      border-radius: 2rem;
-      font-size: 0.7rem;
-      font-weight: 600;
-      margin-top: 0.5rem;
-    }
-    
-    .status-active {
-      background: #d1fae5;
-      color: #065f46;
-    }
-    
-    .status-inactive {
-      background: #fee2e2;
-      color: #991b1b;
-    }
-    
-    .inspecao-status {
-      font-size: 0.7rem;
-      margin-top: 0.5rem;
-      padding-top: 0.5rem;
-      border-top: 1px solid #e2e8f0;
-    }
-    
-    .inspecao-ok {
-      color: #10b981;
-    }
-    
-    .inspecao-pending {
-      color: #f59e0b;
-    }
-    
-    .qr-code-mini {
-      position: absolute;
-      top: 1rem;
-      right: 1rem;
-      width: 45px;
-      height: 45px;
-      cursor: pointer;
-      background: white;
-      border-radius: 10px;
-      padding: 5px;
-      transition: all 0.2s;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    }
-    
-    .qr-code-mini:hover {
-      transform: scale(1.1);
-      box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-    }
-    
-    .qr-code-mini canvas {
-      width: 100% !important;
-      height: 100% !important;
-    }
-    
-    .empty-state {
-      text-align: center;
-      color: #6c86a3;
-      padding: 3rem;
-      background: white;
-      border-radius: 1rem;
-    }
-    
-    /* Modais */
-    .modal {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0,0,0,0.5);
-      align-items: center;
-      justify-content: center;
-      z-index: 1000;
-      backdrop-filter: blur(4px);
-    }
-    
-    .modal-content {
-      background: white;
-      max-width: 900px;
-      width: 90%;
-      border-radius: 1.5rem;
-      padding: 1.5rem;
-      max-height: 85vh;
-      overflow-y: auto;
-    }
-    
-    .modal-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 1rem;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-    }
-    
-    .close-modal {
-      background: none;
-      border: none;
-      font-size: 1.8rem;
-      cursor: pointer;
-      color: #64748b;
-      padding: 0 0.5rem;
-      transition: color 0.2s;
-    }
-    
-    .close-modal:hover {
-      color: #ef4444;
-    }
-    
-    /* PDF Rows */
-    .pdf-group {
-      margin-bottom: 1.5rem;
-    }
-    
-    .pdf-group-title {
-      font-weight: 600;
-      font-size: 0.9rem;
-      border-left: 3px solid #3b82f6;
-      padding-left: 0.75rem;
-      margin-bottom: 0.75rem;
-    }
-    
-    .pdf-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      background: #f8fafc;
-      margin-bottom: 0.5rem;
-      padding: 0.6rem 1rem;
-      border-radius: 2rem;
-      font-size: 0.75rem;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-    }
-    
-    .pdf-label {
-      font-weight: 600;
-      background: #e2e8f0;
-      padding: 0.25rem 0.75rem;
-      border-radius: 2rem;
-      min-width: 85px;
-      text-align: center;
-    }
-    
-    .btn-view-pdf, .btn-view-offline {
-      padding: 0.3rem 0.8rem;
-      border-radius: 2rem;
-      font-size: 0.7rem;
-      cursor: pointer;
-      text-decoration: none;
-      display: inline-block;
-      border: none;
-      transition: all 0.2s;
-    }
-    
-    .btn-view-pdf {
-      background: #3b82f6;
-      color: white;
-    }
-    
-    .btn-view-pdf:hover {
-      background: #2563eb;
-    }
-    
-    .btn-view-offline {
-      background: #10b981;
-      color: white;
-    }
-    
-    .btn-view-offline:hover {
-      background: #059669;
-    }
-    
-    .cached-badge {
-      display: inline-block;
-      padding: 0.15rem 0.5rem;
-      border-radius: 2rem;
-      font-size: 0.6rem;
-      background: #d1fae5;
-      color: #065f46;
-      margin-left: 0.3rem;
-    }
-    
-    .view-only-badge {
-      background: #fef9c3;
-      color: #854d0e;
-      padding: 0.3rem 1rem;
-      border-radius: 2rem;
-      font-size: 0.75rem;
-      display: inline-block;
-      margin-bottom: 1rem;
-    }
-    
-    /* QR Modal */
-    .qr-modal-content {
-      max-width: 450px;
-      text-align: center;
-    }
-    
-    .qr-large {
-      display: flex;
-      justify-content: center;
-      margin: 1rem 0;
-    }
-    
-    .qr-large canvas {
-      width: 250px !important;
-      height: 250px !important;
-    }
-    
-    .qr-actions {
-      display: flex;
-      gap: 1rem;
-      justify-content: center;
-      margin-top: 1rem;
-      flex-wrap: wrap;
-    }
-    
-    .btn-primary, .btn-secondary, .btn-success {
-      padding: 0.6rem 1.2rem;
-      border-radius: 2rem;
-      border: none;
-      cursor: pointer;
-      font-weight: 600;
-      transition: all 0.2s;
-    }
-    
-    .btn-primary {
-      background: #1e4a76;
-      color: white;
-    }
-    
-    .btn-primary:hover {
-      background: #0f2b3d;
-      transform: scale(1.02);
-    }
-    
-    .btn-secondary {
-      background: #64748b;
-      color: white;
-    }
-    
-    .btn-secondary:hover {
-      background: #475569;
-    }
-    
-    .btn-success {
-      background: #10b981;
-      color: white;
-    }
-    
-    /* Connection Status */
-    .connection-status {
-      position: fixed;
-      bottom: 1rem;
-      right: 1rem;
-      background: rgba(0,0,0,0.8);
-      color: white;
-      padding: 0.5rem 1rem;
-      border-radius: 2rem;
-      font-size: 0.75rem;
-      z-index: 100;
-      backdrop-filter: blur(4px);
-    }
-    
-    .online-badge {
-      background: #10b981;
-    }
-    
-    .offline-badge {
-      background: #ef4444;
-    }
-    
-    /* Loader */
-    #fullscreenLoader {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0,0,0,0.7);
-      display: none;
-      align-items: center;
-      justify-content: center;
-      z-index: 9999;
-      flex-direction: column;
-      gap: 1rem;
-    }
-    
-    .loader-spinner {
-      width: 50px;
-      height: 50px;
-      border: 4px solid rgba(255,255,255,0.3);
-      border-top-color: #3b82f6;
-      border-radius: 50%;
-      animation: spin 1s linear infinite;
-    }
-    
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-    
-    /* Toast */
-    .downloading-toast {
-      position: fixed;
-      bottom: 80px;
-      right: 20px;
-      background: #1e4a76;
-      color: white;
-      padding: 0.5rem 1rem;
-      border-radius: 2rem;
-      font-size: 0.7rem;
-      z-index: 100;
-      display: none;
-      align-items: center;
-      gap: 0.5rem;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    }
-    
-    /* Responsivo */
-    @media (max-width: 640px) {
-      body {
-        padding: 0.75rem;
-      }
-      
-      .dashboard-header h1 {
-        font-size: 1.1rem;
-      }
-      
-      .logo {
-        height: 35px;
-      }
-      
-      .items-grid {
-        grid-template-columns: 1fr;
-      }
-      
-      .header-buttons {
-        width: 100%;
-        justify-content: space-between;
-      }
-    }
-    
-    @media print {
-      body * {
-        visibility: hidden;
-      }
-      .print-sheet, .print-sheet * {
-        visibility: visible;
-      }
-      .print-sheet {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        background: white;
-        padding: 15mm;
-      }
-    }
-    
-    .print-sheet {
-      display: none;
-    }
+    @media (max-width: 640px) { body { padding: 1rem; } .dashboard-header h1 { font-size: 1.2rem; } .items-grid { grid-template-columns: 1fr; } .general-qr-code { width: 80px; height: 80px; } }
   </style>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
-<!-- Header -->
 <div class="dashboard-header">
-  <div class="header-left">
-    <img src="https://jklcvyuxwxgsfczrfaco.supabase.co/storage/v1/object/public/assinaturas/Tenda_logo2.png" alt="Logo TENDEX" class="logo">
-    <h1>📋 Inspeção de Tendas</h1>
+  <div class="header-left" style="display: flex; align-items: center; gap: 1rem;">
+    <img src="https://jklcvyuxwxgsfczrfaco.supabase.co/storage/v1/object/public/assinaturas/Tenda_logo2.png" alt="Logo TENDEX" class="logo" onerror="this.onerror=null; this.src='data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%2240%22 height=%2240%22 viewBox=%220 0 24 24%22 fill=%22none%22 stroke=%22%233b82f6%22 stroke-width=%222%22 stroke-linecap=%22round%22 stroke-linejoin=%22round%22%3E%3Cpath d=%22M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z%22%3E%3C/path%3E%3Cpolyline points=%229 22 9 12 15 12 15 22%22%3E%3C/polyline%3E%3C/svg%3E';">
+    <h1>Convidado</h1>
   </div>
-  <div class="header-buttons">
-    <button class="offline-mode-btn" id="prepareOfflineBtn">
-      💾 Salvar para Offline
-    </button>
-    <div class="cache-status" id="cacheStatusBtn">
-      <span>📄</span>
-      <span id="cacheStats">Carregando...</span>
-    </div>
-    <div class="refresh-status">
+  <div style="display: flex; align-items: center; gap: 0.8rem;">
+    <div class="refresh-status" id="refreshStatus">
       <span>🔄</span>
-      <span id="lastUpdateText">--:--:--</span>
+      <span id="lastUpdateText">Verificando...</span>
     </div>
-    <button class="btn-refresh" id="manualRefreshBtn" title="Atualizar dados">
-      🔄
+    <button class="btn-refresh" id="manualRefreshBtn">
+      🔄 Atualizar Agora
     </button>
     <div class="guest-badge">
-      👁️ Modo Visitante
+      👁️ Convidado
     </div>
   </div>
 </div>
 
-<!-- Aviso Offline -->
-<div id="offlineWarning" class="offline-warning">
-  <span>⚠️</span>
-  <span>Modo offline ativo. Os dados são da última sincronização.</span>
-  <button onclick="location.reload()" style="margin-left: auto; background: none; border: none; cursor: pointer; font-size: 1.2rem;">🔄</button>
-</div>
-
-<!-- QR Code Geral -->
 <div class="general-qr-section">
   <div class="general-qr-left">
-    <div id="generalQRCode" class="general-qr-code"></div>
+    <div id="generalQRCode" class="general-qr-code clickable" title="Clique para ampliar QR Code"></div>
     <div class="general-qr-info">
-      <h4>📱 QR Code de Acesso</h4>
-      <p>Escaneie para acessar esta lista em outro dispositivo</p>
+      <h4>📱 QR Code Geral da Página</h4>
+      <p>Escaneie para acessar a lista completa de tendas</p>
+      <p style="font-size: 0.7rem; color: #3b82f6;">Clique no QR para ampliar, baixar ou imprimir</p>
     </div>
+  </div>
+  <div style="display: flex; gap: 0.5rem;">
+    <button id="downloadGeneralQRBtn" class="btn-success" style="background: #1e4a76;">💾 Baixar QR Geral</button>
+    <button id="printMultipleQRBtn" class="btn-primary" style="background: #f59e0b;">🖨️ Imprimir 12 QR Codes</button>
   </div>
 </div>
 
-<!-- Busca -->
 <div class="search-area">
   <span class="search-icon">🔍</span>
-  <input type="text" id="searchInput" class="search-input" placeholder="Buscar por nome, TAG, localização...">
+  <input type="text" id="searchInput" class="search-input" placeholder="Filtrar por nome, TAG, localização ou tamanho..." spellcheck="false">
 </div>
 
-<!-- Estatísticas -->
-<div class="stats-bar" id="statsBar">
-  <div class="stat-card">
-    <span>🏪</span>
-    <div>
-      <div class="stat-number" id="totalTendas">0</div>
-      <div class="stat-label">Total de Tendas</div>
-    </div>
-  </div>
-  <div class="stat-card">
-    <span>✅</span>
-    <div>
-      <div class="stat-number" id="inspecoesMes">0</div>
-      <div class="stat-label">Inspeções Mês Atual</div>
-    </div>
-  </div>
+<div class="download-section">
+  <h3>📥 Relatórios Consolidados</h3>
+  <div class="month-buttons" id="monthButtonsContainer"></div>
+  <p class="notice-guest" style="margin-top: 0.8rem;">🔍 Cada item possui um QR Code próprio. Escaneie com o celular para acessar diretamente os detalhes da tenda.</p>
 </div>
 
-<!-- Lista de Tendas -->
-<div id="itemsContainer" class="items-grid">
-  <div class="empty-state">🔄 Carregando tendas...</div>
-</div>
+<div id="itemsContainer" class="items-grid"></div>
 
-<!-- Modal de Detalhes -->
+<!-- Modal de Detalhes do Item -->
 <div id="detailModal" class="modal">
   <div class="modal-content">
     <div class="modal-header">
-      <h2>📄 Detalhes da Tenda</h2>
+      <h2 id="detailModalTitle">📄 Detalhes da Tenda / Inspeções</h2>
       <button class="close-modal" id="closeDetailModalBtn">&times;</button>
     </div>
     <div id="detailContent"></div>
-    <div class="notice-guest" style="margin-top: 1rem; font-size: 0.7rem; color: #64748b; text-align: center;">
-      🔒 Modo leitura | Documentos offline disponíveis após baixar
-    </div>
+    <div class="notice-guest" style="margin-top: 1rem;">🔒 Modo convidado: apenas visualização. Para ver inspeções, clique nos PDFs.</div>
   </div>
 </div>
 
-<!-- Modal de Gerenciamento de Cache -->
-<div id="cacheModal" class="modal">
-  <div class="modal-content">
-    <div class="modal-header">
-      <h2>💾 Gerenciar PDFs Offline</h2>
-      <button class="close-modal" id="closeCacheModalBtn">&times;</button>
-    </div>
-    <div id="cacheItemsList" style="max-height: 400px; overflow-y: auto; margin: 1rem 0;"></div>
-    <div class="qr-actions">
-      <button id="downloadSelectedBtn" class="btn-success">📥 Baixar Selecionados</button>
-      <button id="clearCacheBtn" class="btn-secondary" style="background:#ef4444;">🗑️ Limpar Cache</button>
-    </div>
-    <p class="notice-guest" style="margin-top: 1rem;">✨ Selecione as tendas e baixe os PDFs para acesso offline</p>
-  </div>
-</div>
-
-<!-- Modal QR Code -->
+<!-- Modal de Exibição do QR Code Grande do Item -->
 <div id="qrModal" class="modal">
   <div class="modal-content qr-modal-content">
     <div class="modal-header">
@@ -799,718 +212,629 @@
       <button class="close-modal" id="closeQRModalBtn">&times;</button>
     </div>
     <div id="qrLargeContainer" class="qr-large"></div>
-    <div id="qrItemInfo"></div>
+    <div id="qrItemInfo" class="item-link-info"></div>
     <div class="qr-actions">
-      <button id="downloadQRBtn" class="btn-primary">💾 Baixar QR</button>
-      <button id="printQRBtn" class="btn-secondary">🖨️ Imprimir</button>
+      <button id="downloadQRBtn" class="btn-primary">💾 Baixar QR Code (PNG)</button>
+      <button id="printQRBtn" class="btn-secondary">🖨️ Imprimir Etiqueta</button>
     </div>
+    <p class="notice-guest" style="margin-top: 1rem;">📌 Cole este QR Code fisicamente na tenda para acesso rápido dos visitantes.</p>
   </div>
 </div>
 
-<!-- Elementos auxiliares -->
-<div id="fullscreenLoader">
-  <div class="loader-spinner"></div>
-  <div style="color: white;">Processando...</div>
+<!-- Modal de Exibição do QR Code Geral (Ampliado) -->
+<div id="qrGeneralModal" class="modal">
+  <div class="modal-content qr-modal-content">
+    <div class="modal-header">
+      <h2>📱 QR Code Geral - Acesso Rápido</h2>
+      <button class="close-modal" id="closeQRGeneralModalBtn">&times;</button>
+    </div>
+    <div id="qrGeneralLargeContainer" class="qr-large"></div>
+    <div id="qrGeneralInfo" class="item-link-info">
+      <strong>QR Code Geral do TENDEX</strong><br>
+      Escaneie para acessar a lista completa de tendas
+    </div>
+    <div class="qr-actions">
+      <button id="downloadGeneralQRModalBtn" class="btn-primary">💾 Baixar QR Geral (PNG)</button>
+      <button id="printGeneralQRBtn" class="btn-secondary">🖨️ Imprimir QR Geral</button>
+      <button id="printMultipleQRFromModalBtn" class="btn-primary" style="background: #f59e0b;">🖨️ Imprimir 12 QR Codes</button>
+    </div>
+    <p class="notice-guest" style="margin-top: 1rem;">📌 Cole este QR Code na entrada do canteiro para acesso rápido dos visitantes à lista de tendas.</p>
+  </div>
 </div>
 
-<div id="downloadingToast" class="downloading-toast">
-  <span>📥</span>
-  <span id="toastText">Baixando...</span>
+<!-- Folha para impressão de 12 QR Codes -->
+<div id="printQRSheet" class="print-sheet">
+  <h2>📱 TENDEX - Sistema de Inspeção</h2>
+  <div id="qrGridContainer" class="qr-grid"></div>
+  <div class="footer-print">
+    TENDEX - Inspeção de Tendas | Escaneie o QR Code para acessar a lista completa de tendas
+  </div>
+</div>
+
+<div id="fullscreenLoader" style="display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); align-items: center; justify-content: center; z-index: 9999;">
+  <div style="width: 50px; height: 50px; border: 5px solid rgba(255,255,255,0.3); border-top-color: #3b82f6; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+  <div style="color: white; margin-top: 1rem;">Gerando 12 QR Codes...</div>
 </div>
 
 <div id="connectionStatus" class="connection-status online-badge">🟢 Online</div>
-<div id="printQRSheet" class="print-sheet"></div>
+
+<style>
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
 
 <script>
-(function() {
-  // ==================== CONFIGURAÇÕES ====================
-  const SUPABASE_URL = "https://jklcvyuxwxgsfczrfaco.supabase.co";
-  const SUPABASE_ANON_KEY = "sb_publishable_oCE8y5qaLovVj0BU-rANHA__Zmy3XVl";
-  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-  
-  let currentItems = [];
-  let db = null;
-  let selectedItemsIds = new Set();
-  let isDownloading = false;
-  let isSaving = false;
-  
-  const DB_NAME = 'TendexOfflineCache';
-  const DB_VERSION = 16;
-  const STORE_PDFS = 'pdf_files';
-  const STORE_ITEMS = 'items_cache';
-  
-  const monthNames = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
-  const monthKeys = ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
-  const BASE_URL = window.location.origin + window.location.pathname;
-  
-  // ==================== UTILITÁRIOS ====================
-  function escapeHtml(str) {
-    if (!str) return '';
-    return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;');
-  }
-  
-  function showLoader(show) {
-    document.getElementById('fullscreenLoader').style.display = show ? 'flex' : 'none';
-  }
-  
-  function showToast(text, duration = 1500) {
-    const toast = document.getElementById('downloadingToast');
-    document.getElementById('toastText').textContent = text;
-    toast.style.display = 'flex';
-    setTimeout(() => {
-      toast.style.display = 'none';
-    }, duration);
-  }
-  
-  function formatarData(dataString) {
-    if (!dataString) return '';
-    const partes = dataString.split('-');
-    if (partes.length === 3) return `${partes[2]}/${partes[1]}/${partes[0]}`;
-    return dataString;
-  }
-  
-  function getPDFId(url) {
-    try {
-      let parts = url.split('/');
-      let fileName = parts[parts.length - 1];
-      fileName = fileName.split('?')[0].replace(/\.pdf$/i, '');
-      return fileName.replace(/[^a-zA-Z0-9_-]/g, '_').substring(0, 100);
-    } catch(e) {
-      return Date.now().toString();
-    }
-  }
-  
-  // ==================== INDEXEDDB ====================
-  function initDB() {
-    return new Promise((resolve, reject) => {
-      if (db && db.version === DB_VERSION) {
-        resolve(db);
-        return;
-      }
-      const req = indexedDB.open(DB_NAME, DB_VERSION);
-      req.onerror = () => reject(req.error);
-      req.onsuccess = () => {
-        db = req.result;
-        console.log('✅ DB aberto - Versão:', db.version);
-        resolve(db);
-      };
-      req.onupgradeneeded = (e) => {
-        const dbEvent = e.target.result;
-        if (!dbEvent.objectStoreNames.contains(STORE_PDFS)) {
-          const store = dbEvent.createObjectStore(STORE_PDFS, { keyPath: 'id' });
-          store.createIndex('by_itemId', 'itemId', { unique: false });
-        }
-        if (!dbEvent.objectStoreNames.contains(STORE_ITEMS)) {
-          dbEvent.createObjectStore(STORE_ITEMS, { keyPath: 'id' });
-        }
-      };
-    });
-  }
-  
-  async function saveItemsToCache(items) {
-    await initDB();
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE_ITEMS, 'readwrite');
-      const store = tx.objectStore(STORE_ITEMS);
-      for (const item of items) {
-        store.put({ id: String(item.id), data: item, timestamp: Date.now() });
-      }
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error);
-    });
-  }
-  
-  async function loadItemsFromCache() {
-    await initDB();
-    return new Promise((resolve) => {
-      try {
-        const tx = db.transaction(STORE_ITEMS, 'readonly');
-        const store = tx.objectStore(STORE_ITEMS);
-        const req = store.getAll();
-        req.onsuccess = () => {
-          const items = (req.result || []).map(r => r.data).filter(i => i);
-          resolve(items);
-        };
-        req.onerror = () => resolve([]);
-      } catch(e) {
-        resolve([]);
-      }
-    });
-  }
-  
-  async function savePDFToCache(itemId, url, blob, fileName) {
-    await initDB();
-    const pdfId = getPDFId(url);
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(STORE_PDFS, 'readwrite');
-      const store = tx.objectStore(STORE_PDFS);
-      const record = {
-        id: pdfId,
-        itemId: String(itemId),
-        url: url,
-        blob: blob,
-        fileName: fileName,
-        timestamp: Date.now(),
-        size: blob.size
-      };
-      const req = store.put(record);
-      req.onsuccess = () => resolve();
-      req.onerror = () => reject(req.error);
-    });
-  }
-  
-  async function isPDFCached(url) {
-    await initDB();
-    const pdfId = getPDFId(url);
-    return new Promise((resolve) => {
-      const tx = db.transaction(STORE_PDFS, 'readonly');
-      const store = tx.objectStore(STORE_PDFS);
-      const req = store.get(pdfId);
-      req.onsuccess = () => resolve(!!req.result);
-      req.onerror = () => resolve(false);
-    });
-  }
-  
-  async function getPDFFromCache(url) {
-    await initDB();
-    const pdfId = getPDFId(url);
-    return new Promise((resolve) => {
-      const tx = db.transaction(STORE_PDFS, 'readonly');
-      const store = tx.objectStore(STORE_PDFS);
-      const req = store.get(pdfId);
-      req.onsuccess = () => resolve(req.result ? req.result.blob : null);
-      req.onerror = () => resolve(null);
-    });
-  }
-  
-  async function getAllCachedPDFs() {
-    await initDB();
-    return new Promise((resolve) => {
-      const tx = db.transaction(STORE_PDFS, 'readonly');
-      const store = tx.objectStore(STORE_PDFS);
-      const req = store.getAll();
-      req.onsuccess = () => resolve(req.result || []);
-      req.onerror = () => resolve([]);
-    });
-  }
-  
-  async function clearPDFsCache() {
-    await initDB();
-    selectedItemsIds.clear();
-    return new Promise((resolve) => {
-      const tx = db.transaction(STORE_PDFS, 'readwrite');
-      tx.objectStore(STORE_PDFS).clear();
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => resolve();
-    });
-  }
-  
-  async function updateCacheStats() {
-    const cached = await getAllCachedPDFs();
-    const totalSize = cached.reduce((s, i) => s + (i.size || 0), 0);
-    const sizeMB = (totalSize / (1024 * 1024)).toFixed(1);
-    document.getElementById('cacheStats').innerHTML = `📁 ${cached.length} | ${sizeMB}MB`;
-    return cached.length;
-  }
-  
-  // ==================== SERVICE WORKER ====================
-  async function registerServiceWorker() {
-    if (!('serviceWorker' in navigator)) {
-      console.warn('⚠️ Service Worker não suportado');
-      return false;
+  (function() {
+    const SUPABASE_URL = "https://jklcvyuxwxgsfczrfaco.supabase.co";
+    const SUPABASE_ANON_KEY = "sb_publishable_oCE8y5qaLovVj0BU-rANHA__Zmy3XVl";
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    
+    let currentItems = [];
+    let lastUpdateTime = null;
+    let isRefreshing = false;
+    
+    const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+    const monthKeys = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+    const BASE_URL = window.location.origin + window.location.pathname;
+    
+    function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;'); }
+    function formatarData(dataString) { if (!dataString) return ''; const partes = dataString.split('-'); if (partes.length === 3) return `${partes[2]}/${partes[1]}/${partes[0]}`; return dataString; }
+    
+    function showLoader(show) {
+      const loader = document.getElementById('fullscreenLoader');
+      if (show) loader.style.display = 'flex';
+      else loader.style.display = 'none';
     }
     
-    try {
-      const registration = await navigator.serviceWorker.register('./sw.js', { scope: './' });
-      console.log('✅ Service Worker registrado:', registration);
+    // ==================== FUNÇÕES DE QR CODE ====================
+    async function generateQRCodeCanvas(text, size = 250, margin = 2) {
+      try {
+        const canvas = document.createElement('canvas');
+        await QRCode.toCanvas(canvas, text, {
+          width: size,
+          margin: margin,
+          color: { dark: '#000000', light: '#ffffff' },
+          errorCorrectionLevel: 'H'
+        });
+        return canvas;
+      } catch (error) {
+        console.error('Erro ao gerar QR Code:', error);
+        return null;
+      }
+    }
+    
+    async function generateQRCode(element, text, size = 200, margin = 2) {
+      if (!element) return null;
+      element.innerHTML = '';
+      const canvas = await generateQRCodeCanvas(text, size, margin);
+      if (canvas) {
+        element.appendChild(canvas);
+        return canvas;
+      }
+      element.innerHTML = '<div style="color:red; font-size:10px;">Erro ao gerar QR</div>';
+      return null;
+    }
+    
+    // ==================== IMPRIMIR QR GERAL (APENAS UM) ====================
+    async function printSingleQRCode() {
+      showLoader(true);
+      try {
+        const generalUrl = BASE_URL;
+        const canvas = await generateQRCodeCanvas(generalUrl, 250, 2);
+        
+        if (!canvas) {
+          alert('Erro ao gerar QR Code');
+          showLoader(false);
+          return;
+        }
+        
+        const imgData = canvas.toDataURL('image/png');
+        
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write(`
+          <html>
+            <head>
+              <title>QR Code Geral - TENDEX</title>
+              <style>
+                body { font-family: Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background: white; }
+                .card { text-align: center; border: 1px solid #ccc; padding: 20px; border-radius: 12px; width: 350px; }
+                img { width: 250px; height: 250px; }
+                h3 { margin: 10px 0; color: #1e4a76; }
+                p { margin: 5px 0; color: #555; font-size: 12px; }
+                .footer { margin-top: 15px; font-size: 10px; color: gray; }
+              </style>
+            </head>
+            <body>
+              <div class="card">
+                <h3>📱 TENDEX - Sistema de Inspeção</h3>
+                <p>QR Code Geral de Acesso</p>
+                <img src="${imgData}" />
+                <p>Escaneie para acessar a lista completa de tendas</p>
+                <div class="footer">TENDEX - Inspeção de Tendas</div>
+              </div>
+              <script>
+                window.onload = function() { window.print(); setTimeout(function() { window.close(); }, 500); };
+              <\/script>
+            </body>
+          </html>
+        `);
+        printWindow.document.close();
+      } catch (error) {
+        console.error('Erro ao imprimir:', error);
+        alert('Erro ao gerar impressão: ' + error.message);
+      } finally {
+        showLoader(false);
+      }
+    }
+    
+    // ==================== IMPRIMIR 12 QR CODES (CORRIGIDO) ====================
+    async function printMultipleQRCodes() {
+      showLoader(true);
+      try {
+        const generalUrl = BASE_URL;
+        const container = document.getElementById('qrGridContainer');
+        container.innerHTML = '';
+        
+        // Gerar 12 QR Codes
+        const qrCodes = [];
+        for (let i = 0; i < 12; i++) {
+          const canvas = await generateQRCodeCanvas(generalUrl, 90, 2);
+          if (canvas) {
+            qrCodes.push(canvas);
+          }
+          await new Promise(r => setTimeout(r, 20));
+        }
+        
+        // Criar os 12 itens na grid
+        for (let i = 0; i < qrCodes.length; i++) {
+          const qrItem = document.createElement('div');
+          qrItem.className = 'qr-item';
+          
+          const canvasContainer = document.createElement('div');
+          canvasContainer.appendChild(qrCodes[i]);
+          
+          const title = document.createElement('div');
+          title.className = 'qr-title';
+          title.textContent = 'TENDEX';
+          
+          const sub = document.createElement('div');
+          sub.className = 'qr-sub';
+          sub.textContent = 'Acesse as inspeções';
+          
+          qrItem.appendChild(canvasContainer);
+          qrItem.appendChild(title);
+          qrItem.appendChild(sub);
+          
+          container.appendChild(qrItem);
+        }
+        
+        // Mostrar a folha de impressão
+        const printSheet = document.getElementById('printQRSheet');
+        printSheet.style.display = 'block';
+        
+        // Forçar um pequeno delay para o DOM atualizar
+        setTimeout(() => {
+          window.print();
+          
+          // Esconder após impressão ou cancelamento
+          setTimeout(() => {
+            printSheet.style.display = 'none';
+          }, 1000);
+        }, 300);
+        
+      } catch (error) {
+        console.error('Erro ao gerar múltiplos QR Codes:', error);
+        alert('Erro ao gerar impressão: ' + error.message);
+        showLoader(false);
+      }
+    }
+    
+    // ==================== BUSCAR DADOS ====================
+    async function fetchAllData(forceRefresh = false) {
+      if (isRefreshing) return currentItems;
+      isRefreshing = true;
+      showLoader(true);
       
-      // Atualizar status online/offline
-      if (!navigator.onLine) {
-        document.getElementById('offlineWarning').classList.add('show');
-      }
-      
-      return true;
-    } catch (error) {
-      console.error('❌ Erro ao registrar Service Worker:', error);
-      return false;
-    }
-  }
-  
-  // ==================== CARREGAR DADOS ====================
-  async function loadData() {
-    showLoader(true);
-    let dataLoaded = false;
-    
-    // Tentar localStorage primeiro
-    try {
-      const localData = localStorage.getItem('tendex_guest_cache');
-      if (localData) {
-        currentItems = JSON.parse(localData);
-        if (currentItems.length > 0) {
-          await renderCards('');
-          await updateCacheStats();
-          dataLoaded = true;
-        }
-      }
-    } catch(e) {}
-    
-    // Tentar IndexedDB
-    if (!dataLoaded) {
       try {
-        const cachedItems = await loadItemsFromCache();
-        if (cachedItems.length > 0) {
-          currentItems = cachedItems;
-          await renderCards('');
-          await updateCacheStats();
-          dataLoaded = true;
-        }
-      } catch(e) {}
-    }
-    
-    // Se online, buscar novos dados
-    if (navigator.onLine) {
-      try {
-        const { data: itemsData } = await supabase.from('items').select('*').order('name');
-        const { data: filesData } = await supabase.from('files').select('*');
+        const { data: itemsData, error: itemsError } = await supabase.from('items').select('*').order('name', { ascending: true });
+        if (itemsError) throw itemsError;
+        
+        const { data: filesData, error: filesError } = await supabase.from('files').select('*');
+        if (filesError) throw filesError;
         
         const filesByItem = {};
         if (filesData) {
-          filesData.forEach(f => {
-            if (!filesByItem[f.item_id]) filesByItem[f.item_id] = [];
-            filesByItem[f.item_id].push(f);
+          filesData.forEach(file => {
+            if (!filesByItem[file.item_id]) filesByItem[file.item_id] = [];
+            filesByItem[file.item_id].push(file);
           });
         }
         
         const newItems = (itemsData || []).map(item => ({
-          id: String(item.id),
-          name: item.name || 'Sem nome',
-          sub_localizacao: item.sub_localizacao || '',
-          tamanho: item.tamanho || '',
-          code: item.code || 'SEM-CODIGO',
-          status: item.status || 'active',
+          id: item.id, name: item.name || 'Sem nome', sub_localizacao: item.sub_localizacao || '',
+          tamanho: item.tamanho || '', code: item.code || 'SEM-CODIGO', status: item.status || 'active',
           files: filesByItem[item.id] || []
         }));
         
-        localStorage.setItem('tendex_guest_cache', JSON.stringify(newItems));
-        await saveItemsToCache(newItems);
         currentItems = newItems;
-        await renderCards('');
-        await updateCacheStats();
+        lastUpdateTime = new Date();
+        updateLastUpdateDisplay();
+        saveToLocalCache();
         
-        const now = new Date();
-        document.getElementById('lastUpdateText').innerHTML = now.toLocaleTimeString();
-        dataLoaded = true;
-      } catch(e) {
-        console.warn('Erro online:', e);
+        const searchValue = document.getElementById('searchInput').value;
+        await renderCards(searchValue);
+        
+        return currentItems;
+      } catch (error) {
+        console.error('Erro ao carregar dados:', error);
+        const cached = localStorage.getItem('tendex_guest_cache');
+        if (cached && currentItems.length === 0) {
+          try {
+            currentItems = JSON.parse(cached);
+            await renderCards(document.getElementById('searchInput').value);
+          } catch(e) {}
+        }
+        return currentItems;
+      } finally {
+        showLoader(false);
+        isRefreshing = false;
       }
     }
     
-    // Atualizar status
-    if (!dataLoaded && !navigator.onLine) {
-      document.getElementById('connectionStatus').innerHTML = '🔴 Offline';
-      document.getElementById('connectionStatus').className = 'connection-status offline-badge';
-      document.getElementById('offlineWarning').classList.add('show');
-    } else if (!navigator.onLine && dataLoaded) {
-      document.getElementById('connectionStatus').innerHTML = '🔴 Offline (Cache)';
-      document.getElementById('connectionStatus').className = 'connection-status offline-badge';
-      document.getElementById('offlineWarning').classList.add('show');
-    } else {
-      document.getElementById('connectionStatus').innerHTML = '🟢 Online';
-      document.getElementById('connectionStatus').className = 'connection-status online-badge';
-      document.getElementById('offlineWarning').classList.remove('show');
+    function updateLastUpdateDisplay() {
+      const lastUpdateText = document.getElementById('lastUpdateText');
+      if (lastUpdateTime) {
+        const date = new Date(lastUpdateTime);
+        lastUpdateText.innerHTML = `📅 ${date.getDate().toString().padStart(2, '0')}/${(date.getMonth()+1).toString().padStart(2, '0')}/${date.getFullYear()} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+      } else {
+        lastUpdateText.innerHTML = '🔄 Carregando...';
+      }
     }
     
-    // Atualizar estatísticas
-    updateStats();
-    
-    showLoader(false);
-    return currentItems;
-  }
-  
-  function updateStats() {
-    document.getElementById('totalTendas').textContent = currentItems.length;
-    
-    const mesAtualKey = monthKeys[new Date().getMonth()];
-    const comInspecao = currentItems.filter(item => 
-      item.files.some(f => f.category === mesAtualKey)
-    ).length;
-    document.getElementById('inspecoesMes').textContent = comInspecao;
-  }
-  
-  // ==================== RENDER CARDS ====================
-  async function renderCards(filter = "") {
-    const container = document.getElementById('itemsContainer');
-    const lower = filter.toLowerCase();
-    const filtered = currentItems.filter(i =>
-      i.name.toLowerCase().includes(lower) ||
-      i.code.toLowerCase().includes(lower) ||
-      (i.sub_localizacao && i.sub_localizacao.toLowerCase().includes(lower))
-    );
-    
-    if (filtered.length === 0) {
-      container.innerHTML = '<div class="empty-state">📭 Nenhuma tenda encontrada</div>';
-      return;
+    function saveToLocalCache() {
+      try {
+        localStorage.setItem('tendex_guest_cache', JSON.stringify(currentItems));
+      } catch(e) {}
     }
     
-    const dataAtual = new Date();
-    const mesAtualIndex = dataAtual.getMonth();
-    const mesAtualNome = monthNames[mesAtualIndex];
-    const mesAtualKey = monthKeys[mesAtualIndex];
+    // ==================== QR CODE GERAL ====================
+    async function generateGeneralQRCode() {
+      const generalQrDiv = document.getElementById('generalQRCode');
+      if (generalQrDiv) {
+        await generateQRCode(generalQrDiv, BASE_URL, 100, 2);
+      }
+    }
     
-    container.innerHTML = filtered.map(i => {
-      const arquivoMesAtual = i.files.find(f => f.category === mesAtualKey);
-      const temInspecao = !!arquivoMesAtual;
-      const statusClass = i.status === 'active' ? 'status-active' : 'status-inactive';
-      const statusText = i.status === 'active' ? 'Ativo' : 'Inativo';
-      
-      return `
-        <div class="item-card" data-id="${i.id}">
-          <h3>${escapeHtml(i.name)}</h3>
-          <p>🏷️ TAG: ${escapeHtml(i.code)}</p>
-          ${i.sub_localizacao ? `<p>📍 ${escapeHtml(i.sub_localizacao)}</p>` : ''}
-          ${i.tamanho ? `<p>📏 ${escapeHtml(i.tamanho)}</p>` : ''}
-          <div><span class="status-badge ${statusClass}">${statusText}</span></div>
-          <div class="inspecao-status ${temInspecao ? 'inspecao-ok' : 'inspecao-pending'}">
-            ${temInspecao ? `✅ Inspeção ${mesAtualNome}: realizada` : `⚠️ Inspeção ${mesAtualNome}: pendente`}
-          </div>
-          <div class="qr-code-mini"></div>
-        </div>
-      `;
-    }).join('');
+    async function openGeneralQRModal() {
+      const qrContainer = document.getElementById('qrGeneralLargeContainer');
+      qrContainer.innerHTML = '';
+      await generateQRCode(qrContainer, BASE_URL, 280, 2);
+      document.getElementById('qrGeneralModal').style.display = 'flex';
+    }
     
-    // Adicionar eventos e gerar QR codes
-    for (const card of document.querySelectorAll('.item-card')) {
-      const id = card.dataset.id;
-      card.addEventListener('click', (e) => {
-        if (!e.target.classList.contains('qr-code-mini')) {
-          openDetailModal(id);
+    function downloadGeneralQR() {
+      const canvas = document.querySelector('#generalQRCode canvas');
+      if (canvas) {
+        const link = document.createElement('a');
+        link.download = 'qrcode_tendex_geral.png';
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      } else {
+        alert('Aguardando geração do QR Code...');
+      }
+    }
+    
+    // ==================== ITENS ====================
+    function getItemDirectUrl(itemId) { return `${BASE_URL}#item=${itemId}`; }
+    
+    function checkHashForItem() {
+      const hash = window.location.hash;
+      if (hash && hash.startsWith('#item=')) {
+        const itemId = hash.substring(6);
+        if (itemId) {
+          setTimeout(() => {
+            const item = currentItems.find(i => String(i.id) === String(itemId));
+            if (item) openDetailModal(item.id);
+            window.history.replaceState({}, document.title, BASE_URL);
+          }, 300);
         }
-      });
+      }
+    }
+    
+    // ==================== MODAL QR DO ITEM ====================
+    let currentQRItem = null;
+    
+    async function openQRModal(item) {
+      currentQRItem = item;
+      const qrContainer = document.getElementById('qrLargeContainer');
+      const itemInfoDiv = document.getElementById('qrItemInfo');
+      const itemUrl = getItemDirectUrl(item.id);
       
-      // Gerar QR mini
-      const qrDiv = card.querySelector('.qr-code-mini');
-      if (qrDiv) {
-        const item = currentItems.find(i => String(i.id) === String(id));
-        if (item) {
-          await generateQRCode(qrDiv, getItemUrl(item.id), 45);
-          qrDiv.addEventListener('click', (e) => {
+      qrContainer.innerHTML = '';
+      await generateQRCode(qrContainer, itemUrl, 280, 2);
+      
+      itemInfoDiv.innerHTML = `<strong>${escapeHtml(item.name)}</strong><br>TAG: ${escapeHtml(item.code)}<br><span style="font-size: 0.65rem;">Link: ${escapeHtml(itemUrl)}</span><br><span style="font-size: 0.65rem; color: #10b981;">✅ Escaneie para ver os detalhes</span>`;
+      
+      document.getElementById('qrModal').style.display = 'flex';
+    }
+    
+    async function printItemQRCode() {
+      if (!currentQRItem) return;
+      showLoader(true);
+      try {
+        const itemUrl = getItemDirectUrl(currentQRItem.id);
+        const canvas = await generateQRCodeCanvas(itemUrl, 250, 2);
+        
+        if (!canvas) {
+          alert('Erro ao gerar QR Code');
+          showLoader(false);
+          return;
+        }
+        
+        const imgData = canvas.toDataURL('image/png');
+        
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write(`
+          <html>
+            <head>
+              <title>QR Code - ${escapeHtml(currentQRItem.name)}</title>
+              <style>
+                body { font-family: Arial, sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background: white; }
+                .card { text-align: center; border: 1px solid #ccc; padding: 20px; border-radius: 12px; width: 320px; }
+                img { width: 200px; height: 200px; }
+                h3 { margin: 10px 0; color: #1e4a76; }
+                p { margin: 5px 0; color: #555; font-size: 12px; }
+                .footer { margin-top: 15px; font-size: 10px; color: gray; }
+              </style>
+            </head>
+            <body>
+              <div class="card">
+                <h3>${escapeHtml(currentQRItem.name)}</h3>
+                <p>TAG: ${escapeHtml(currentQRItem.code)}</p>
+                <img src="${imgData}" />
+                <p>Escaneie para acessar as inspeções</p>
+                <div class="footer">TENDEX - Sistema de Inspeção</div>
+              </div>
+              <script>
+                window.onload = function() { window.print(); setTimeout(function() { window.close(); }, 500); };
+              <\/script>
+            </body>
+          </html>
+        `);
+        printWindow.document.close();
+      } catch (error) {
+        console.error('Erro ao imprimir:', error);
+        alert('Erro ao gerar impressão');
+      } finally {
+        showLoader(false);
+      }
+    }
+    
+    function downloadQRCode() {
+      const canvas = document.querySelector('#qrLargeContainer canvas');
+      if (canvas && currentQRItem) {
+        const link = document.createElement('a');
+        link.download = `qrcode_${currentQRItem.code || currentQRItem.id}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+      } else {
+        alert('Aguardando geração do QR Code...');
+      }
+    }
+    
+    // ==================== RENDERIZAR CARDS ====================
+    async function generateMiniQRForCard(cardElement, itemId) {
+      const qrDiv = cardElement.querySelector('.qr-code-mini');
+      if (qrDiv && !qrDiv.hasAttribute('data-qr-generated')) {
+        const itemUrl = getItemDirectUrl(itemId);
+        qrDiv.setAttribute('data-qr-generated', 'true');
+        await generateQRCode(qrDiv, itemUrl, 45, 1);
+      }
+    }
+    
+    async function renderCards(filterText = "") {
+      const container = document.getElementById('itemsContainer');
+      const lowerFilter = filterText.toLowerCase();
+      const filtered = currentItems.filter(item => 
+        item.name.toLowerCase().includes(lowerFilter) || 
+        item.code.toLowerCase().includes(lowerFilter) ||
+        (item.sub_localizacao && item.sub_localizacao.toLowerCase().includes(lowerFilter)) ||
+        (item.tamanho && item.tamanho.toLowerCase().includes(lowerFilter))
+      );
+      
+      if (filtered.length === 0) {
+        container.innerHTML = `<div class="empty-state">📭 Nenhuma tenda encontrada.</div>`;
+        return;
+      }
+      
+      const mesAtualIndex = new Date().getMonth();
+      const mesAtualNome = monthNames[mesAtualIndex];
+      const mesAtualKey = monthKeys[mesAtualIndex];
+      
+      container.innerHTML = filtered.map(item => {
+        const arquivoMesAtual = item.files.find(f => f.category === mesAtualKey);
+        let inspecaoMsg = '';
+        if (arquivoMesAtual) {
+          inspecaoMsg = `<p style="color: #10b981; font-size: 0.7rem; margin-top: 0.3rem;">✅ Inspeção ${mesAtualNome}: ${arquivoMesAtual.inspecao_data ? formatarData(arquivoMesAtual.inspecao_data) : 'realizada'}</p>`;
+        } else {
+          inspecaoMsg = `<p style="color: #f59e0b; font-size: 0.7rem; margin-top: 0.3rem;">⚠️ Inspeção ${mesAtualNome}: pendente</p>`;
+        }
+        
+        const statusClass = item.status === 'active' ? 'status-active' : 'status-inactive';
+        const statusText = item.status === 'active' ? 'Ativo' : 'Inativo';
+        
+        return `<div class="item-card" data-id="${item.id}">
+                  <div>
+                    <h3>${escapeHtml(item.name)}</h3>
+                    <p>TAG: ${escapeHtml(item.code)}</p>
+                    ${item.sub_localizacao ? `<p>📍 ${escapeHtml(item.sub_localizacao)}</p>` : ''}
+                    ${item.tamanho ? `<p>📏 ${escapeHtml(item.tamanho)}</p>` : ''}
+                    <div><span class="status-badge ${statusClass}">${statusText}</span></div>
+                    ${inspecaoMsg}
+                  </div>
+                  <div class="qr-code-mini" data-id="${item.id}" title="QR Code desta tenda"></div>
+                </div>`;
+      }).join('');
+      
+      const cards = document.querySelectorAll('.item-card');
+      for (const card of cards) {
+        const id = card.dataset.id;
+        card.addEventListener('click', (e) => {
+          if (e.target.classList.contains('qr-code-mini') || e.target.closest('.qr-code-mini')) return;
+          openDetailModal(id);
+        });
+        await generateMiniQRForCard(card, id);
+        const qrBtn = card.querySelector('.qr-code-mini');
+        if (qrBtn) {
+          qrBtn.addEventListener('click', (e) => {
             e.stopPropagation();
-            openQRModal(item);
+            const item = currentItems.find(i => String(i.id) === String(id));
+            if (item) openQRModal(item);
           });
         }
       }
     }
-  }
-  
-  // ==================== QR CODE ====================
-  async function generateQRCode(element, text, size = 200) {
-    if (!element) return;
-    element.innerHTML = '';
-    try {
-      const canvas = document.createElement('canvas');
-      await QRCode.toCanvas(canvas, text, { width: size, margin: 1 });
-      element.appendChild(canvas);
-    } catch(e) {
-      element.innerHTML = '❌';
-    }
-  }
-  
-  function getItemUrl(id) {
-    return `${BASE_URL}#item=${id}`;
-  }
-  
-  async function openQRModal(item) {
-    const container = document.getElementById('qrLargeContainer');
-    const info = document.getElementById('qrItemInfo');
-    container.innerHTML = '';
-    await generateQRCode(container, getItemUrl(item.id), 280);
-    info.innerHTML = `<strong>${escapeHtml(item.name)}</strong><br>TAG: ${escapeHtml(item.code)}`;
-    document.getElementById('qrModal').style.display = 'flex';
-  }
-  
-  // ==================== PDF OFFLINE ====================
-  async function viewPDFOffline(url, fileName, itemId) {
-    const blob = await getPDFFromCache(url);
-    if (blob) {
-      const blobUrl = URL.createObjectURL(blob);
-      window.open(blobUrl, '_blank');
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 30000);
-    } else if (navigator.onLine) {
-      if (confirm(`📄 "${fileName}" não está disponível offline. Deseja baixar agora?`)) {
-        showLoader(true);
-        try {
-          const response = await fetch(url);
-          const blob = await response.blob();
-          await savePDFToCache(itemId, url, blob, fileName);
-          const blobUrl = URL.createObjectURL(blob);
-          window.open(blobUrl, '_blank');
-          setTimeout(() => URL.revokeObjectURL(blobUrl), 30000);
-          await updateCacheStats();
-        } catch(e) {
-          alert('Erro ao baixar o PDF.');
-        }
-        showLoader(false);
-      } else {
-        window.open(url, '_blank');
-      }
-    } else {
-      alert('❌ Documento não disponível offline. Conecte-se à internet para baixar.');
-    }
-  }
-  
-  window.viewPDFOffline = viewPDFOffline;
-  
-  // ==================== MODAL DETALHE ====================
-  async function openDetailModal(id) {
-    const item = currentItems.find(i => String(i.id) === String(id));
-    if (!item) return;
     
+    // ==================== MODAL DE DETALHES ====================
+    const detailModalElem = document.getElementById('detailModal');
     const detailContent = document.getElementById('detailContent');
-    const files = item.files || [];
-    const memorial = files.find(f => f.category === 'memorial');
+    const closeDetailModalBtn = document.getElementById('closeDetailModalBtn');
     
-    let html = `<div class="item-detail-title"><strong>${escapeHtml(item.name)}</strong><br>ID: ${escapeHtml(item.code)}<br>Status: ${item.status === 'active' ? 'Ativo' : 'Inativo'}</div>`;
+    closeDetailModalBtn.addEventListener('click', () => detailModalElem.style.display = 'none');
+    detailModalElem.addEventListener('click', (e) => { if (e.target === detailModalElem) detailModalElem.style.display = 'none'; });
     
-    // Memorial
-    html += `<div class="pdf-group"><div class="pdf-group-title">📄 Memorial</div>`;
-    if (memorial) {
-      const isCached = await isPDFCached(memorial.file_url);
-      html += `<div class="pdf-row">
-        <span class="pdf-label">Memorial</span>
-        <div class="pdf-file-info">${escapeHtml(memorial.file_name)}</div>
-        <div>
-          <a href="${memorial.file_url}" target="_blank" class="btn-view-pdf">🌐 Online</a>
-          <button onclick="viewPDFOffline('${memorial.file_url}', '${escapeHtml(memorial.file_name)}', '${item.id}')" class="btn-view-offline">💾 Offline</button>
-          ${isCached ? '<span class="cached-badge">✓</span>' : ''}
-        </div>
-      </div>`;
-    } else {
-      html += `<div class="pdf-row"><span class="pdf-label">Memorial</span><div>— Nenhum —</div></div>`;
-    }
-    html += `</div>`;
-    
-    // Inspeções
-    html += `<div class="pdf-group"><div class="pdf-group-title">📅 Inspeções Mensais</div>`;
-    for (let i = 0; i < monthNames.length; i++) {
-      const file = files.find(f => f.category === monthKeys[i]);
-      if (file) {
-        const isCached = await isPDFCached(file.file_url);
-        const dataInfo = file.inspecao_data ? ` (${formatarData(file.inspecao_data)})` : '';
-        html += `<div class="pdf-row">
-          <span class="pdf-label">${monthNames[i]}</span>
-          <div class="pdf-file-info">${escapeHtml(file.file_name)}${dataInfo}</div>
-          <div>
-            <a href="${file.file_url}" target="_blank" class="btn-view-pdf">🌐 Online</a>
-            <button onclick="viewPDFOffline('${file.file_url}', '${escapeHtml(file.file_name)}', '${item.id}')" class="btn-view-offline">💾 Offline</button>
-            ${isCached ? '<span class="cached-badge">✓</span>' : ''}
-          </div>
-        </div>`;
+    function renderDetailModalViewOnly(item) {
+      const files = item.files || [];
+      const memorialFile = files.find(f => f.category === 'memorial');
+      const monthlyFiles = monthKeys.map(key => files.find(f => f.category === key));
+      
+      let html = `<div class="view-only-badge">🔒 Modo consulta - Visualização apenas</div>`;
+      html += `<div class="item-detail-title">
+                  <strong>${escapeHtml(item.name)}</strong><br>
+                  ${item.sub_localizacao ? `Sub. Localização: ${escapeHtml(item.sub_localizacao)}<br>` : ''}
+                  ${item.tamanho ? `Tamanho: ${escapeHtml(item.tamanho)}<br>` : ''}
+                  ID / TAG: ${escapeHtml(item.code)}<br>
+                  Status: <span class="status-badge ${item.status === 'active' ? 'status-active' : 'status-inactive'}">${item.status === 'active' ? 'Ativo' : 'Inativo'}</span>
+                </div>`;
+      
+      html += `<div style="margin-bottom: 1rem; text-align: right;">
+                <button id="showQRFromDetailBtn" class="btn-secondary" style="background:#1e4a76;">📱 Gerar QR Code deste item</button>
+               </div>`;
+      
+      html += `<div class="pdf-group"><div class="pdf-group-title">📄 Memorial de Cálculo</div>`;
+      if (memorialFile) {
+        html += `<div class="pdf-row"><span class="pdf-label">Memorial</span><div class="pdf-file-info"><a href="${memorialFile.file_url}" target="_blank">📄 ${escapeHtml(memorialFile.file_name)}</a></div><a href="${memorialFile.file_url}" target="_blank" class="btn-view-pdf">Visualizar</a></div>`;
       } else {
-        html += `<div class="pdf-row"><span class="pdf-label">${monthNames[i]}</span><div>— Nenhuma inspeção —</div></div>`;
+        html += `<div class="pdf-row"><span class="pdf-label">Memorial</span><div class="pdf-file-info">— Nenhum documento —</div></div>`;
       }
-    }
-    html += `</div>`;
-    
-    detailContent.innerHTML = html;
-    document.getElementById('detailModal').style.display = 'flex';
-  }
-  
-  // ==================== PREPARAR OFFLINE ====================
-  async function prepararDadosOffline() {
-    if (!navigator.onLine) {
-      alert('❌ Você está offline. Conecte-se à internet primeiro.');
-      return;
-    }
-    
-    if (isSaving) {
-      alert('⏳ Salvamento em andamento...');
-      return;
-    }
-    
-    isSaving = true;
-    showLoader(true);
-    
-    try {
-      localStorage.setItem('tendex_guest_cache', JSON.stringify(currentItems));
-      localStorage.setItem('tendex_cache_date', new Date().toISOString());
-      await saveItemsToCache(currentItems);
+      html += `</div>`;
       
-      const cachedPDFs = await getAllCachedPDFs();
-      const pdfSize = cachedPDFs.reduce((s,i) => s + (i.size||0), 0);
-      
-      showLoader(false);
-      alert(`✅ Dados salvos!\n\n📦 ${currentItems.length} tendas\n📄 ${cachedPDFs.length} PDFs\n💾 ${(pdfSize/(1024*1024)).toFixed(1)} MB\n\nAgora você pode usar OFFLINE!`);
-    } catch(e) {
-      showLoader(false);
-      alert('❌ Erro: ' + e.message);
-    } finally {
-      isSaving = false;
-    }
-  }
-  
-  // ==================== GERENCIAR CACHE ====================
-  async function openCacheModal() {
-    const listContainer = document.getElementById('cacheItemsList');
-    const cached = await getAllCachedPDFs();
-    const cachedUrls = new Set(cached.map(pdf => pdf.url));
-    
-    let html = '';
-    for (const item of currentItems) {
-      let totalFiles = 0;
-      let cachedCount = 0;
-      
-      for (const file of item.files) {
-        if (file.file_url && (file.category === 'memorial' || monthKeys.includes(file.category))) {
-          totalFiles++;
-          if (cachedUrls.has(file.file_url)) cachedCount++;
-        }
-      }
-      
-      const isSelected = selectedItemsIds.has(String(item.id));
-      const statusClass = cachedCount === totalFiles && totalFiles > 0 ? 'complete' : (cachedCount > 0 ? 'partial' : 'pending');
-      const statusText = totalFiles === 0 ? '📭 Sem PDFs' : `${cachedCount}/${totalFiles}`;
-      
-      html += `<div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem; border-bottom: 1px solid #e2e8f0;">
-        <input type="checkbox" data-id="${item.id}" ${isSelected ? 'checked' : ''} onchange="toggleSelectItem('${item.id}', this.checked)">
-        <div style="flex:1">
-          <strong>${escapeHtml(item.name)}</strong><br>
-          <small>${escapeHtml(item.code)}</small>
-        </div>
-        <span style="font-size:0.7rem; padding:0.2rem 0.5rem; border-radius:1rem; background:${statusClass === 'complete' ? '#d1fae5' : (statusClass === 'partial' ? '#fef3c7' : '#fee2e2')}">${statusText}</span>
-      </div>`;
-    }
-    
-    listContainer.innerHTML = html;
-    document.getElementById('cacheModal').style.display = 'flex';
-  }
-  
-  window.toggleSelectItem = function(id, checked) {
-    if (checked) {
-      selectedItemsIds.add(String(id));
-    } else {
-      selectedItemsIds.delete(String(id));
-    }
-  };
-  
-  async function downloadSelectedItems() {
-    if (!navigator.onLine) {
-      alert('❌ Conecte-se à internet para baixar PDFs.');
-      return;
-    }
-    
-    if (selectedItemsIds.size === 0) {
-      alert('⚠️ Selecione pelo menos uma tenda.');
-      return;
-    }
-    
-    if (isDownloading) {
-      alert('⏳ Download em andamento...');
-      return;
-    }
-    
-    isDownloading = true;
-    showLoader(true);
-    
-    const itemsToDownload = currentItems.filter(item => selectedItemsIds.has(String(item.id)));
-    const pdfsToDownload = [];
-    
-    for (const item of itemsToDownload) {
-      for (const file of item.files) {
-        if (file.file_url && (file.category === 'memorial' || monthKeys.includes(file.category))) {
-          const isCached = await isPDFCached(file.file_url);
-          if (!isCached) {
-            pdfsToDownload.push({ url: file.file_url, itemId: item.id, fileName: file.file_name });
-          }
-        }
-      }
-    }
-    
-    if (pdfsToDownload.length === 0) {
-      alert('✅ Todos os PDFs já estão em cache!');
-      showLoader(false);
-      isDownloading = false;
-      return;
-    }
-    
-    let downloaded = 0;
-    let errors = 0;
-    
-    for (const pdf of pdfsToDownload) {
-      try {
-        const response = await fetch(pdf.url);
-        if (response.ok) {
-          const blob = await response.blob();
-          await savePDFToCache(pdf.itemId, pdf.url, blob, pdf.fileName);
-          downloaded++;
+      html += `<div class="pdf-group"><div class="pdf-group-title">📅 Inspeções Mensais</div>`;
+      for (let i = 0; i < monthNames.length; i++) {
+        const file = monthlyFiles[i];
+        if (file) {
+          html += `<div class="pdf-row"><span class="pdf-label">${monthNames[i]}</span><div class="pdf-file-info"><a href="${file.file_url}" target="_blank">📄 ${escapeHtml(file.file_name)}</a></div><a href="${file.file_url}" target="_blank" class="btn-view-pdf">Visualizar</a></div>`;
         } else {
-          errors++;
+          html += `<div class="pdf-row"><span class="pdf-label">${monthNames[i]}</span><div class="pdf-file-info">— Nenhuma inspeção —</div></div>`;
         }
-      } catch(e) {
-        errors++;
+      }
+      html += `</div>`;
+      
+      detailContent.innerHTML = html;
+      
+      const qrBtn = document.getElementById('showQRFromDetailBtn');
+      if (qrBtn) {
+        qrBtn.addEventListener('click', () => {
+          detailModalElem.style.display = 'none';
+          openQRModal(item);
+        });
       }
     }
     
-    await updateCacheStats();
-    showLoader(false);
-    alert(`✅ Baixados: ${downloaded}\n❌ Erros: ${errors}`);
-    isDownloading = false;
-  }
-  
-  async function clearCache() {
-    if (confirm('⚠️ Limpar todos os PDFs do cache?')) {
-      showLoader(true);
-      await clearPDFsCache();
-      await updateCacheStats();
-      showLoader(false);
-      alert('✅ Cache limpo!');
-      if (document.getElementById('cacheModal').style.display === 'flex') {
-        await openCacheModal();
+    async function openDetailModal(itemId) {
+      const item = currentItems.find(i => String(i.id) === String(itemId));
+      if (!item) { alert('Item não encontrado.'); return; }
+      renderDetailModalViewOnly(item);
+      detailModalElem.style.display = 'flex';
+    }
+    
+    // ==================== INICIALIZAR ====================
+    function initMonthButtons() {
+      const container = document.getElementById('monthButtonsContainer');
+      container.innerHTML = '';
+      monthNames.forEach((month, idx) => {
+        const btn = document.createElement('button');
+        btn.className = 'month-btn';
+        btn.textContent = month;
+        btn.addEventListener('click', () => {
+          const count = currentItems.filter(item => item.files.some(f => f.category === monthKeys[idx])).length;
+          alert(`📊 ${month}: ${count} inspeção(ões) registrada(s).`);
+        });
+        container.appendChild(btn);
+      });
+    }
+    
+    async function manualRefresh() {
+      if (!navigator.onLine) {
+        alert('⚠️ Você está offline. Não é possível buscar atualizações.');
+        return;
       }
-    }
-  }
-  
-  // ==================== INICIALIZAÇÃO ====================
-  async function init() {
-    await initDB();
-    await registerServiceWorker();
-    await loadData();
-    
-    // Gerar QR geral
-    const qrDiv = document.getElementById('generalQRCode');
-    if (qrDiv) {
-      await generateQRCode(qrDiv, BASE_URL, 80);
+      const refreshBtn = document.getElementById('manualRefreshBtn');
+      refreshBtn.innerHTML = '⏳ Atualizando...';
+      refreshBtn.disabled = true;
+      await fetchAllData(true);
+      refreshBtn.innerHTML = '🔄 Atualizar Agora';
+      refreshBtn.disabled = false;
     }
     
-    // Eventos
-    document.getElementById('prepareOfflineBtn').onclick = prepararDadosOffline;
-    document.getElementById('cacheStatusBtn').onclick = openCacheModal;
-    document.getElementById('closeCacheModalBtn').onclick = () => document.getElementById('cacheModal').style.display = 'none';
-    document.getElementById('downloadSelectedBtn').onclick = downloadSelectedItems;
-    document.getElementById('clearCacheBtn').onclick = clearCache;
-    document.getElementById('manualRefreshBtn').onclick = () => loadData();
-    document.getElementById('closeDetailModalBtn').onclick = () => document.getElementById('detailModal').style.display = 'none';
-    document.getElementById('closeQRModalBtn').onclick = () => document.getElementById('qrModal').style.display = 'none';
-    document.getElementById('downloadQRBtn').onclick = () => {
-      const canvas = document.querySelector('#qrLargeContainer canvas');
-      if (canvas) {
-        const a = document.createElement('a');
-        a.download = 'qrcode.png';
-        a.href = canvas.toDataURL();
-        a.click();
-      }
-    };
-    document.getElementById('printQRBtn').onclick = () => window.print();
-    document.getElementById('searchInput').oninput = (e) => renderCards(e.target.value);
+    // ==================== EVENTOS ====================
+    const qrModal = document.getElementById('qrModal');
+    const closeQRModalBtn = document.getElementById('closeQRModalBtn');
+    const downloadQRBtn = document.getElementById('downloadQRBtn');
+    const printQRBtn = document.getElementById('printQRBtn');
+    const downloadGeneralQRBtn = document.getElementById('downloadGeneralQRBtn');
+    const manualRefreshBtn = document.getElementById('manualRefreshBtn');
+    const printMultipleQRBtn = document.getElementById('printMultipleQRBtn');
+    const printMultipleQRFromModalBtn = document.getElementById('printMultipleQRFromModalBtn');
+    const printGeneralQRBtn = document.getElementById('printGeneralQRBtn');
     
-    // Hash para abrir item específico
-    if (window.location.hash && window.location.hash.startsWith('#item=')) {
-      const id = window.location.hash.substring(6);
-      setTimeout(() => openDetailModal(id), 500);
-    }
-  }
-  
-  init();
-})();
+    const qrGeneralModal = document.getElementById('qrGeneralModal');
+    const closeQRGeneralModalBtn = document.getElementById('closeQRGeneralModalBtn');
+    const downloadGeneralQRModalBtn = document.getElementById('downloadGeneralQRModalBtn');
+    
+    closeQRModalBtn.addEventListener('click', () => qrModal.style.display = 'none');
+    downloadQRBtn.addEventListener('click', downloadQRCode);
+    printQRBtn.addEventListener('click', printItemQRCode);
+    
+    downloadGeneralQRBtn.addEventListener('click', downloadGeneralQR);
+    if (downloadGeneralQRModalBtn) downloadGeneralQRModalBtn.addEventListener('click', downloadGeneralQR);
+    manualRefreshBtn.addEventListener('click', manualRefresh);
+    printMultipleQRBtn.addEventListener('click', printMultipleQRCodes);
+    if (printMultipleQRFromModalBtn) printMultipleQRFromModalBtn.addEventListener('click', printMultipleQRCodes);
+    if (printGeneralQRBtn) printGeneralQRBtn.addEventListener('click', printSingleQRCode);
+    
+    closeQRGeneralModalBtn.addEventListener('click', () => qrGeneralModal.style.display = 'none');
+    qrGeneralModal.addEventListener('click', (e) => { if (e.target === qrGeneralModal) qrGeneralModal.style.display = 'none'; });
+    
+    const generalQrElement = document.getElementById('generalQRCode');
+    if (generalQrElement) generalQrElement.addEventListener('click', openGeneralQRModal);
+    
+    const searchInput = document.getElementById('searchInput');
+    searchInput.addEventListener('input', (e) => renderCards(e.target.value));
+    
+    window.addEventListener('hashchange', checkHashForItem);
+    window.addEventListener('load', async () => { if (navigator.onLine) await fetchAllData(true); });
+    
+    // Esconder a folha de impressão inicialmente
+    document.getElementById('printQRSheet').style.display = 'none';
+    
+    (async function init() {
+      initMonthButtons();
+      await generateGeneralQRCode();
+      await fetchAllData(true);
+      checkHashForItem();
+      console.log('✅ Sistema inicializado!');
+    })();
+  })();
 </script>
 </body>
 </html>
