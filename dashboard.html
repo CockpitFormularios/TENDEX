@@ -132,10 +132,6 @@
     .sync-status { position: fixed; top: 10px; right: 10px; background: rgba(0,0,0,0.7); color: white; padding: 4px 8px; border-radius: 20px; font-size: 10px; z-index: 10; display: none; }
     .sync-pending-badge { background: #f59e0b; color: white; border-radius: 20px; padding: 2px 8px; font-size: 10px; margin-left: 8px; cursor: pointer; }
     .sync-pending-badge:hover { background: #d97706; }
-    
-    /* Novo estilo para barra de progresso do formulário */
-    .form-progress-container { margin-bottom: 1rem; padding: 0.5rem; background: #f8fafc; border-radius: 0.5rem; display: none; }
-    .form-progress-text { font-size: 0.75rem; margin-top: 0.3rem; color: #1e4a76; text-align: center; }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
@@ -269,12 +265,6 @@
 <div id="formModal" class="modal">
   <div class="modal-content">
     <div class="modal-header"><h2 id="formModalTitle">Formulário de Inspeção</h2><button class="close-modal" id="closeFormModalBtn">&times;</button></div>
-    <div id="formProgressContainer" class="form-progress-container">
-      <div class="progress-bar">
-        <div class="progress-fill" id="formProgressFill" style="width: 0%;"></div>
-      </div>
-      <div id="formProgressText" class="form-progress-text"></div>
-    </div>
     <div id="formFieldsContainer"></div>
     <div class="form-group">
       <label>📸 Foto da Inspeção (obrigatória)</label>
@@ -311,13 +301,10 @@
     const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     const BUCKET = "pdfs";
 
-    // ==================== VERIFICAR PDF-LIB (PRÉ-CARREGADO) ====================
-    let pdfLibLoaded = false;
-    
+    // ==================== VERIFICAR PDF-LIB ====================
     async function carregarPDFLib() {
       if (window.PDFLib && window.PDFLib.PDFDocument) {
         console.log('✅ PDF-lib já carregado');
-        pdfLibLoaded = true;
         return true;
       }
       
@@ -327,7 +314,6 @@
         script.src = 'https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js';
         script.onload = () => {
           console.log('✅ PDF-lib carregado com sucesso');
-          pdfLibLoaded = true;
           resolve(true);
         };
         script.onerror = () => {
@@ -337,9 +323,6 @@
         document.head.appendChild(script);
       });
     }
-
-    // PRÉ-CARREGAR PDF-Lib imediatamente
-    carregarPDFLib();
 
     // ==================== OFFLINE STORAGE (IndexedDB) ====================
     const DB_NAME_OFFLINE = 'TendexOfflineDB';
@@ -353,7 +336,6 @@
 
     let dbInstance = null;
     let cachedModeloPDF = null;
-    let cachedModeloPDFPromise = null; // Para evitar carregamentos concorrentes
     let isInitialized = false;
     let currentItems = [];
     let currentUser = null;
@@ -399,135 +381,6 @@
           db.createObjectStore(STORE_SIGNATURE, { keyPath: 'id' });
         };
       });
-    }
-
-    // ==================== FUNÇÃO DE PROGRESSO DO FORMULÁRIO ====================
-    function updateFormProgress(percent, text) {
-      const container = document.getElementById('formProgressContainer');
-      const fill = document.getElementById('formProgressFill');
-      const textEl = document.getElementById('formProgressText');
-      
-      if (container) container.style.display = 'block';
-      if (fill) fill.style.width = `${percent}%`;
-      if (textEl) textEl.textContent = text;
-      
-      console.log(`📊 Progresso: ${percent}% - ${text}`);
-    }
-
-    // ==================== REDIMENSIONAR FOTO ====================
-    async function redimensionarFoto(file, maxWidth = 800, maxHeight = 600, qualidade = 0.7) {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const img = new Image();
-          img.onload = () => {
-            let width = img.width;
-            let height = img.height;
-            
-            // Calcula novo tamanho
-            if (width > maxWidth) {
-              height = (height * maxWidth) / width;
-              width = maxWidth;
-            }
-            if (height > maxHeight) {
-              width = (width * maxHeight) / height;
-              height = maxHeight;
-            }
-            
-            const canvas = document.createElement('canvas');
-            canvas.width = width;
-            canvas.height = height;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0, width, height);
-            
-            canvas.toBlob((blob) => {
-              const reducedFile = new File([blob], file.name, { 
-                type: 'image/jpeg',
-                lastModified: Date.now()
-              });
-              resolve(reducedFile);
-            }, 'image/jpeg', qualidade);
-          };
-          img.onerror = reject;
-          img.src = e.target.result;
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-    }
-
-    // ==================== CARREGAR MODELO PDF (OTIMIZADO) ====================
-    async function isModeloCacheado() {
-      try {
-        const db = await initOfflineDB();
-        const tx = db.transaction(STORE_MODELO_PDF, 'readonly');
-        const store = tx.objectStore(STORE_MODELO_PDF);
-        const result = await new Promise((resolve) => {
-          const request = store.get('modelo');
-          request.onsuccess = () => resolve(request.result);
-        });
-        return result && result.data;
-      } catch(e) {
-        return false;
-      }
-    }
-
-    async function carregarModeloPDF() {
-      // Se já tem em memória, retorna imediatamente
-      if (cachedModeloPDF) {
-        console.log('✅ Modelo PDF retornado da memória');
-        return cachedModeloPDF;
-      }
-      
-      // Se já está carregando, aguarda a mesma promise
-      if (cachedModeloPDFPromise) {
-        console.log('⏳ Aguardando modelo já em carregamento...');
-        return await cachedModeloPDFPromise;
-      }
-      
-      console.log('📥 Carregando modelo PDF (primeira vez)...');
-      cachedModeloPDFPromise = (async () => {
-        try {
-          const db = await initOfflineDB();
-          const tx = db.transaction(STORE_MODELO_PDF, 'readonly');
-          const store = tx.objectStore(STORE_MODELO_PDF);
-          const result = await new Promise((resolve, reject) => {
-            const request = store.get('modelo');
-            request.onsuccess = () => resolve(request.result);
-            request.onerror = () => reject(request.error);
-          });
-          
-          if (result && result.data) {
-            cachedModeloPDF = result.data;
-            console.log('✅ Modelo PDF carregado do IndexedDB');
-            return cachedModeloPDF;
-          }
-        } catch(e) {
-          console.warn('Erro ao ler IndexedDB:', e);
-        }
-        
-        if (!navigator.onLine) {
-          throw new Error('Modelo PDF não está em cache e você está offline');
-        }
-        
-        console.log('📥 Baixando modelo PDF...');
-        const response = await fetch(MODELO_PDF_URL);
-        if (!response.ok) throw new Error('Falha ao baixar modelo');
-        const buffer = await response.arrayBuffer();
-        cachedModeloPDF = buffer;
-        
-        // Cache em background (não precisa esperar)
-        const db = await initOfflineDB();
-        const tx = db.transaction(STORE_MODELO_PDF, 'readwrite');
-        tx.objectStore(STORE_MODELO_PDF).put({ id: 'modelo', data: buffer });
-        
-        console.log('✅ Modelo PDF baixado e cacheado');
-        return buffer;
-      })();
-      
-      const result = await cachedModeloPDFPromise;
-      cachedModeloPDFPromise = null;
-      return result;
     }
 
     // ==================== VERIFICAR PERSISTÊNCIA ====================
@@ -1579,6 +1432,73 @@
       }
     }
 
+    // ==================== CARREGAR MODELO PDF ====================
+    async function isModeloCacheado() {
+      try {
+        const db = await initOfflineDB();
+        const tx = db.transaction(STORE_MODELO_PDF, 'readonly');
+        const store = tx.objectStore(STORE_MODELO_PDF);
+        const result = await new Promise((resolve) => {
+          const request = store.get('modelo');
+          request.onsuccess = () => resolve(request.result);
+        });
+        return result && result.data;
+      } catch(e) {
+        return false;
+      }
+    }
+
+    async function carregarModeloPDF() {
+      if (cachedModeloPDF) return cachedModeloPDF;
+      
+      try {
+        const db = await initOfflineDB();
+        const tx = db.transaction(STORE_MODELO_PDF, 'readonly');
+        const store = tx.objectStore(STORE_MODELO_PDF);
+        const result = await new Promise((resolve, reject) => {
+          const request = store.get('modelo');
+          request.onsuccess = () => resolve(request.result);
+          request.onerror = () => reject(request.error);
+        });
+        
+        if (result && result.data) {
+          cachedModeloPDF = result.data;
+          console.log('✅ Modelo PDF carregado do IndexedDB');
+          return cachedModeloPDF;
+        }
+      } catch(e) {
+        console.warn('Erro ao ler IndexedDB:', e);
+      }
+      
+      if (!navigator.onLine) {
+        throw new Error('Modelo PDF não está em cache e você está offline');
+      }
+      
+      try {
+        console.log('📥 Baixando modelo PDF...');
+        const response = await fetch(MODELO_PDF_URL);
+        if (!response.ok) throw new Error('Falha ao baixar modelo');
+        const buffer = await response.arrayBuffer();
+        cachedModeloPDF = buffer;
+        
+        const db = await initOfflineDB();
+        const tx = db.transaction(STORE_MODELO_PDF, 'readwrite');
+        const store = tx.objectStore(STORE_MODELO_PDF);
+        
+        await new Promise((resolve, reject) => {
+          const req = store.put({ id: 'modelo', data: buffer });
+          req.onsuccess = () => resolve();
+          req.onerror = () => reject(req.error);
+        });
+        
+        console.log('✅ Modelo PDF salvo');
+        return buffer;
+      } catch (error) {
+        console.error('Erro ao carregar modelo PDF:', error);
+        throw error;
+      }
+    }
+
     // ==================== REFRESH DATA ====================
     async function refreshData() { 
       await getAllItemsWithFiles();
@@ -1744,10 +1664,8 @@
       }
     }
 
-    // ==================== GERAR PDF BLOB (OTIMIZADO) ====================
+    // ==================== GERAR PDF BLOB (CORRIGIDO) ====================
     async function gerarPDFBlob(formData, itemInfo, fotoFile) {
-      updateFormProgress(5, '📄 Preparando PDF...');
-      
       if (!window.PDFLib || !window.PDFLib.PDFDocument) {
         console.log('PDF-lib não disponível, tentando carregar...');
         await carregarPDFLib();
@@ -1760,43 +1678,37 @@
       const { PDFDocument } = window.PDFLib;
       console.log('✅ PDFDocument disponível, gerando PDF...');
       
-      updateFormProgress(10, '📥 Carregando modelo...');
       const modelBytes = await carregarModeloPDF();
-      
-      updateFormProgress(20, '📄 Carregando documento...');
       const pdfDoc = await PDFDocument.load(modelBytes);
       const form = pdfDoc.getForm();
       
-      updateFormProgress(30, '✍️ Preenchendo campos...');
+      const camposCabecalho = [
+        { nome: "unidade", valor: formData.unidade || "" },
+        { nome: "localidade", valor: formData.localidade || "" },
+        { nome: "nome", valor: formData.resp_nome || "" },
+        { nome: "matrcula", valor: formData.resp_matricula || "" },
+        { nome: "data", valor: formData.data_inspecao || "" },
+        { nome: "empresa", valor: formData.empresa || "" }
+      ];
       
-      // OTIMIZAÇÃO: Preenche TODOS os campos de uma vez em lote
-      const camposParaPreencher = {
-        "unidade": formData.unidade || "",
-        "localidade": formData.localidade || "",
-        "nome": formData.resp_nome || "",
-        "matrcula": formData.resp_matricula || "",
-        "data": formData.data_inspecao || "",
-        "empresa": formData.empresa || ""
-      };
-      
-      // Adiciona os 25 campos das perguntas
-      for (let i = 1; i <= 25; i++) {
-        camposParaPreencher[String(i)] = formData[`resp_${i-1}`] || "Não respondido";
-      }
-      
-      // Preenche em lote (muito mais rápido)
-      for (const [nome, valor] of Object.entries(camposParaPreencher)) {
+      for (const campo of camposCabecalho) {
         try { 
-          const campo = form.getTextField(nome);
-          if (campo) campo.setText(valor);
-        } catch(e) { /* ignora campos que não existem */ }
+          const textField = form.getTextField(campo.nome);
+          if (textField) textField.setText(campo.valor || '');
+        } catch(e) { console.warn(`Campo ${campo.nome} não encontrado`); }
       }
       
-      updateFormProgress(50, '🔏 Adicionando assinatura...');
+      for (let i = 1; i <= 25; i++) {
+        const resposta = formData[`resp_${i-1}`] || "Não respondido";
+        try { 
+          const textField = form.getTextField(`${i}`);
+          if (textField) textField.setText(resposta);
+        } catch(e) { console.warn(`Campo ${i} não encontrado`); }
+      }
+      
       await adicionarInfoItemEAssinatura(pdfDoc, itemInfo.code, itemInfo.tamanho);
       
       if (fotoFile) {
-        updateFormProgress(65, '📸 Inserindo foto...');
         try {
           const fotoBytes = await fotoFile.arrayBuffer();
           let fotoImage;
@@ -1825,15 +1737,12 @@
         }
       }
       
-      updateFormProgress(85, '💾 Finalizando PDF...');
       const pdfBytes = await pdfDoc.save();
       console.log('✅ PDF gerado com sucesso, tamanho:', pdfBytes.length);
-      
-      updateFormProgress(95, '✅ PDF gerado!');
       return new Blob([pdfBytes], { type: 'application/pdf' });
     }
 
-    // ==================== GENERATE AND ATTACH PDF (OTIMIZADO) ====================
+    // ==================== GENERATE AND ATTACH PDF ====================
     async function generateAndAttachPdf(itemId, category, monthName, formData, itemInfo, fotoFile) {
       const temModelo = await isModeloCacheado();
       if (!temModelo && !navigator.onLine) {
@@ -1845,16 +1754,15 @@
       
       if (!isOnline) {
         try {
+          const loader = document.getElementById('fullscreenLoader');
+          loader.classList.add('active');
           console.log('💾 Modo offline - iniciando salvamento local...');
           
           if (!temModelo) {
             throw new Error('Modelo PDF não está cacheado para uso offline');
           }
           
-          updateFormProgress(10, '📥 Gerando PDF offline...');
           const pdfBlob = await gerarPDFBlob(formData, itemInfo, fotoFile);
-          
-          updateFormProgress(60, '💾 Salvando localmente...');
           const pdfBase64 = await blobToBase64(pdfBlob);
           let fotoBase64 = null;
           if (fotoFile) fotoBase64 = await blobToBase64(fotoFile);
@@ -1880,13 +1788,15 @@
           };
           await salvarInspecaoPending(pendingData);
           
-          updateFormProgress(100, '✅ Salvo localmente!');
+          loader.classList.remove('active');
           await updatePendingBadge();
           
           console.log(`✅ Inspeção offline salva com ID: ${pendingId}`);
           alert('⚠️ Você está offline. O PDF foi salvo localmente e será enviado automaticamente quando a internet voltar.');
           return;
         } catch (error) {
+          const loader = document.getElementById('fullscreenLoader');
+          loader.classList.remove('active');
           console.error('❌ Erro ao salvar offline:', error);
           alert('Erro ao salvar inspeção localmente: ' + (error.message || 'Verifique o console'));
           return;
@@ -1894,11 +1804,9 @@
       }
 
       try {
-        updateFormProgress(5, '📄 Gerando PDF...');
         const pdfBlob = await gerarPDFBlob(formData, itemInfo, fotoFile);
         const file = new File([pdfBlob], `checklist_${monthName}_${Date.now()}.pdf`, { type: 'application/pdf' });
         
-        updateFormProgress(70, '📤 Enviando para o servidor...');
         const { data: existingFile } = await supabase.from('files').select('id, file_url').eq('item_id', itemId).eq('category', category).maybeSingle();
         if (existingFile && existingFile.file_url) {
           await deleteStorageFile(existingFile.file_url);
@@ -1906,22 +1814,12 @@
         }
         await addFileToItem(itemId, category, file, formData.data_inspecao);
         
-        updateFormProgress(100, '✅ Concluído!');
         alert(`✅ PDF gerado!\nID: ${itemInfo.code} | Tamanho: ${itemInfo.tamanho || 'N/I'}\nAssinatura: ${currentUser?.username || 'usuário'}`);
-        
         await refreshData();
         await openDetailModal(itemId);
       } catch(err) { 
         console.error('Erro detalhado:', err); 
         alert("Erro ao gerar PDF: " + err.message); 
-      } finally {
-        // Esconde a barra de progresso após 2 segundos
-        setTimeout(() => {
-          const container = document.getElementById('formProgressContainer');
-          if (container) container.style.display = 'none';
-          const fill = document.getElementById('formProgressFill');
-          if (fill) fill.style.width = '0%';
-        }, 2000);
       }
     }
 
@@ -2201,93 +2099,37 @@
     const fotoInput = document.getElementById('fotoInspecao');
     const fotoPreview = document.getElementById('fotoPreview');
 
-    if (fotoInput) fotoInput.addEventListener('change', function(e) { 
-      const file = e.target.files[0]; 
-      if (file) { 
-        const reader = new FileReader(); 
-        reader.onload = function(event) { 
-          fotoPreview.innerHTML = `<img src="${event.target.result}" class="image-preview" alt="Preview">`; 
-        }; 
-        reader.readAsDataURL(file); 
-      } else { 
-        fotoPreview.innerHTML = ''; 
-      } 
-    });
+    if (fotoInput) fotoInput.addEventListener('change', function(e) { const file = e.target.files[0]; if (file) { const reader = new FileReader(); reader.onload = function(event) { fotoPreview.innerHTML = `<img src="${event.target.result}" class="image-preview" alt="Preview">`; }; reader.readAsDataURL(file); } else { fotoPreview.innerHTML = ''; } });
 
     function openFormModal(itemId, category, monthName) {
-      currentFormItemId = itemId; 
-      currentFormCategory = category; 
-      currentFormMonthName = monthName;
+      currentFormItemId = itemId; currentFormCategory = category; currentFormMonthName = monthName;
       const itemAtual = currentItems.find(i => String(i.id) === String(itemId));
       currentItemInfo = itemAtual || { name: '', code: '', tamanho: '' };
       document.getElementById('formModalTitle').innerText = `Formulário de Inspeção - ${monthName}`;
-      
-      // Esconde barra de progresso ao abrir
-      const progressContainer = document.getElementById('formProgressContainer');
-      if (progressContainer) progressContainer.style.display = 'none';
-      
       let html = `<div class="form-row"><div class="form-group"><label>Unidade</label><input type="text" id="unidade" placeholder="Ex: Matriz" spellcheck="false"></div><div class="form-group"><label>Nome da Localidade</label><input type="text" id="localidade" spellcheck="false"></div></div><div class="form-row"><div class="form-group"><label>Responsável - Nome</label><input type="text" id="resp_nome" spellcheck="false"></div><div class="form-group"><label>Responsável - Matrícula</label><input type="text" id="resp_matricula" spellcheck="false"></div></div><div class="form-row"><div class="form-group"><label>Data da Inspeção</label><input type="date" id="data_inspecao"></div><div class="form-group"><label>Empresa</label><input type="text" id="empresa" spellcheck="false"></div></div><hr style="margin: 1rem 0;"><h3>Checklist de Inspeção</h3>`;
-      
-      for (let i=0; i<checklistPerguntas.length; i++) {
-        html += `<div class="question-group"><div class="question-text">${i+1}. ${escapeHtml(checklistPerguntas[i])}</div><div class="question-options"><label><input type="radio" name="resp_${i}" value="Conforme"> Conforme</label><label><input type="radio" name="resp_${i}" value="Não conforme"> Não conforme</label><label><input type="radio" name="resp_${i}" value="Não se aplica"> Não se aplica</label></div><div class="question-obs"><input type="text" placeholder="Observação (opcional)" id="obs_${i}" style="width:100%;" spellcheck="false"></div></div>`;
-      }
-      
+      for (let i=0; i<checklistPerguntas.length; i++) html += `<div class="question-group"><div class="question-text">${i+1}. ${escapeHtml(checklistPerguntas[i])}</div><div class="question-options"><label><input type="radio" name="resp_${i}" value="Conforme"> Conforme</label><label><input type="radio" name="resp_${i}" value="Não conforme"> Não conforme</label><label><input type="radio" name="resp_${i}" value="Não se aplica"> Não se aplica</label></div><div class="question-obs"><input type="text" placeholder="Observação (opcional)" id="obs_${i}" style="width:100%;" spellcheck="false"></div></div>`;
       formFieldsContainer.innerHTML = html;
       
       const unidadeInput = document.getElementById('unidade');
       if (unidadeInput) unidadeInput.value = 'SERRA NORTE';
       const localidadeInput = document.getElementById('localidade');
-      if (localidadeInput) { 
-        const localizacao = itemAtual?.name || ''; 
-        const subLocal = itemAtual?.sub_localizacao || ''; 
-        const localidadeCompleta = subLocal ? `${localizacao} - ${subLocal}` : localizacao; 
-        localidadeInput.value = localidadeCompleta; 
-      }
+      if (localidadeInput) { const localizacao = itemAtual?.name || ''; const subLocal = itemAtual?.sub_localizacao || ''; const localidadeCompleta = subLocal ? `${localizacao} - ${subLocal}` : localizacao; localidadeInput.value = localidadeCompleta; }
       if (fotoInput) fotoInput.value = '';
       if (fotoPreview) fotoPreview.innerHTML = '';
       formModal.style.display = 'flex';
     }
 
     generatePdfBtn.addEventListener('click', async () => {
-      const formData = { 
-        unidade: document.getElementById('unidade')?.value || '', 
-        localidade: document.getElementById('localidade')?.value || '', 
-        resp_nome: document.getElementById('resp_nome')?.value || '', 
-        resp_matricula: document.getElementById('resp_matricula')?.value || '', 
-        data_inspecao: document.getElementById('data_inspecao')?.value || '', 
-        empresa: document.getElementById('empresa')?.value || '' 
-      };
-      
-      for (let i=0; i<checklistPerguntas.length; i++) { 
-        const radio = document.querySelector(`input[name="resp_${i}"]:checked`); 
-        formData[`resp_${i}`] = radio ? radio.value : "Não respondido"; 
-      }
-      
-      if (!formData.data_inspecao || !formData.resp_nome) { 
-        alert("Preencha Data e Responsável."); 
-        return; 
-      }
-      
-      let fotoFile = document.getElementById('fotoInspecao')?.files[0] || null;
-      if (!fotoFile) { 
-        alert("Por favor, anexe uma foto da inspeção."); 
-        return; 
-      }
-      
-      // OTIMIZAÇÃO: Redimensiona a foto antes de processar
-      updateFormProgress(0, '🖼️ Otimizando foto...');
-      fotoFile = await redimensionarFoto(fotoFile, 800, 600, 0.7);
-      
-      // Mostra barra de progresso
-      const progressContainer = document.getElementById('formProgressContainer');
-      if (progressContainer) progressContainer.style.display = 'block';
-      
-      try { 
-        await generateAndAttachPdf(currentFormItemId, currentFormCategory, currentFormMonthName, formData, currentItemInfo, fotoFile); 
-        formModal.style.display = 'none';
-      } catch(err) { 
-        alert("Erro: " + err.message);
-      }
+      const formData = { unidade: document.getElementById('unidade')?.value || '', localidade: document.getElementById('localidade')?.value || '', resp_nome: document.getElementById('resp_nome')?.value || '', resp_matricula: document.getElementById('resp_matricula')?.value || '', data_inspecao: document.getElementById('data_inspecao')?.value || '', empresa: document.getElementById('empresa')?.value || '' };
+      for (let i=0; i<checklistPerguntas.length; i++) { const radio = document.querySelector(`input[name="resp_${i}"]:checked`); formData[`resp_${i}`] = radio ? radio.value : "Não respondido"; }
+      if (!formData.data_inspecao || !formData.resp_nome) { alert("Preencha Data e Responsável."); return; }
+      const fotoFile = document.getElementById('fotoInspecao')?.files[0] || null;
+      if (!fotoFile) { alert("Por favor, anexe uma foto da inspeção."); return; }
+      const loader = document.getElementById('fullscreenLoader');
+      loader.classList.add('active');
+      try { await generateAndAttachPdf(currentFormItemId, currentFormCategory, currentFormMonthName, formData, currentItemInfo, fotoFile); formModal.style.display = 'none';
+      } catch(err) { alert("Erro: " + err.message);
+      } finally { loader.classList.remove('active'); }
     });
 
     closeFormModalBtn.addEventListener('click', () => formModal.style.display = 'none');
