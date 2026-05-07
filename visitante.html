@@ -18,21 +18,25 @@
     .guest-btn { 
       background: #64748b; 
       color: white; 
-      padding: 0.5rem 1.2rem; 
+      padding: 0.3rem 1rem; 
       border-radius: 2rem; 
-      font-size: 0.9rem; 
+      font-size: 0.85rem; 
       display: flex; 
       align-items: center; 
       gap: 0.5rem; 
       cursor: pointer;
       transition: all 0.2s;
       border: none;
-      font-weight: 600;
     }
     .guest-btn:hover { background: #475569; transform: scale(0.98); }
-    .guest-btn .gear-icon { font-size: 1rem; transition: transform 0.3s; }
-    .guest-btn:hover .gear-icon { transform: rotate(30deg); }
-    
+    .refresh-status { background: #e0f2fe; color: #0369a1; padding: 0.3rem 0.8rem; border-radius: 2rem; font-size: 0.7rem; display: flex; align-items: center; gap: 0.5rem; }
+    .cache-status { background: #10b981; color: white; padding: 0.3rem 0.8rem; border-radius: 2rem; font-size: 0.7rem; display: flex; align-items: center; gap: 0.5rem; cursor: pointer; }
+    .cache-status:hover { background: #059669; }
+    .sw-status { background: #8b5cf6; color: white; padding: 0.3rem 0.8rem; border-radius: 2rem; font-size: 0.7rem; display: flex; align-items: center; gap: 0.3rem; }
+    .sw-active { background: #10b981; }
+    .sw-inactive { background: #ef4444; }
+    .sw-loading { background: #f59e0b; animation: pulse 1s infinite; }
+    @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
     .search-area { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 1.5rem; background: white; padding: 0.5rem 1rem; border-radius: 2rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
     .search-icon { font-size: 1.2rem; color: #64748b; }
     .search-input { flex: 1; border: none; outline: none; font-size: 1rem; padding: 0.4rem 0; background: transparent; }
@@ -81,6 +85,8 @@
     .btn-primary:hover { background: #0f2b3d; }
     .btn-success { background: #10b981; color: white; border: none; padding: 0.5rem 1rem; border-radius: 2rem; cursor: pointer; font-weight: 600; }
     .btn-success:hover { background: #059669; }
+    .btn-refresh { background: #f59e0b; color: white; border: none; padding: 0.3rem 0.8rem; border-radius: 2rem; cursor: pointer; font-weight: 600; font-size: 0.7rem; }
+    .btn-refresh:hover { background: #d97706; }
     .general-qr-section { background: linear-gradient(135deg, #e0f2fe, #f1f5f9); border-radius: 1rem; padding: 1rem; margin-bottom: 1.5rem; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; }
     .general-qr-left { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
     .general-qr-code { width: 100px; height: 100px; cursor: pointer; background: white; border-radius: 12px; padding: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); display: flex; align-items: center; justify-content: center; }
@@ -222,11 +228,15 @@
 <div class="dashboard-header">
   <div class="header-left" style="display: flex; align-items: center; gap: 1rem;">
     <img src="https://jklcvyuxwxgsfczrfaco.supabase.co/storage/v1/object/public/assinaturas/Tenda_logo2.png" alt="Logo" class="logo">
-    <h1>Visitante - Modo Offline</h1>
+    <h1></h1>
   </div>
-  <button class="guest-btn" id="openSettingsBtn">
-    <span class="gear-icon">⚙️</span> Visitante
-  </button>
+  <div style="display: flex; align-items: center; gap: 0.5rem;">
+    <div class="sw-status sw-loading" id="swStatus">⚙️ Ativando...</div>
+    <div class="cache-status" id="cacheStatusBtn"><span>📄</span><span id="cacheStats">0 | 0MB</span></div>
+    <div class="refresh-status"><span>🔄</span><span id="lastUpdateText">Verificando...</span></div>
+    <button class="btn-refresh" id="manualRefreshBtn">🔄</button>
+    <button class="guest-btn" id="openSettingsBtn">Visitante</button>
+  </div>
 </div>
 
 <!-- Modal de Configurações do Visitante -->
@@ -262,7 +272,7 @@
         <span class="info-value" id="settingsCacheSize">0 MB</span>
       </div>
       <div class="settings-buttons" style="margin-top: 0.5rem;">
-        <button id="settingsOpenCacheBtn" class="btn-settings btn-settings-success">📄 Ver/Gerenciar PDFs</button>
+        <button id="settingsOpenCacheBtn" class="btn-settings btn-settings-success">📄 Ver/PDFs</button>
         <button id="settingsClearCacheBtn" class="btn-settings btn-settings-danger">🗑️ Limpar Tudo</button>
       </div>
     </div>
@@ -270,10 +280,6 @@
     <!-- Dados -->
     <div class="settings-section">
       <h3>🔄 Dados</h3>
-      <div class="info-row">
-        <span class="info-label">Última atualização:</span>
-        <span class="info-value" id="settingsLastUpdate">--:--:--</span>
-      </div>
       <div class="settings-buttons">
         <button id="settingsRefreshDataBtn" class="btn-settings">🔄 Atualizar Dados</button>
         <button id="settingsClearDataBtn" class="btn-settings btn-settings-danger">🗑️ Limpar Dados</button>
@@ -325,7 +331,7 @@
     <div id="cacheStatusList" style="margin: 0.5rem 0;"></div>
     <div class="qr-actions">
       <button id="downloadSelectedBtn" class="btn-success">📥 Baixar/Atualizar PDFs</button>
-      <button id="clearCacheBtn" class="btn-secondary" style="background:#ef4444;">🗑️ Limpar Tudo (100+ MB)</button>
+      <button id="clearCacheBtn" class="btn-secondary" style="background:#ef4444;">🗑️ Limpar Tudo</button>
     </div>
     <p class="notice-guest">✨ Selecione as tendas e baixe os PDFs. Clique em "Limpar Tudo" para apagar TODOS os dados do cache.</p>
   </div>
@@ -385,6 +391,8 @@
   // ==================== SERVICE WORKER ====================
   async function registerServiceWorker() {
     if (!('serviceWorker' in navigator)) {
+      document.getElementById('swStatus').innerHTML = '❌ Não suportado';
+      document.getElementById('swStatus').className = 'sw-status sw-inactive';
       document.getElementById('settingsSWStatus').innerHTML = '❌ Não suportado';
       return false;
     }
@@ -404,10 +412,14 @@
           });
         });
       }
+      document.getElementById('swStatus').innerHTML = '✅ SW: Ativo';
+      document.getElementById('swStatus').className = 'sw-status sw-active';
       document.getElementById('settingsSWStatus').innerHTML = '✅ Ativo';
       swRegistered = true;
       return true;
     } catch (error) {
+      document.getElementById('swStatus').innerHTML = '❌ SW: Erro';
+      document.getElementById('swStatus').className = 'sw-status sw-inactive';
       document.getElementById('settingsSWStatus').innerHTML = '❌ Erro';
       return false;
     }
@@ -433,7 +445,7 @@
   
   // ==================== LIMPAR TODOS OS DADOS ====================
   async function limparTodosOsDados() {
-    if (!confirm('⚠️ ATENÇÃO: Isso irá apagar TODOS os dados do cache offline!\n\nSerão removidos:\n- 📁 Todos os PDFs baixados\n- 📦 Todas as tendas salvas\n- 💾 Cache do navegador\n- ⚙️ Service Workers\n\nIsso liberará espaço.\n\nDeseja continuar?')) {
+    if (!confirm('⚠️ ATENÇÃO: Isso irá apagar TODOS os dados do cache offline!\n\nSerão removidos:\n- Todos os PDFs baixados\n- Todas as tendas salvas\n- Cache do navegador\n- Service Workers\n\nIsso liberará espaço.\n\nDeseja continuar?')) {
       return;
     }
     
@@ -624,6 +636,7 @@
     let cached = await getAllCachedPDFs();
     let totalSize = cached.reduce((s,i)=> s + (i.size||0), 0);
     let sizeMB = (totalSize / (1024*1024)).toFixed(1);
+    document.getElementById('cacheStats').innerHTML = `📁 ${cached.length} | ${sizeMB}MB`;
     document.getElementById('settingsCacheCount').innerHTML = `${cached.length} documentos`;
     document.getElementById('settingsCacheSize').innerHTML = `${sizeMB} MB`;
     return cached.length;
@@ -672,7 +685,7 @@
         currentItems = newItems;
         await renderCards('');
         await updateCacheStats();
-        document.getElementById('settingsLastUpdate').innerHTML = new Date().toLocaleTimeString();
+        document.getElementById('lastUpdateText').innerHTML = `📅 ${new Date().toLocaleTimeString()}`;
         dataLoaded = true;
       } catch(e) { console.warn(e); }
     }
@@ -827,7 +840,6 @@
   async function manualRefresh() {
     if(!navigator.onLine) { alert('📡 Offline. Conecte-se para atualizar.'); return; }
     await loadData();
-    await salvarCacheVisitante();
     showToast('✅ Dados atualizados!', 1000);
   }
   
@@ -983,6 +995,7 @@
   document.getElementById('downloadQRBtn').onclick = downloadQR;
   document.getElementById('printQRBtn').onclick = printItemQR;
   document.getElementById('downloadGeneralQRModalBtn').onclick = downloadGeneralQR;
+  document.getElementById('manualRefreshBtn').onclick = manualRefresh;
   document.getElementById('printMultipleQRFromModalBtn').onclick = printMultipleQRCodes;
   document.getElementById('cacheStatusBtn').onclick = openCacheModal;
   document.getElementById('closeCacheModalBtn').onclick = () => document.getElementById('cacheModal').style.display = 'none';
