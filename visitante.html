@@ -202,6 +202,75 @@
     .info-label { font-weight: 600; color: #475569; }
     .info-value { color: #1e293b; }
     
+    /* NOVO LOADER CUBO GRID */
+    .fullscreen-loader {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.85);
+      backdrop-filter: blur(4px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      visibility: hidden;
+      opacity: 0;
+      transition: visibility 0s, opacity 0.3s;
+    }
+    .fullscreen-loader.active {
+      visibility: visible;
+      opacity: 1;
+    }
+    
+    .sk-cube-grid {
+      width: 80px;
+      height: 80px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 4px;
+    }
+    
+    .sk-cube {
+      width: 100%;
+      height: 100%;
+      background-color: rgb(0, 126, 122);
+      animation: sk-cubeGridScaleDelay 1.3s infinite ease-in-out;
+      border-radius: 2px;
+    }
+    
+    .sk-cube1 { animation-delay: 0.2s; }
+    .sk-cube2 { animation-delay: 0.3s; }
+    .sk-cube3 { animation-delay: 0.4s; }
+    .sk-cube4 { animation-delay: 0.1s; }
+    .sk-cube5 { animation-delay: 0.2s; }
+    .sk-cube6 { animation-delay: 0.3s; }
+    .sk-cube7 { animation-delay: 0s; }
+    .sk-cube8 { animation-delay: 0.1s; }
+    .sk-cube9 { animation-delay: 0.2s; }
+    
+    @keyframes sk-cubeGridScaleDelay {
+      0%, 70%, 100% {
+        transform: scale3D(1, 1, 1);
+      }
+      35% {
+        transform: scale3D(0, 0, 1);
+      }
+    }
+    
+    .loader-text {
+      margin-top: 1.5rem;
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: white;
+      background: rgba(0,0,0,0.6);
+      padding: 0.5rem 1.2rem;
+      border-radius: 2rem;
+      letter-spacing: 1px;
+    }
+    
     @media print {
       body * { visibility: hidden; }
       .print-sheet, .print-sheet * { visibility: visible; }
@@ -338,7 +407,23 @@
 <div id="qrGeneralModal" class="modal"><div class="modal-content qr-modal-content"><div class="modal-header"><h2>📱 QR Code Geral</h2><button class="close-modal" id="closeQRGeneralModalBtn">&times;</button></div><div id="qrGeneralLargeContainer" class="qr-large"></div><div class="qr-actions"><button id="downloadGeneralQRModalBtn" class="btn-primary">💾 Baixar</button><button id="printMultipleQRFromModalBtn" class="btn-primary" style="background:#f59e0b;">🖨️ Imprimir 12 QR</button></div></div></div>
 
 <div id="printQRSheet" class="print-sheet"></div>
-<div id="fullscreenLoader" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); align-items:center; justify-content:center; z-index:9999;"><div style="width:50px; height:50px; border:5px solid rgba(255,255,255,0.3); border-top-color:#3b82f6; border-radius:50%; animation:spin 1s linear infinite;"></div><div style="color:white; margin-top:1rem;">Processando...</div></div>
+
+<!-- NOVO LOADER CUBO GRID -->
+<div id="fullscreenLoader" class="fullscreen-loader">
+  <div class="sk-cube-grid">
+    <div class="sk-cube sk-cube1"></div>
+    <div class="sk-cube sk-cube2"></div>
+    <div class="sk-cube sk-cube3"></div>
+    <div class="sk-cube sk-cube4"></div>
+    <div class="sk-cube sk-cube5"></div>
+    <div class="sk-cube sk-cube6"></div>
+    <div class="sk-cube sk-cube7"></div>
+    <div class="sk-cube sk-cube8"></div>
+    <div class="sk-cube sk-cube9"></div>
+  </div>
+  <div class="loader-text" id="loaderText">Processando...</div>
+</div>
+
 <div id="connectionStatus" class="connection-status online-badge">🟢 Online</div>
 
 <style>@keyframes spin{to{transform:rotate(360deg)}}</style>
@@ -365,7 +450,20 @@
   const SW_URL = '/TENDEX/sw-visitante.js';
   
   function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;'); }
-  function showLoader(show) { document.getElementById('fullscreenLoader').style.display = show ? 'flex' : 'none'; }
+  
+  function showLoader(show, text = 'Processando...') {
+    const loader = document.getElementById('fullscreenLoader');
+    const loaderText = document.getElementById('loaderText');
+    if (loader) {
+      if (show) {
+        if (loaderText) loaderText.textContent = text;
+        loader.classList.add('active');
+      } else {
+        loader.classList.remove('active');
+      }
+    }
+  }
+  
   function showToast(text, duration=1500) { 
     let t = document.getElementById('downloadingToast'); 
     document.getElementById('toastText').textContent = text; 
@@ -423,7 +521,7 @@
   
   async function limparServiceWorker() {
     if (confirm('⚠️ Desregistrar Service Worker?\n\nIsso pode afetar o funcionamento offline.')) {
-      showLoader(true);
+      showLoader(true, 'Removendo Service Worker...');
       try {
         const registrations = await navigator.serviceWorker.getRegistrations();
         for (const registration of registrations) {
@@ -445,7 +543,7 @@
       return;
     }
     
-    showLoader(true);
+    showLoader(true, 'Limpando todos os dados...');
     
     try {
       if (db) {
@@ -492,7 +590,7 @@
   
   async function limparDadosApenas() {
     if (confirm('⚠️ Limpar apenas os dados (itens e PDFs)?\n\nO Service Worker e o cache da página serão mantidos.')) {
-      showLoader(true);
+      showLoader(true, 'Limpando dados...');
       try {
         if (db) {
           db.close();
@@ -640,7 +738,7 @@
   
   // ==================== CARREGAR DADOS ====================
   async function loadData() {
-    showLoader(true);
+    showLoader(true, 'Carregando dados...');
     let dataLoaded = false;
     
     try {
@@ -703,7 +801,7 @@
     if(isDownloading) { alert('⏳ Download em andamento...'); return; }
     
     isDownloading = true;
-    showLoader(true);
+    showLoader(true, 'Baixando PDFs...');
     
     let selectedIdsArray = Array.from(selectedItemsIds).map(id => String(id));
     let itemsToDownload = currentItems.filter(item => selectedIdsArray.includes(String(item.id)));
@@ -756,7 +854,7 @@
       setTimeout(() => URL.revokeObjectURL(blobUrl), 30000);
     } else if(navigator.onLine) {
       if(confirm(`📄 "${fileName}" não está offline. Baixar agora?`)) {
-        showLoader(true);
+        showLoader(true, 'Baixando PDF...');
         let response = await fetch(url);
         if(response.ok) {
           let blob = await response.blob();
@@ -826,7 +924,7 @@
   function deselectAllItems() { selectedItemsIds.clear(); document.querySelectorAll('.item-checkbox').forEach(cb => cb.checked = false); updateSelectionInfo(); }
   
   async function refreshCacheStatus() {
-    showLoader(true);
+    showLoader(true, 'Verificando cache...');
     await updateCacheStats();
     if(document.getElementById('cacheModal').style.display === 'flex') await loadCacheItemsList();
     showLoader(false);
@@ -857,7 +955,7 @@
   function downloadGeneralQR() { let canvas = document.querySelector('#qrGeneralLargeContainer canvas'); if(canvas) { let a=document.createElement('a'); a.download='qrcode_tendex.png'; a.href=canvas.toDataURL(); a.click(); } }
   
   async function printMultipleQRCodes() {
-    showLoader(true);
+    showLoader(true, 'Gerando QR Codes...');
     try {
       let printSheet = document.getElementById('printQRSheet');
       printSheet.innerHTML = `<h2>📱 TENDEX</h2><div id="qrGridContainer" class="qr-grid"></div><div class="footer-print">TENDEX - Inspeção de Tendas</div>`;
@@ -964,7 +1062,7 @@
   }
   async function printItemQR() {
     if(!currentQRItem) return;
-    showLoader(true);
+    showLoader(true, 'Preparando impressão...');
     let canvas = await generateQRCodeCanvas(getItemUrl(currentQRItem.id), 250);
     if(canvas) {
       let imgData = canvas.toDataURL();
