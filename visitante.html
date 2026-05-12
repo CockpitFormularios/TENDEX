@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="version" content="0.0.7">
-  <title>TENDEX | Modo Visitante v0.0.7</title>
+  <meta name="version" content="0.0.8">
+  <title>TENDEX | Modo Visitante v0.0.8</title>
   <link rel="manifest" href="https://cockpitformularios.github.io/TENDEX/manifest.json">
   <link rel="icon" type="image/x-icon" href="https://jklcvyuxwxgsfczrfaco.supabase.co/storage/v1/object/public/assinaturas/favicon.ico">
   <link rel="icon" type="image/png" sizes="192x192" href="https://jklcvyuxwxgsfczrfaco.supabase.co/storage/v1/object/public/assinaturas/icon-180.png">
@@ -16,25 +16,9 @@
     .dashboard-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem; padding-bottom: 0.75rem; border-bottom: 2px solid #cbd5e1; }
     .dashboard-header h1 { font-size: 1.8rem; background: linear-gradient(135deg, #0f2b3d, #1e4a76); background-clip: text; -webkit-background-clip: text; color: transparent; }
     .logo { height: 50px; width: auto; object-fit: contain; }
-    .guest-btn { 
-      background: #64748b; 
-      color: white; 
-      padding: 0.3rem 1rem; 
-      border-radius: 2rem; 
-      font-size: 0.85rem; 
-      display: flex; 
-      align-items: center; 
-      gap: 0.5rem; 
-      cursor: pointer;
-      transition: all 0.2s;
-      border: none;
-    }
+    .guest-btn { background: #64748b; color: white; padding: 0.3rem 1rem; border-radius: 2rem; font-size: 0.85rem; display: flex; align-items: center; gap: 0.5rem; cursor: pointer; transition: all 0.2s; border: none; }
     .guest-btn:hover { background: #475569; transform: scale(0.98); }
-    
-    .sw-status, .cache-status, .refresh-status, .btn-refresh {
-      display: none !important;
-    }
-    
+    .sw-status, .cache-status, .refresh-status, .btn-refresh { display: none !important; }
     .search-area { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 1.5rem; background: white; padding: 0.5rem 1rem; border-radius: 2rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
     .search-icon { font-size: 1.2rem; color: #64748b; }
     .search-input { flex: 1; border: none; outline: none; font-size: 1rem; padding: 0.4rem 0; background: transparent; }
@@ -63,7 +47,6 @@
     .pdf-row { display: flex; align-items: center; justify-content: space-between; background: #f9fafb; margin-bottom: 0.5rem; padding: 0.4rem 0.8rem; border-radius: 2rem; font-size: 0.75rem; flex-wrap: wrap; gap: 0.5rem; }
     .pdf-label { font-weight: 600; background: #e2e8f0; padding: 0.2rem 0.6rem; border-radius: 2rem; min-width: 85px; text-align: center; }
     .pdf-file-info { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-    .pdf-file-info a { text-decoration: none; color: #1e4a76; }
     .btn-view-pdf { background: #3b82f6; color: white; border: none; padding: 0.2rem 0.6rem; border-radius: 2rem; font-size: 0.7rem; cursor: pointer; text-decoration: none; display: inline-block; }
     .btn-view-pdf:hover { background: #2563eb; }
     .btn-view-offline { background: #10b981; color: white; border: none; padding: 0.2rem 0.6rem; border-radius: 2rem; font-size: 0.7rem; cursor: pointer; margin-left: 0.3rem; display: inline-block; }
@@ -108,80 +91,16 @@
     .cache-item-stats.pending { background: #fee2e2; color: #991b1b; }
     .selection-info { background: #e0f2fe; padding: 0.5rem; border-radius: 0.5rem; margin-bottom: 1rem; font-size: 0.75rem; text-align: center; }
     .selected-count { font-weight: bold; color: #1e4a76; font-size: 1.1rem; }
-    
-    .modal-settings {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0,0,0,0.5);
-      align-items: center;
-      justify-content: center;
-      z-index: 1000;
-    }
-    .modal-settings-content {
-      background: white;
-      max-width: 500px;
-      width: 90%;
-      border-radius: 1.5rem;
-      padding: 1.5rem;
-      max-height: 85vh;
-      overflow-y: auto;
-    }
-    .modal-settings-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 1rem;
-      padding-bottom: 0.5rem;
-      border-bottom: 2px solid #e2e8f0;
-    }
+    .modal-settings { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; z-index: 1000; }
+    .modal-settings-content { background: white; max-width: 500px; width: 90%; border-radius: 1.5rem; padding: 1.5rem; max-height: 85vh; overflow-y: auto; }
+    .modal-settings-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 2px solid #e2e8f0; }
     .modal-settings-header h2 { font-size: 1.3rem; color: #1e4a76; }
-    .close-modal-settings {
-      background: none;
-      border: none;
-      font-size: 1.5rem;
-      cursor: pointer;
-      color: #64748b;
-      padding: 0 0.5rem;
-    }
+    .close-modal-settings { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #64748b; padding: 0 0.5rem; }
     .close-modal-settings:hover { color: #ef4444; }
-    
-    .settings-section {
-      margin-bottom: 1.5rem;
-      padding: 1rem;
-      background: #f8fafc;
-      border-radius: 1rem;
-    }
-    .settings-section h3 {
-      color: #1e4a76;
-      margin-bottom: 0.8rem;
-      font-size: 0.9rem;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-    .settings-buttons {
-      display: flex;
-      gap: 0.5rem;
-      flex-wrap: wrap;
-    }
-    .btn-settings {
-      background: #1e4a76;
-      color: white;
-      border: none;
-      padding: 0.5rem 1rem;
-      border-radius: 2rem;
-      cursor: pointer;
-      font-weight: 600;
-      font-size: 0.8rem;
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-      transition: all 0.2s;
-    }
+    .settings-section { margin-bottom: 1.5rem; padding: 1rem; background: #f8fafc; border-radius: 1rem; }
+    .settings-section h3 { color: #1e4a76; margin-bottom: 0.8rem; font-size: 0.9rem; display: flex; align-items: center; gap: 0.5rem; }
+    .settings-buttons { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    .btn-settings { background: #1e4a76; color: white; border: none; padding: 0.5rem 1rem; border-radius: 2rem; cursor: pointer; font-weight: 600; font-size: 0.8rem; display: inline-flex; align-items: center; gap: 0.5rem; transition: all 0.2s; }
     .btn-settings:hover { background: #0f2b3d; transform: scale(0.98); }
     .btn-settings-danger { background: #ef4444; }
     .btn-settings-danger:hover { background: #dc2626; }
@@ -189,56 +108,14 @@
     .btn-settings-success:hover { background: #059669; }
     .btn-settings-warning { background: #f59e0b; }
     .btn-settings-warning:hover { background: #d97706; }
-    
-    .info-row {
-      display: flex;
-      justify-content: space-between;
-      padding: 0.5rem 0;
-      border-bottom: 1px solid #e2e8f0;
-      font-size: 0.8rem;
-    }
+    .info-row { display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #e2e8f0; font-size: 0.8rem; }
     .info-row:last-child { border-bottom: none; }
     .info-label { font-weight: 600; color: #475569; }
     .info-value { color: #1e293b; }
-    
-    .fullscreen-loader {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0,0,0,0.85);
-      backdrop-filter: blur(4px);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      z-index: 9999;
-      visibility: hidden;
-      opacity: 0;
-      transition: visibility 0s, opacity 0.3s;
-    }
-    .fullscreen-loader.active {
-      visibility: visible;
-      opacity: 1;
-    }
-    
-    .sk-cube-grid {
-      width: 80px;
-      height: 80px;
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 4px;
-    }
-    
-    .sk-cube {
-      width: 100%;
-      height: 100%;
-      background-color: rgb(0, 126, 122);
-      animation: sk-cubeGridScaleDelay 1.3s infinite ease-in-out;
-      border-radius: 2px;
-    }
-    
+    .fullscreen-loader { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); backdrop-filter: blur(4px); display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 9999; visibility: hidden; opacity: 0; transition: visibility 0s, opacity 0.3s; }
+    .fullscreen-loader.active { visibility: visible; opacity: 1; }
+    .sk-cube-grid { width: 80px; height: 80px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+    .sk-cube { width: 100%; height: 100%; background-color: rgb(0, 126, 122); animation: sk-cubeGridScaleDelay 1.3s infinite ease-in-out; border-radius: 2px; }
     .sk-cube1 { animation-delay: 0.2s; }
     .sk-cube2 { animation-delay: 0.3s; }
     .sk-cube3 { animation-delay: 0.4s; }
@@ -248,32 +125,9 @@
     .sk-cube7 { animation-delay: 0s; }
     .sk-cube8 { animation-delay: 0.1s; }
     .sk-cube9 { animation-delay: 0.2s; }
-    
-    @keyframes sk-cubeGridScaleDelay {
-      0%, 70%, 100% {
-        transform: scale3D(1, 1, 1);
-      }
-      35% {
-        transform: scale3D(0, 0, 1);
-      }
-    }
-    
-    .loader-text {
-      margin-top: 1.5rem;
-      font-size: 0.9rem;
-      font-weight: 500;
-      color: white;
-      background: rgba(0,0,0,0.6);
-      padding: 0.5rem 1.2rem;
-      border-radius: 2rem;
-      letter-spacing: 1px;
-    }
-    
-    @media print {
-      body * { visibility: hidden; }
-      .print-sheet, .print-sheet * { visibility: visible; }
-      .print-sheet { position: absolute; top: 0; left: 0; width: 100%; margin: 0; padding: 15mm; background: white; }
-    }
+    @keyframes sk-cubeGridScaleDelay { 0%, 70%, 100% { transform: scale3D(1, 1, 1); } 35% { transform: scale3D(0, 0, 1); } }
+    .loader-text { margin-top: 1.5rem; font-size: 0.9rem; font-weight: 500; color: white; background: rgba(0,0,0,0.6); padding: 0.5rem 1.2rem; border-radius: 2rem; letter-spacing: 1px; }
+    @media print { body * { visibility: hidden; } .print-sheet, .print-sheet * { visibility: visible; } .print-sheet { position: absolute; top: 0; left: 0; width: 100%; margin: 0; padding: 15mm; background: white; } }
     .print-sheet { display: none; background: white; width: 210mm; min-height: 297mm; margin: 0 auto; padding: 15mm; position: fixed; top: 0; left: 0; z-index: 9999; }
     .print-sheet h2 { text-align: center; color: #1e4a76; margin-bottom: 10mm; font-size: 18pt; }
     .qr-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10mm; margin-top: 5mm; }
@@ -283,62 +137,14 @@
     .qr-item .qr-sub { font-size: 9pt; color: #555; margin-top: 2mm; }
     .footer-print { text-align: center; font-size: 9pt; color: #888; margin-top: 10mm; padding-top: 5mm; border-top: 1px solid #eee; }
     @media (max-width: 640px) { body { padding: 1rem; } .dashboard-header h1 { font-size: 1.2rem; } .items-grid { grid-template-columns: 1fr; } .general-qr-code { width: 80px; height: 80px; } }
-    
-    #iosOfflineHint {
-      display: none;
-      background: #fef3c7;
-      border-radius: 1rem;
-      padding: 0.75rem;
-      margin-bottom: 1rem;
-      font-size: 0.75rem;
-      text-align: center;
-      border-left: 4px solid #f59e0b;
-    }
-
-    .ios-pdf-viewer {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: white;
-      z-index: 10000;
-      display: none;
-      flex-direction: column;
-    }
-    .ios-pdf-viewer.active {
-      display: flex;
-    }
-    .ios-pdf-viewer-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 1rem;
-      background: #1e4a76;
-      color: white;
-      position: sticky;
-      top: 0;
-      z-index: 1;
-    }
-    .ios-pdf-viewer-header button {
-      background: rgba(255,255,255,0.2);
-      border: none;
-      color: white;
-      font-size: 1.2rem;
-      padding: 0.3rem 0.8rem;
-      border-radius: 2rem;
-      cursor: pointer;
-    }
-    .ios-pdf-viewer-content {
-      flex: 1;
-      overflow: auto;
-      -webkit-overflow-scrolling: touch;
-    }
-    .ios-pdf-viewer-content iframe {
-      width: 100%;
-      height: 100%;
-      border: none;
-    }
+    #iosOfflineHint { display: none; background: #fef3c7; border-radius: 1rem; padding: 0.75rem; margin-bottom: 1rem; font-size: 0.75rem; text-align: center; border-left: 4px solid #f59e0b; }
+    .ios-pdf-viewer { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #525659; z-index: 10000; display: none; flex-direction: column; }
+    .ios-pdf-viewer.active { display: flex; }
+    .ios-pdf-viewer-header { display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: #1e4a76; color: white; position: sticky; top: 0; z-index: 1; }
+    .ios-pdf-viewer-header button { background: rgba(255,255,255,0.2); border: none; color: white; font-size: 1.2rem; padding: 0.3rem 0.8rem; border-radius: 2rem; cursor: pointer; }
+    .ios-pdf-viewer-content { flex: 1; overflow: auto; -webkit-overflow-scrolling: touch; background: #525659; }
+    .ios-pdf-viewer-content iframe { width: 100%; height: 100%; border: none; background: white; }
+    @supports (-webkit-touch-callout: none) { .ios-pdf-viewer-content { height: -webkit-fill-available; } .ios-pdf-viewer-content iframe { height: 100%; position: absolute; top: 0; left: 0; right: 0; bottom: 0; } }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -358,110 +164,43 @@
   </div>
 </div>
 
-<div id="iosOfflineHint">
-  📱 <strong>Para usar offline no iPhone:</strong> Toque em Compartilhar → "Adicionar à Tela de Início"
-  <button onclick="document.getElementById('iosOfflineHint').style.display='none'" style="float:right; background:none; border:none; font-size:1rem; cursor:pointer;">✕</button>
-</div>
+<div id="iosOfflineHint">📱 <strong>Para usar offline no iPhone:</strong> Toque em Compartilhar → "Adicionar à Tela de Início" <button onclick="document.getElementById('iosOfflineHint').style.display='none'" style="float:right; background:none; border:none; font-size:1rem; cursor:pointer;">✕</button></div>
 
 <div id="iosPdfViewer" class="ios-pdf-viewer">
-  <div class="ios-pdf-viewer-header">
-    <span id="iosPdfTitle">Visualizando PDF</span>
-    <button onclick="closeIOSPDFViewer()">✕ Fechar</button>
-  </div>
-  <div class="ios-pdf-viewer-content" id="iosPdfContent">
-    <iframe id="iosPdfFrame" src="about:blank"></iframe>
-  </div>
+  <div class="ios-pdf-viewer-header"><span id="iosPdfTitle">Visualizando PDF</span><button onclick="closeIOSPDFViewer()">✕ Fechar</button></div>
+  <div class="ios-pdf-viewer-content"><iframe id="iosPdfFrame" src="about:blank"></iframe></div>
 </div>
 
 <div id="settingsModal" class="modal-settings">
   <div class="modal-settings-content">
-    <div class="modal-settings-header">
-      <h2>⚙️ Configurações</h2>
-      <button class="close-modal-settings" id="closeSettingsBtn">&times;</button>
-    </div>
-    
-    <div class="settings-section">
-      <h3>📡 Service Worker</h3>
-      <div class="info-row">
-        <span class="info-label">Status:</span>
-        <span class="info-value" id="settingsSWStatus">Verificando...</span>
-      </div>
-      <div class="settings-buttons" style="margin-top: 0.5rem;">
-        <button id="settingsPrepareOfflineBtn" class="btn-settings btn-settings-warning">💾 Ativar Modo Offline</button>
-        <button id="settingsClearSWBtn" class="btn-settings btn-settings-danger">🗑️ Limpar SW</button>
-      </div>
-    </div>
-    
-    <div class="settings-section">
-      <h3>💾 Cache Offline</h3>
-      <div class="info-row">
-        <span class="info-label">PDFs em cache:</span>
-        <span class="info-value" id="settingsCacheCount">0</span>
-      </div>
-      <div class="info-row">
-        <span class="info-label">Espaço utilizado:</span>
-        <span class="info-value" id="settingsCacheSize">0 MB</span>
-      </div>
-      <div class="settings-buttons" style="margin-top: 0.5rem;">
-        <button id="settingsOpenCacheBtn" class="btn-settings btn-settings-success">📄 Ver/PDFs</button>
-        <button id="settingsClearCacheBtn" class="btn-settings btn-settings-danger">🗑️ Limpar Tudo</button>
-      </div>
-    </div>
-    
-    <div class="settings-section">
-      <h3>🔄 Dados</h3>
-      <div class="settings-buttons">
-        <button id="settingsRefreshDataBtn" class="btn-settings">🔄 Atualizar Dados</button>
-        <button id="settingsClearDataBtn" class="btn-settings btn-settings-danger">🗑️ Limpar Dados</button>
-      </div>
-    </div>
+    <div class="modal-settings-header"><h2>⚙️ Configurações</h2><button class="close-modal-settings" id="closeSettingsBtn">&times;</button></div>
+    <div class="settings-section"><h3>📡 Service Worker</h3><div class="info-row"><span class="info-label">Status:</span><span class="info-value" id="settingsSWStatus">Verificando...</span></div><div class="settings-buttons" style="margin-top:0.5rem;"><button id="settingsPrepareOfflineBtn" class="btn-settings btn-settings-warning">💾 Ativar Modo Offline</button><button id="settingsClearSWBtn" class="btn-settings btn-settings-danger">🗑️ Limpar SW</button></div></div>
+    <div class="settings-section"><h3>💾 Cache Offline</h3><div class="info-row"><span class="info-label">PDFs em cache:</span><span class="info-value" id="settingsCacheCount">0</span></div><div class="info-row"><span class="info-label">Espaço utilizado:</span><span class="info-value" id="settingsCacheSize">0 MB</span></div><div class="settings-buttons" style="margin-top:0.5rem;"><button id="settingsOpenCacheBtn" class="btn-settings btn-settings-success">📄 Ver/PDFs</button><button id="settingsClearCacheBtn" class="btn-settings btn-settings-danger">🗑️ Limpar Tudo</button></div></div>
+    <div class="settings-section"><h3>🔄 Dados</h3><div class="settings-buttons"><button id="settingsRefreshDataBtn" class="btn-settings">🔄 Atualizar Dados</button><button id="settingsClearDataBtn" class="btn-settings btn-settings-danger">🗑️ Limpar Dados</button></div></div>
   </div>
 </div>
 
 <div class="downloading-toast" id="downloadingToast"><span>📥</span><span id="toastText">Baixando...</span></div>
 
 <div class="general-qr-section">
-  <div class="general-qr-left">
-    <div id="generalQRCode" class="general-qr-code clickable"></div>
-    <div class="general-qr-info">
-      <h4>📱 QR Code de Acesso</h4>
-      <p>Escaneie para acessar a lista de tendas</p>
-    </div>
-  </div>
+  <div class="general-qr-left"><div id="generalQRCode" class="general-qr-code clickable"></div><div class="general-qr-info"><h4>📱 QR Code de Acesso</h4><p>Escaneie para acessar a lista de tendas</p></div></div>
 </div>
 
-<div class="search-area">
-  <span class="search-icon">🔍</span>
-  <input type="text" id="searchInput" class="search-input" placeholder="Filtrar por nome ou TAG...">
-</div>
+<div class="search-area"><span class="search-icon">🔍</span><input type="text" id="searchInput" class="search-input" placeholder="Filtrar por nome ou TAG..."></div>
 
-<div id="itemsContainer" class="items-grid">
-  <div class="empty-state">🔄 Carregando dados...</div>
-</div>
+<div id="itemsContainer" class="items-grid"><div class="empty-state">🔄 Carregando dados...</div></div>
 
 <div id="detailModal" class="modal"><div class="modal-content"><div class="modal-header"><h2>📄 Detalhes</h2><button class="close-modal" id="closeDetailModalBtn">&times;</button></div><div id="detailContent"></div><div class="notice-guest">🔒 Modo leitura | Clique em 💾 Offline para ver documentos sem internet</div></div></div>
 
 <div id="cacheModal" class="modal">
   <div class="modal-content">
-    <div class="modal-header">
-      <h2>💾 Gerenciar PDFs Offline</h2>
-      <button class="close-modal" id="closeCacheModalBtn">&times;</button>
-    </div>
-    <div class="selection-info" id="selectionInfo">
-      ⚡ <span id="selectedCountText" class="selected-count">0</span> tenda(s) selecionada(s)
-    </div>
-    <div id="selectionActions" style="display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap;">
-      <button id="selectAllBtn" class="select-all-btn">✅ Selecionar Todos</button>
-      <button id="deselectAllBtn" class="select-all-btn" style="background:#64748b;">❌ Desmarcar Todos</button>
-      <button id="refreshCacheStatusBtn" class="select-all-btn" style="background:#10b981;">🔄 Verificar Cache</button>
-    </div>
+    <div class="modal-header"><h2>💾 Gerenciar PDFs Offline</h2><button class="close-modal" id="closeCacheModalBtn">&times;</button></div>
+    <div class="selection-info" id="selectionInfo">⚡ <span id="selectedCountText" class="selected-count">0</span> tenda(s) selecionada(s)</div>
+    <div id="selectionActions" style="display:flex; gap:0.5rem; margin-bottom:1rem; flex-wrap:wrap;"><button id="selectAllBtn" class="select-all-btn">✅ Selecionar Todos</button><button id="deselectAllBtn" class="select-all-btn" style="background:#64748b;">❌ Desmarcar Todos</button><button id="refreshCacheStatusBtn" class="select-all-btn" style="background:#10b981;">🔄 Verificar Cache</button></div>
     <div id="cacheItemsList" class="cache-item-list"></div>
     <div class="progress-bar"><div class="progress-fill" id="cacheProgressFill"></div></div>
-    <div id="cacheStatusList" style="margin: 0.5rem 0;"></div>
-    <div class="qr-actions">
-      <button id="downloadSelectedBtn" class="btn-success">📥 Baixar/Atualizar PDFs</button>
-      <button id="clearCacheBtn" class="btn-secondary" style="background:#ef4444;">🗑️ Limpar Tudo</button>
-    </div>
+    <div id="cacheStatusList" style="margin:0.5rem 0;"></div>
+    <div class="qr-actions"><button id="downloadSelectedBtn" class="btn-success">📥 Baixar/Atualizar PDFs</button><button id="clearCacheBtn" class="btn-secondary" style="background:#ef4444;">🗑️ Limpar Tudo</button></div>
     <p class="notice-guest">✨ Selecione as tendas e baixe os PDFs. Clique em "Limpar Tudo" para apagar TODOS os dados do cache.</p>
   </div>
 </div>
@@ -473,17 +212,7 @@
 <div id="printQRSheet" class="print-sheet"></div>
 
 <div id="fullscreenLoader" class="fullscreen-loader">
-  <div class="sk-cube-grid">
-    <div class="sk-cube sk-cube1"></div>
-    <div class="sk-cube sk-cube2"></div>
-    <div class="sk-cube sk-cube3"></div>
-    <div class="sk-cube sk-cube4"></div>
-    <div class="sk-cube sk-cube5"></div>
-    <div class="sk-cube sk-cube6"></div>
-    <div class="sk-cube sk-cube7"></div>
-    <div class="sk-cube sk-cube8"></div>
-    <div class="sk-cube sk-cube9"></div>
-  </div>
+  <div class="sk-cube-grid"><div class="sk-cube sk-cube1"></div><div class="sk-cube sk-cube2"></div><div class="sk-cube sk-cube3"></div><div class="sk-cube sk-cube4"></div><div class="sk-cube sk-cube5"></div><div class="sk-cube sk-cube6"></div><div class="sk-cube sk-cube7"></div><div class="sk-cube sk-cube8"></div><div class="sk-cube sk-cube9"></div></div>
   <div class="loader-text" id="loaderText">Processando...</div>
 </div>
 
@@ -491,12 +220,12 @@
 
 <script>
 // ==================== VERSÃO DO APP ====================
-const APP_VERSION = '0.0.6';
+const APP_VERSION = '0.0.8';
 
 // ==================== DETECÇÃO DE PLATAFORMA ====================
 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 
-// ==================== SUPABASE (declarado apenas uma vez) ====================
+// ==================== SUPABASE ====================
 const SUPABASE_URL = "https://jklcvyuxwxgsfczrfaco.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_oCE8y5qaLovVj0BU-rANHA__Zmy3XVl";
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -511,7 +240,6 @@ const DB_NAME = 'TendexVisitanteCache';
 const DB_VERSION = 1;
 const STORE_PDFS = 'pdf_files';
 const STORE_ITEMS = 'items_cache';
-
 const monthNames = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
 const monthKeys = ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
 const BASE_URL = window.location.origin + window.location.pathname;
@@ -523,12 +251,8 @@ function showLoader(show, text = 'Processando...') {
   const loader = document.getElementById('fullscreenLoader');
   const loaderText = document.getElementById('loaderText');
   if (loader) {
-    if (show) {
-      if (loaderText) loaderText.textContent = text;
-      loader.classList.add('active');
-    } else {
-      loader.classList.remove('active');
-    }
+    if (show) { if (loaderText) loaderText.textContent = text; loader.classList.add('active'); }
+    else { loader.classList.remove('active'); }
   }
 }
 
@@ -545,9 +269,7 @@ function getPDFId(url) {
     let fileName = parts[parts.length - 1];
     fileName = fileName.split('?')[0].replace(/\.pdf$/i, '');
     return fileName.replace(/[^a-zA-Z0-9_-]/g, '_').substring(0, 100);
-  } catch(e) {
-    return Date.now().toString();
-  }
+  } catch(e) { return Date.now().toString(); }
 }
 
 // ==================== INDEXEDDB ====================
@@ -556,19 +278,14 @@ function initDB() {
     if(db) { resolve(db); return; }
     let req = indexedDB.open(DB_NAME, DB_VERSION);
     req.onerror = () => reject(req.error);
-    req.onsuccess = () => { 
-      db = req.result;
-      resolve(db);
-    };
+    req.onsuccess = () => { db = req.result; resolve(db); };
     req.onupgradeneeded = (e) => {
       let dbEvent = e.target.result;
       if(!dbEvent.objectStoreNames.contains(STORE_PDFS)) {
         let store = dbEvent.createObjectStore(STORE_PDFS, { keyPath: 'id' });
         store.createIndex('by_itemId', 'itemId', { unique: false });
       }
-      if(!dbEvent.objectStoreNames.contains(STORE_ITEMS)) {
-        dbEvent.createObjectStore(STORE_ITEMS, { keyPath: 'id' });
-      }
+      if(!dbEvent.objectStoreNames.contains(STORE_ITEMS)) { dbEvent.createObjectStore(STORE_ITEMS, { keyPath: 'id' }); }
     };
   });
 }
@@ -578,9 +295,7 @@ async function saveItemsToCache(items) {
   return new Promise((resolve) => {
     const tx = db.transaction(STORE_ITEMS, 'readwrite');
     const store = tx.objectStore(STORE_ITEMS);
-    for(let item of items) {
-      store.put({ id: String(item.id), data: item, timestamp: Date.now() });
-    }
+    for(let item of items) { store.put({ id: String(item.id), data: item, timestamp: Date.now() }); }
     tx.oncomplete = () => resolve();
     tx.onerror = () => resolve();
   });
@@ -653,34 +368,40 @@ async function updateCacheStats() {
   return cached.length;
 }
 
-// ==================== VISUALIZAR PDF OFFLINE ====================
+// ==================== VISUALIZAR PDF OFFLINE (CORRIGIDO PARA IPHONE) ====================
 async function viewPDFOffline(url, fileName, itemId) {
   console.log('viewPDFOffline chamado para:', fileName, 'iOS:', isIOS);
-  
   const blob = await getPDFFromCache(url);
   
   if (blob) {
     console.log('PDF encontrado no cache, tamanho:', blob.size);
-    
     if (isIOS) {
       try {
-        const reader = new FileReader();
-        reader.onloadend = function() {
-          const dataUrl = reader.result;
-          const iframe = document.getElementById('iosPdfFrame');
-          const viewer = document.getElementById('iosPdfViewer');
-          const title = document.getElementById('iosPdfTitle');
-          title.textContent = fileName.length > 40 ? fileName.substring(0, 37) + '...' : fileName;
-          iframe.src = dataUrl;
-          viewer.classList.add('active');
-        };
-        reader.readAsDataURL(blob);
-      } catch (e) {
-        console.error('Erro ao ler blob no iOS:', e);
         const blobUrl = URL.createObjectURL(blob);
-        window.open(blobUrl, '_blank');
-        setTimeout(() => URL.revokeObjectURL(blobUrl), 30000);
-      }
+        const newWindow = window.open();
+        if (newWindow) {
+          newWindow.document.write(`
+            <!DOCTYPE html>
+            <html>
+            <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes"><title>${escapeHtml(fileName)}</title>
+            <style>*{margin:0;padding:0;box-sizing:border-box;}body{background:#525659;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;}.container{position:fixed;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;}.toolbar{background:#1e4a76;color:white;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;z-index:10;}.toolbar span{font-size:14px;font-weight:500;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}.toolbar button{background:rgba(255,255,255,0.2);border:none;color:white;padding:8px 16px;border-radius:20px;font-size:14px;cursor:pointer;}.pdf-container{flex:1;background:#525659;}.pdf-container iframe{width:100%;height:100%;border:none;background:white;}@media(max-width:768px){.toolbar{padding:8px 12px;}.toolbar span{font-size:12px;}.toolbar button{padding:6px 12px;font-size:12px;}}</style>
+            </head>
+            <body>
+              <div class="container">
+                <div class="toolbar"><span>📄 ${escapeHtml(fileName.substring(0, 50))}</span><div><button onclick="reloadPDF()">🔄 Recarregar</button><button onclick="window.close()">✕ Fechar</button></div></div>
+                <div class="pdf-container"><iframe id="pdfFrame" src="${blobUrl}" frameborder="0"></iframe></div>
+              </div>
+              <script>
+                function reloadPDF(){var iframe=document.getElementById('pdfFrame');var src=iframe.src;iframe.src='';setTimeout(function(){iframe.src=src;},100);}
+                setTimeout(function(){var iframe=document.getElementById('pdfFrame');if(iframe&&iframe.contentWindow){try{if(!iframe.src||iframe.src==='about:blank'){iframe.src='${blobUrl}';}}catch(e){}}},500);
+              <\/script>
+            </body>
+            </html>
+          `);
+          newWindow.document.close();
+          setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+        } else { useModalPDFViewer(blob, fileName); }
+      } catch (e) { console.error('Erro ao abrir PDF no iOS:', e); useModalPDFViewer(blob, fileName); }
     } else {
       const blobUrl = URL.createObjectURL(blob);
       window.open(blobUrl, '_blank');
@@ -695,74 +416,62 @@ async function viewPDFOffline(url, fileName, itemId) {
           const blob = await response.blob();
           await savePDFToCache(itemId, url, blob, fileName);
           await updateCacheStats();
-          
           if (isIOS) {
-            const reader = new FileReader();
-            reader.onloadend = function() {
-              const iframe = document.getElementById('iosPdfFrame');
-              const viewer = document.getElementById('iosPdfViewer');
-              const title = document.getElementById('iosPdfTitle');
-              title.textContent = fileName.length > 40 ? fileName.substring(0, 37) + '...' : fileName;
-              iframe.src = reader.result;
-              viewer.classList.add('active');
-            };
-            reader.readAsDataURL(blob);
+            const blobUrl = URL.createObjectURL(blob);
+            const newWindow = window.open();
+            if (newWindow) {
+              newWindow.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>${escapeHtml(fileName)}</title><style>*{margin:0;padding:0;}body{background:#525659;}.container{width:100%;height:100vh;display:flex;flex-direction:column;}.toolbar{background:#1e4a76;color:white;padding:12px;display:flex;justify-content:space-between;}.pdf-container{flex:1;}iframe{width:100%;height:100%;border:none;}</style></head><body><div class="container"><div class="toolbar"><span>${escapeHtml(fileName)}</span><button onclick="window.close()">Fechar</button></div><div class="pdf-container"><iframe src="${blobUrl}" frameborder="0"></iframe></div></div></body></html>`);
+              newWindow.document.close();
+              setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+            }
           } else {
             const blobUrl = URL.createObjectURL(blob);
             window.open(blobUrl, '_blank');
             setTimeout(() => URL.revokeObjectURL(blobUrl), 30000);
           }
-        } else {
-          alert('Erro ao baixar o PDF.');
-        }
-      } catch(e) {
-        alert('Erro ao baixar o PDF: ' + e.message);
-      }
+        } else { alert('Erro ao baixar o PDF.'); }
+      } catch(e) { alert('Erro ao baixar o PDF: ' + e.message); }
       showLoader(false);
-    } else { 
-      window.open(url, '_blank'); 
-    }
-  } else {
-    alert(`❌ "${fileName}" não está disponível offline. Conecte-se à internet para baixar.`);
-  }
+    } else { window.open(url, '_blank'); }
+  } else { alert(`❌ "${fileName}" não está disponível offline. Conecte-se à internet para baixar.`); }
 }
-window.viewPDFOffline = viewPDFOffline;
+
+function useModalPDFViewer(blob, fileName) {
+  const blobUrl = URL.createObjectURL(blob);
+  const iframe = document.getElementById('iosPdfFrame');
+  const viewer = document.getElementById('iosPdfViewer');
+  const title = document.getElementById('iosPdfTitle');
+  title.textContent = fileName.length > 40 ? fileName.substring(0, 37) + '...' : fileName;
+  iframe.src = blobUrl;
+  viewer.classList.add('active');
+  setTimeout(() => { const currentSrc = iframe.src; iframe.src = ''; setTimeout(() => { iframe.src = currentSrc; }, 100); }, 1000);
+}
 
 function closeIOSPDFViewer() {
   const viewer = document.getElementById('iosPdfViewer');
   const iframe = document.getElementById('iosPdfFrame');
+  if (iframe.src && iframe.src.startsWith('blob:')) { URL.revokeObjectURL(iframe.src); }
   iframe.src = 'about:blank';
   viewer.classList.remove('active');
 }
 window.closeIOSPDFViewer = closeIOSPDFViewer;
+window.viewPDFOffline = viewPDFOffline;
 
 // ==================== CARREGAR DADOS ====================
 async function loadData() {
   showLoader(true, 'Carregando dados...');
   let dataLoaded = false;
-  
   try {
     const localData = localStorage.getItem('tendex_visitante_cache');
     if (localData) {
       currentItems = JSON.parse(localData);
-      if (currentItems.length > 0) {
-        await renderCards('');
-        await updateCacheStats();
-        dataLoaded = true;
-      }
+      if (currentItems.length > 0) { await renderCards(''); await updateCacheStats(); dataLoaded = true; }
     }
   } catch(e) {}
-  
   if(!dataLoaded) {
     let cachedItems = await loadItemsFromCache();
-    if(cachedItems && cachedItems.length > 0) {
-      currentItems = cachedItems;
-      await renderCards('');
-      await updateCacheStats();
-      dataLoaded = true;
-    }
+    if(cachedItems && cachedItems.length > 0) { currentItems = cachedItems; await renderCards(''); await updateCacheStats(); dataLoaded = true; }
   }
-  
   if(navigator.onLine) {
     try {
       let { data: itemsData } = await supabaseClient.from('items').select('*').order('name');
@@ -783,11 +492,7 @@ async function loadData() {
       dataLoaded = true;
     } catch(e) { console.warn(e); }
   }
-  
-  if (!dataLoaded) {
-    document.getElementById('itemsContainer').innerHTML = '<div class="empty-state">📡 Conecte-se à internet para carregar os dados.</div>';
-  }
-  
+  if (!dataLoaded) { document.getElementById('itemsContainer').innerHTML = '<div class="empty-state">📡 Conecte-se à internet para carregar os dados.</div>'; }
   showLoader(false);
   return currentItems;
 }
@@ -799,14 +504,11 @@ async function downloadSelectedItems() {
   if(!navigator.onLine) { alert('❌ Conecte-se à internet para baixar os PDFs.'); return; }
   if(selectedItemsIds.size === 0) { alert('⚠️ Selecione pelo menos uma tenda.'); return; }
   if(isDownloading) { alert('⏳ Download em andamento...'); return; }
-  
   isDownloading = true;
   showLoader(true, 'Baixando PDFs...');
-  
   let selectedIdsArray = Array.from(selectedItemsIds).map(id => String(id));
   let itemsToDownload = currentItems.filter(item => selectedIdsArray.includes(String(item.id)));
   let pdfsToDownload = [];
-  
   for(let item of itemsToDownload) {
     for(let file of item.files) {
       if(file.file_url && (file.category === 'memorial' || monthKeys.includes(file.category))) {
@@ -815,12 +517,9 @@ async function downloadSelectedItems() {
       }
     }
   }
-  
   if(pdfsToDownload.length === 0) { alert(`✅ Todos os PDFs já estão em cache!`); showLoader(false); isDownloading = false; return; }
-  
   let progressFill = document.getElementById('cacheProgressFill');
   let downloaded = 0, errors = 0;
-  
   for(let i=0; i<pdfsToDownload.length; i++) {
     let pdf = pdfsToDownload[i];
     let progress = ((i+1)/pdfsToDownload.length)*100;
@@ -835,14 +534,11 @@ async function downloadSelectedItems() {
       } else { errors++; }
     } catch(e) { errors++; }
   }
-  
   await updateCacheStats();
   showLoader(false);
   alert(`✅ Baixados: ${downloaded}\n❌ Erros: ${errors}`);
   isDownloading = false;
-  if(document.getElementById('cacheModal').style.display === 'flex') {
-    await loadCacheItemsList();
-  }
+  if(document.getElementById('cacheModal').style.display === 'flex') { await loadCacheItemsList(); }
 }
 
 // ==================== CARREGAR LISTA DO MODAL ====================
@@ -850,7 +546,6 @@ async function loadCacheItemsList() {
   let listContainer = document.getElementById('cacheItemsList');
   let cached = await getAllCachedPDFs();
   let cachedUrls = new Set(cached.map(pdf => pdf.url));
-  
   let itemsHtml = '';
   for(let item of currentItems) {
     let totalFiles = 0, cachedCount = 0;
@@ -861,16 +556,9 @@ async function loadCacheItemsList() {
       }
     }
     let isSelected = selectedItemsIds.has(String(item.id));
-    let statusText = totalFiles === 0 ? '📭 Sem PDFs' :
-                     cachedCount === totalFiles ? `✓ Completo (${cachedCount}/${totalFiles})` :
-                     cachedCount > 0 ? `⚠️ Parcial (${cachedCount}/${totalFiles})` :
-                     `⬜ Pendente (0/${totalFiles})`;
+    let statusText = totalFiles === 0 ? '📭 Sem PDFs' : cachedCount === totalFiles ? `✓ Completo (${cachedCount}/${totalFiles})` : cachedCount > 0 ? `⚠️ Parcial (${cachedCount}/${totalFiles})` : `⬜ Pendente (0/${totalFiles})`;
     let statusClass = cachedCount === totalFiles && totalFiles > 0 ? 'complete' : (cachedCount > 0 ? 'partial' : 'pending');
-    itemsHtml += `<div class="cache-item" data-id="${item.id}" onclick="toggleSelectItem('${item.id}')">
-      <input type="checkbox" class="item-checkbox" data-id="${item.id}" ${isSelected ? 'checked' : ''} onclick="event.stopPropagation()">
-      <div class="cache-item-info"><div class="cache-item-name">${escapeHtml(item.name)}</div><div class="cache-item-code">${escapeHtml(item.code)}</div></div>
-      <div class="cache-item-stats ${statusClass}">${statusText}</div>
-    </div>`;
+    itemsHtml += `<div class="cache-item" data-id="${item.id}" onclick="toggleSelectItem('${item.id}')"><input type="checkbox" class="item-checkbox" data-id="${item.id}" ${isSelected ? 'checked' : ''} onclick="event.stopPropagation()"><div class="cache-item-info"><div class="cache-item-name">${escapeHtml(item.name)}</div><div class="cache-item-code">${escapeHtml(item.code)}</div></div><div class="cache-item-stats ${statusClass}">${statusText}</div></div>`;
   }
   listContainer.innerHTML = itemsHtml;
   document.querySelectorAll('.item-checkbox').forEach(cb => {
@@ -893,7 +581,6 @@ window.toggleSelectItem = function(itemId) {
 };
 
 function updateSelectionInfo() { document.getElementById('selectedCountText').textContent = selectedItemsIds.size; }
-
 function selectAllItems() { currentItems.forEach(item => selectedItemsIds.add(String(item.id))); document.querySelectorAll('.item-checkbox').forEach(cb => cb.checked = true); updateSelectionInfo(); }
 function deselectAllItems() { selectedItemsIds.clear(); document.querySelectorAll('.item-checkbox').forEach(cb => cb.checked = false); updateSelectionInfo(); }
 
@@ -997,7 +684,6 @@ async function renderCards(filter = "") {
     const statusText = i.status === 'active' ? 'Ativo' : 'Inativo';
     return `<div class="item-card" data-id="${i.id}"><div><h3>${escapeHtml(i.name)}</h3><p>ID: ${escapeHtml(i.code)}</p>${i.tamanho ? `<p>📏 ${escapeHtml(i.tamanho)}</p>` : ''}<div><span class="status-badge ${statusClass}">${statusText}</span></div>${inspecaoMsg}</div><div class="qr-code-mini"></div></div>`;
   }).join('');
-  
   for(let card of document.querySelectorAll('.item-card')) {
     let id = card.dataset.id;
     card.addEventListener('click', (e) => { if(!e.target.classList.contains('qr-code-mini')) openDetailModal(id); });
@@ -1066,40 +752,23 @@ async function openSettingsModal() { await updateCacheStats(); document.getEleme
 
 // ==================== COMUNICAÇÃO COM SERVICE WORKER ====================
 async function checkForUpdatesViaSW() {
-  if (!('serviceWorker' in navigator) || !navigator.serviceWorker.controller) {
-    console.log('Service Worker não disponível');
-    return;
-  }
-  
+  if (!('serviceWorker' in navigator) || !navigator.serviceWorker.controller) { console.log('Service Worker não disponível'); return; }
   return new Promise((resolve) => {
     const messageChannel = new MessageChannel();
-    
     messageChannel.port1.onmessage = (event) => {
       console.log('Resposta do SW:', event.data);
-      if (event.data.hasUpdate) {
-        showUpdateNotification(event.data.version);
-      }
+      if (event.data.hasUpdate) { showUpdateNotification(event.data.version); }
       resolve(event.data);
     };
-    
-    navigator.serviceWorker.controller.postMessage(
-      { type: 'CHECK_UPDATE' },
-      [messageChannel.port2]
-    );
+    navigator.serviceWorker.controller.postMessage({ type: 'CHECK_UPDATE' }, [messageChannel.port2]);
   });
 }
 
 async function forceUpdateViaSW() {
-  if (!('serviceWorker' in navigator) || !navigator.serviceWorker.controller) {
-    window.location.reload(true);
-    return;
-  }
-  
+  if (!('serviceWorker' in navigator) || !navigator.serviceWorker.controller) { window.location.reload(true); return; }
   showLoader(true, 'Atualizando para nova versão...');
-  
   return new Promise((resolve) => {
     const messageChannel = new MessageChannel();
-    
     messageChannel.port1.onmessage = async (event) => {
       console.log('Update response:', event.data);
       if (event.data.updated) {
@@ -1109,77 +778,31 @@ async function forceUpdateViaSW() {
       }
       resolve(event.data);
     };
-    
-    navigator.serviceWorker.controller.postMessage(
-      { type: 'FORCE_UPDATE' },
-      [messageChannel.port2]
-    );
+    navigator.serviceWorker.controller.postMessage({ type: 'FORCE_UPDATE' }, [messageChannel.port2]);
   });
 }
 
 function showUpdateNotification(newVersion) {
   if (sessionStorage.getItem('update_notified') === newVersion) return;
-  
   const notification = document.createElement('div');
   notification.id = 'updateNotification';
-  notification.innerHTML = `
-    <div style="
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      background: linear-gradient(135deg, #f59e0b, #ea580c);
-      color: white;
-      padding: 15px;
-      text-align: center;
-      z-index: 10001;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-      animation: slideDown 0.3s ease-out;
-      cursor: pointer;
-    ">
-      <strong>🔄 Nova versão ${newVersion} disponível!</strong>
-      <p style="font-size: 12px; margin-top: 5px;">Clique para atualizar agora</p>
-    </div>
-  `;
-  
+  notification.innerHTML = `<div style="position:fixed;top:0;left:0;right:0;background:linear-gradient(135deg,#f59e0b,#ea580c);color:white;padding:15px;text-align:center;z-index:10001;box-shadow:0 4px 15px rgba(0,0,0,0.2);animation:slideDown 0.3s ease-out;cursor:pointer;"><strong>🔄 Nova versão ${newVersion} disponível!</strong><p style="font-size:12px;margin-top:5px;">Clique para atualizar agora</p></div>`;
   if (!document.querySelector('#updateAnimStyle')) {
     const style = document.createElement('style');
     style.id = 'updateAnimStyle';
-    style.textContent = `
-      @keyframes slideDown {
-        from { transform: translateY(-100%); }
-        to { transform: translateY(0); }
-      }
-    `;
+    style.textContent = '@keyframes slideDown{from{transform:translateY(-100%);}to{transform:translateY(0);}}';
     document.head.appendChild(style);
   }
-  
   document.body.appendChild(notification);
   sessionStorage.setItem('update_notified', newVersion);
-  
-  notification.onclick = () => {
-    notification.remove();
-    forceUpdateViaSW();
-  };
-  
-  setTimeout(() => {
-    if (notification.parentNode) notification.remove();
-  }, 10000);
+  notification.onclick = () => { notification.remove(); forceUpdateViaSW(); };
+  setTimeout(() => { if (notification.parentNode) notification.remove(); }, 10000);
 }
 
 function startAutoUpdateCheck() {
   setTimeout(() => checkForUpdatesViaSW(), 3000);
-  
-  setInterval(() => {
-    if (navigator.onLine) {
-      checkForUpdatesViaSW();
-    }
-  }, 5 * 60 * 1000);
-  
-  window.addEventListener('online', () => {
-    console.log('🌐 Conexão restaurada, verificando atualizações...');
-    setTimeout(() => checkForUpdatesViaSW(), 1000);
-  });
+  setInterval(() => { if (navigator.onLine) { checkForUpdatesViaSW(); } }, 5 * 60 * 1000);
+  window.addEventListener('online', () => { console.log('🌐 Conexão restaurada, verificando atualizações...'); setTimeout(() => checkForUpdatesViaSW(), 1000); });
 }
 
 // ==================== REGISTRO DO SERVICE WORKER ====================
@@ -1190,7 +813,6 @@ async function registerServiceWorker() {
     console.log('Service Worker registrado:', registration);
     document.getElementById('swStatus').innerHTML = '✅ SW Ativo';
     document.getElementById('settingsSWStatus').innerHTML = '✅ Ativo';
-    
     if (isIOS && !window.navigator.standalone) {
       setTimeout(() => { const hint = document.getElementById('iosOfflineHint'); if (hint) hint.style.display = 'block'; }, 3000);
     }
