@@ -293,6 +293,57 @@
       text-align: center;
       border-left: 4px solid #f59e0b;
     }
+
+    /* iOS PDF Viewer */
+    .ios-pdf-viewer {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: white;
+      z-index: 10000;
+      display: none;
+      flex-direction: column;
+    }
+    .ios-pdf-viewer.active {
+      display: flex;
+    }
+    .ios-pdf-viewer-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem;
+      background: #1e4a76;
+      color: white;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+    .ios-pdf-viewer-header button {
+      background: rgba(255,255,255,0.2);
+      border: none;
+      color: white;
+      font-size: 1.2rem;
+      padding: 0.3rem 0.8rem;
+      border-radius: 2rem;
+      cursor: pointer;
+    }
+    .ios-pdf-viewer-content {
+      flex: 1;
+      overflow: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .ios-pdf-viewer-content iframe,
+    .ios-pdf-viewer-content embed {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+    .ios-pdf-viewer-content object {
+      width: 100%;
+      height: 100%;
+    }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -315,6 +366,17 @@
 <div id="iosOfflineHint">
   📱 <strong>Para usar offline no iPhone:</strong> Toque em Compartilhar → "Adicionar à Tela de Início"
   <button onclick="document.getElementById('iosOfflineHint').style.display='none'" style="float:right; background:none; border:none; font-size:1rem; cursor:pointer;">✕</button>
+</div>
+
+<!-- iOS PDF Viewer Modal -->
+<div id="iosPdfViewer" class="ios-pdf-viewer">
+  <div class="ios-pdf-viewer-header">
+    <span id="iosPdfTitle">Visualizando PDF</span>
+    <button onclick="closeIOSPDFViewer()">✕ Fechar</button>
+  </div>
+  <div class="ios-pdf-viewer-content" id="iosPdfContent">
+    <iframe id="iosPdfFrame" src="about:blank"></iframe>
+  </div>
 </div>
 
 <div id="settingsModal" class="modal-settings">
@@ -456,6 +518,9 @@
   const BASE_URL = window.location.origin + window.location.pathname;
   const SW_URL = '/TENDEX/sw-visitante.js';
   
+  // Detectar plataforma
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  
   function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;'); }
   
   function showLoader(show, text = 'Processando...') {
@@ -489,13 +554,107 @@
     }
   }
   
+  // ==================== FUNÇÃO CORRIGIDA PARA IPHONE ====================
+  async function viewPDFOffline(url, fileName, itemId) {
+    console.log('viewPDFOffline chamado para:', fileName, 'iOS:', isIOS);
+    
+    const blob = await getPDFFromCache(url);
+    
+    if (blob) {
+      console.log('PDF encontrado no cache, tamanho:', blob.size);
+      
+      if (isIOS) {
+        // SOLUÇÃO ESPECIAL PARA IPHONE
+        try {
+          // Converter blob para base64 data URL (mais compatível com iOS)
+          const reader = new FileReader();
+          reader.onloadend = function() {
+            const dataUrl = reader.result;
+            
+            // Criar iframe para visualização no iOS
+            const iframe = document.getElementById('iosPdfFrame');
+            const viewer = document.getElementById('iosPdfViewer');
+            const title = document.getElementById('iosPdfTitle');
+            
+            title.textContent = fileName.length > 40 ? fileName.substring(0, 37) + '...' : fileName;
+            
+            // Método 1: Usar iframe com data URL
+            iframe.src = dataUrl;
+            
+            // Mostrar viewer
+            viewer.classList.add('active');
+          };
+          reader.readAsDataURL(blob);
+        } catch (e) {
+          console.error('Erro ao ler blob no iOS:', e);
+          // Fallback: tentar abrir em nova aba
+          const blobUrl = URL.createObjectURL(blob);
+          window.open(blobUrl, '_blank');
+          setTimeout(() => URL.revokeObjectURL(blobUrl), 30000);
+        }
+      } else {
+        // Android: método normal
+        const blobUrl = URL.createObjectURL(blob);
+        window.open(blobUrl, '_blank');
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 30000);
+      }
+    } else if (navigator.onLine) {
+      if(confirm(`📄 "${fileName}" não está offline. Baixar agora?`)) {
+        showLoader(true, 'Baixando PDF...');
+        try {
+          const response = await fetch(url);
+          if(response.ok) {
+            const blob = await response.blob();
+            await savePDFToCache(itemId, url, blob, fileName);
+            await updateCacheStats();
+            
+            // Após baixar, tentar abrir novamente
+            if (isIOS) {
+              const reader = new FileReader();
+              reader.onloadend = function() {
+                const iframe = document.getElementById('iosPdfFrame');
+                const viewer = document.getElementById('iosPdfViewer');
+                const title = document.getElementById('iosPdfTitle');
+                title.textContent = fileName.length > 40 ? fileName.substring(0, 37) + '...' : fileName;
+                iframe.src = reader.result;
+                viewer.classList.add('active');
+              };
+              reader.readAsDataURL(blob);
+            } else {
+              const blobUrl = URL.createObjectURL(blob);
+              window.open(blobUrl, '_blank');
+              setTimeout(() => URL.revokeObjectURL(blobUrl), 30000);
+            }
+          } else {
+            alert('Erro ao baixar o PDF.');
+          }
+        } catch(e) {
+          alert('Erro ao baixar o PDF: ' + e.message);
+        }
+        showLoader(false);
+      } else { 
+        window.open(url, '_blank'); 
+      }
+    } else {
+      alert(`❌ "${fileName}" não está disponível offline. Conecte-se à internet para baixar.`);
+    }
+  }
+  
+  // Função para fechar o viewer do iOS
+  window.closeIOSPDFViewer = function() {
+    const viewer = document.getElementById('iosPdfViewer');
+    const iframe = document.getElementById('iosPdfFrame');
+    iframe.src = 'about:blank';
+    viewer.classList.remove('active');
+  };
+  
   // ==================== DETECÇÃO DE PLATAFORMA ====================
   function detectPlatform() {
     const userAgent = navigator.userAgent || navigator.vendor || window.opera;
-    const isIOS = /iPad|iPhone|iPod/.test(userAgent) && !window.MSStream;
+    const isIOSDevice = /iPad|iPhone|iPod/.test(userAgent) && !window.MSStream;
     const isAndroid = /Android/.test(userAgent);
     const isSafari = /Safari/.test(userAgent) && !/Chrome/.test(userAgent);
-    return { isIOS, isAndroid, isSafari };
+    return { isIOS: isIOSDevice, isAndroid, isSafari };
   }
   
   // ==================== REGISTRO DE SERVICE WORKER OTIMIZADO ====================
@@ -509,43 +668,15 @@
     const platform = detectPlatform();
     console.log('Plataforma detectada:', platform);
     
-    if (platform.isIOS) {
-      document.getElementById('swStatus').innerHTML = '🍎 iOS: Instalando...';
-    } else if (platform.isAndroid) {
-      document.getElementById('swStatus').innerHTML = '🤖 Android: Instalando...';
-    }
-    
     try {
-      const registrations = await navigator.serviceWorker.getRegistrations();
-      for (const registration of registrations) {
-        const scriptURL = registration.active?.scriptURL || '';
-        if (scriptURL.includes('sw-visitante.js') && !scriptURL.includes('?v=')) {
-          console.log('Service Worker existente encontrado:', scriptURL);
-        }
-      }
-      
       const swUrl = `/TENDEX/sw-visitante.js?v=${Date.now()}`;
       const registration = await navigator.serviceWorker.register(swUrl, {
-        scope: '/TENDEX/',
-        updateViaCache: platform.isIOS ? 'none' : 'imports'
+        scope: '/TENDEX/'
       });
       
       console.log('Service Worker registrado com sucesso:', registration);
       
-      if (registration.installing) {
-        await new Promise((resolve) => {
-          registration.installing.addEventListener('statechange', (e) => {
-            if (e.target.state === 'activated') {
-              console.log('Service Worker ativado!');
-              resolve();
-            }
-          });
-          setTimeout(resolve, 3000);
-        });
-      }
-      
       document.getElementById('swStatus').innerHTML = '✅ SW Ativo';
-      document.getElementById('swStatus').className = 'sw-status sw-active';
       document.getElementById('settingsSWStatus').innerHTML = '✅ Ativo';
       
       if (platform.isIOS && !window.navigator.standalone) {
@@ -554,8 +685,6 @@
           if (hint) hint.style.display = 'block';
         }, 3000);
       }
-      
-      setInterval(() => { registration.update(); }, 60 * 60 * 1000);
       
       return true;
       
@@ -572,28 +701,23 @@
     if ('storage' in navigator && 'persist' in navigator.storage) {
       try {
         const isPersisted = await navigator.storage.persisted();
-        console.log('Armazenamento persistente já está:', isPersisted);
+        console.log('Armazenamento persistente:', isPersisted);
         if (!isPersisted) {
           const granted = await navigator.storage.persist();
-          console.log('Permissão de armazenamento persistente:', granted);
-          return granted;
+          console.log('Permissão concedida:', granted);
         }
-        return isPersisted;
       } catch (error) {
         console.warn('Erro ao verificar persistência:', error);
-        return false;
       }
     }
-    return false;
   }
   
-  // ==================== SERVICE WORKER ====================
   async function registerServiceWorker() {
     return await registerServiceWorkerOptimized();
   }
   
   async function limparServiceWorker() {
-    if (confirm('⚠️ Desregistrar Service Worker?\n\nIsso pode afetar o funcionamento offline.')) {
+    if (confirm('⚠️ Desregistrar Service Worker?')) {
       showLoader(true, 'Removendo Service Worker...');
       try {
         const registrations = await navigator.serviceWorker.getRegistrations();
@@ -918,30 +1042,6 @@
     }
   }
   
-  // ==================== VISUALIZAR PDF OFFLINE ====================
-  async function viewPDFOffline(url, fileName, itemId) {
-    let blob = await getPDFFromCache(url);
-    if(blob) {
-      let blobUrl = URL.createObjectURL(blob);
-      window.open(blobUrl, '_blank');
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 30000);
-    } else if(navigator.onLine) {
-      if(confirm(`📄 "${fileName}" não está offline. Baixar agora?`)) {
-        showLoader(true, 'Baixando PDF...');
-        let response = await fetch(url);
-        if(response.ok) {
-          let blob = await response.blob();
-          await savePDFToCache(itemId, url, blob, fileName);
-          let blobUrl = URL.createObjectURL(blob);
-          window.open(blobUrl, '_blank');
-          await updateCacheStats();
-        }
-        showLoader(false);
-      } else { window.open(url, '_blank'); }
-    } else {
-      alert(`❌ Documento não disponível offline. Conecte-se à internet para baixar.`);
-    }
-  }
   window.viewPDFOffline = viewPDFOffline;
   
   // ==================== CARREGAR LISTA DO MODAL ====================
