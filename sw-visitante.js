@@ -1,5 +1,5 @@
 // sw-visitante.js - Service Worker com verificação automática de atualizações
-const APP_VERSION = '0.0.5'; // ← ATUALIZE ESTA VERSÃO QUANDO MODIFICAR O CÓDIGO
+const APP_VERSION = '0.0.7'; // ← ATUALIZE ESTA VERSÃO QUANDO MODIFICAR O CÓDIGO
 const CACHE_NAME = `tendex-visitante-v${APP_VERSION.replace(/\./g, '_')}`;
 const DYNAMIC_CACHE = `tendex-dynamic-v${APP_VERSION.replace(/\./g, '_')}`;
 
