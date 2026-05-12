@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="version" content="0.0.8">
-  <title>TENDEX | Modo Visitante v0.0.8</title>
+  <meta name="version" content="0.0.9">
+  <title>TENDEX | Modo Visitante v0.0.9</title>
   <link rel="manifest" href="https://cockpitformularios.github.io/TENDEX/manifest.json">
   <link rel="icon" type="image/x-icon" href="https://jklcvyuxwxgsfczrfaco.supabase.co/storage/v1/object/public/assinaturas/favicon.ico">
   <link rel="icon" type="image/png" sizes="192x192" href="https://jklcvyuxwxgsfczrfaco.supabase.co/storage/v1/object/public/assinaturas/icon-180.png">
@@ -138,13 +138,6 @@
     .footer-print { text-align: center; font-size: 9pt; color: #888; margin-top: 10mm; padding-top: 5mm; border-top: 1px solid #eee; }
     @media (max-width: 640px) { body { padding: 1rem; } .dashboard-header h1 { font-size: 1.2rem; } .items-grid { grid-template-columns: 1fr; } .general-qr-code { width: 80px; height: 80px; } }
     #iosOfflineHint { display: none; background: #fef3c7; border-radius: 1rem; padding: 0.75rem; margin-bottom: 1rem; font-size: 0.75rem; text-align: center; border-left: 4px solid #f59e0b; }
-    .ios-pdf-viewer { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #525659; z-index: 10000; display: none; flex-direction: column; }
-    .ios-pdf-viewer.active { display: flex; }
-    .ios-pdf-viewer-header { display: flex; justify-content: space-between; align-items: center; padding: 1rem; background: #1e4a76; color: white; position: sticky; top: 0; z-index: 1; }
-    .ios-pdf-viewer-header button { background: rgba(255,255,255,0.2); border: none; color: white; font-size: 1.2rem; padding: 0.3rem 0.8rem; border-radius: 2rem; cursor: pointer; }
-    .ios-pdf-viewer-content { flex: 1; overflow: auto; -webkit-overflow-scrolling: touch; background: #525659; }
-    .ios-pdf-viewer-content iframe { width: 100%; height: 100%; border: none; background: white; }
-    @supports (-webkit-touch-callout: none) { .ios-pdf-viewer-content { height: -webkit-fill-available; } .ios-pdf-viewer-content iframe { height: 100%; position: absolute; top: 0; left: 0; right: 0; bottom: 0; } }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -165,11 +158,6 @@
 </div>
 
 <div id="iosOfflineHint">📱 <strong>Para usar offline no iPhone:</strong> Toque em Compartilhar → "Adicionar à Tela de Início" <button onclick="document.getElementById('iosOfflineHint').style.display='none'" style="float:right; background:none; border:none; font-size:1rem; cursor:pointer;">✕</button></div>
-
-<div id="iosPdfViewer" class="ios-pdf-viewer">
-  <div class="ios-pdf-viewer-header"><span id="iosPdfTitle">Visualizando PDF</span><button onclick="closeIOSPDFViewer()">✕ Fechar</button></div>
-  <div class="ios-pdf-viewer-content"><iframe id="iosPdfFrame" src="about:blank"></iframe></div>
-</div>
 
 <div id="settingsModal" class="modal-settings">
   <div class="modal-settings-content">
@@ -220,7 +208,7 @@
 
 <script>
 // ==================== VERSÃO DO APP ====================
-const APP_VERSION = '0.0.8';
+const APP_VERSION = '0.0.9';
 
 // ==================== DETECÇÃO DE PLATAFORMA ====================
 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
@@ -368,93 +356,82 @@ async function updateCacheStats() {
   return cached.length;
 }
 
-// ==================== VISUALIZAR PDF OFFLINE (CORRIGIDO PARA IPHONE) ====================
+// ==================== VISUALIZAR PDF OFFLINE - CORRIGIDO PARA IPHONE (TODAS AS PÁGINAS) ====================
 async function viewPDFOffline(url, fileName, itemId) {
   console.log('viewPDFOffline chamado para:', fileName, 'iOS:', isIOS);
+  showLoader(true, 'Abrindo PDF...');
+  
   const blob = await getPDFFromCache(url);
   
   if (blob) {
-    console.log('PDF encontrado no cache, tamanho:', blob.size);
+    console.log('PDF encontrado no cache, tamanho:', (blob.size / 1024 / 1024).toFixed(2), 'MB');
+    
+    // Solução para iOS: usar o visualizador nativo do Safari/iPhone
+    // Isso garante que TODAS as páginas do PDF sejam exibidas
+    const blobUrl = URL.createObjectURL(blob);
+    
     if (isIOS) {
-      try {
-        const blobUrl = URL.createObjectURL(blob);
-        const newWindow = window.open();
-        if (newWindow) {
-          newWindow.document.write(`
-            <!DOCTYPE html>
-            <html>
-            <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes"><title>${escapeHtml(fileName)}</title>
-            <style>*{margin:0;padding:0;box-sizing:border-box;}body{background:#525659;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;}.container{position:fixed;top:0;left:0;width:100%;height:100%;display:flex;flex-direction:column;}.toolbar{background:#1e4a76;color:white;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;z-index:10;}.toolbar span{font-size:14px;font-weight:500;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}.toolbar button{background:rgba(255,255,255,0.2);border:none;color:white;padding:8px 16px;border-radius:20px;font-size:14px;cursor:pointer;}.pdf-container{flex:1;background:#525659;}.pdf-container iframe{width:100%;height:100%;border:none;background:white;}@media(max-width:768px){.toolbar{padding:8px 12px;}.toolbar span{font-size:12px;}.toolbar button{padding:6px 12px;font-size:12px;}}</style>
-            </head>
-            <body>
-              <div class="container">
-                <div class="toolbar"><span>📄 ${escapeHtml(fileName.substring(0, 50))}</span><div><button onclick="reloadPDF()">🔄 Recarregar</button><button onclick="window.close()">✕ Fechar</button></div></div>
-                <div class="pdf-container"><iframe id="pdfFrame" src="${blobUrl}" frameborder="0"></iframe></div>
-              </div>
-              <script>
-                function reloadPDF(){var iframe=document.getElementById('pdfFrame');var src=iframe.src;iframe.src='';setTimeout(function(){iframe.src=src;},100);}
-                setTimeout(function(){var iframe=document.getElementById('pdfFrame');if(iframe&&iframe.contentWindow){try{if(!iframe.src||iframe.src==='about:blank'){iframe.src='${blobUrl}';}}catch(e){}}},500);
-              <\/script>
-            </body>
-            </html>
-          `);
-          newWindow.document.close();
-          setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
-        } else { useModalPDFViewer(blob, fileName); }
-      } catch (e) { console.error('Erro ao abrir PDF no iOS:', e); useModalPDFViewer(blob, fileName); }
+      // Para iOS: criar um elemento <a> com download e target _blank
+      // Isso força o Safari a usar o visualizador nativo de PDF
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = fileName;
+      link.target = '_blank';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     } else {
-      const blobUrl = URL.createObjectURL(blob);
+      // Android: abrir diretamente
       window.open(blobUrl, '_blank');
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 30000);
     }
+    
+    // Limpar a URL após 30 segundos
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 30000);
+    showLoader(false);
+    
   } else if (navigator.onLine) {
+    showLoader(false);
     if(confirm(`📄 "${fileName}" não está offline. Baixar agora?`)) {
-      showLoader(true, 'Baixando PDF...');
+      showLoader(true, `Baixando ${fileName}...`);
       try {
         const response = await fetch(url);
         if(response.ok) {
           const blob = await response.blob();
           await savePDFToCache(itemId, url, blob, fileName);
           await updateCacheStats();
+          
+          // Após baixar, abrir o PDF
+          const blobUrl = URL.createObjectURL(blob);
           if (isIOS) {
-            const blobUrl = URL.createObjectURL(blob);
-            const newWindow = window.open();
-            if (newWindow) {
-              newWindow.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>${escapeHtml(fileName)}</title><style>*{margin:0;padding:0;}body{background:#525659;}.container{width:100%;height:100vh;display:flex;flex-direction:column;}.toolbar{background:#1e4a76;color:white;padding:12px;display:flex;justify-content:space-between;}.pdf-container{flex:1;}iframe{width:100%;height:100%;border:none;}</style></head><body><div class="container"><div class="toolbar"><span>${escapeHtml(fileName)}</span><button onclick="window.close()">Fechar</button></div><div class="pdf-container"><iframe src="${blobUrl}" frameborder="0"></iframe></div></div></body></html>`);
-              newWindow.document.close();
-              setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
-            }
+            const link = document.createElement('a');
+            link.href = blobUrl;
+            link.download = fileName;
+            link.target = '_blank';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
           } else {
-            const blobUrl = URL.createObjectURL(blob);
             window.open(blobUrl, '_blank');
-            setTimeout(() => URL.revokeObjectURL(blobUrl), 30000);
           }
-        } else { alert('Erro ao baixar o PDF.'); }
-      } catch(e) { alert('Erro ao baixar o PDF: ' + e.message); }
-      showLoader(false);
-    } else { window.open(url, '_blank'); }
-  } else { alert(`❌ "${fileName}" não está disponível offline. Conecte-se à internet para baixar.`); }
+          setTimeout(() => URL.revokeObjectURL(blobUrl), 30000);
+          showLoader(false);
+        } else {
+          alert('Erro ao baixar o PDF.');
+          showLoader(false);
+        }
+      } catch(e) {
+        alert('Erro ao baixar o PDF: ' + e.message);
+        showLoader(false);
+      }
+    } else { 
+      window.open(url, '_blank'); 
+    }
+  } else {
+    showLoader(false);
+    alert(`❌ "${fileName}" não está disponível offline. Conecte-se à internet para baixar.`);
+  }
 }
 
-function useModalPDFViewer(blob, fileName) {
-  const blobUrl = URL.createObjectURL(blob);
-  const iframe = document.getElementById('iosPdfFrame');
-  const viewer = document.getElementById('iosPdfViewer');
-  const title = document.getElementById('iosPdfTitle');
-  title.textContent = fileName.length > 40 ? fileName.substring(0, 37) + '...' : fileName;
-  iframe.src = blobUrl;
-  viewer.classList.add('active');
-  setTimeout(() => { const currentSrc = iframe.src; iframe.src = ''; setTimeout(() => { iframe.src = currentSrc; }, 100); }, 1000);
-}
-
-function closeIOSPDFViewer() {
-  const viewer = document.getElementById('iosPdfViewer');
-  const iframe = document.getElementById('iosPdfFrame');
-  if (iframe.src && iframe.src.startsWith('blob:')) { URL.revokeObjectURL(iframe.src); }
-  iframe.src = 'about:blank';
-  viewer.classList.remove('active');
-}
-window.closeIOSPDFViewer = closeIOSPDFViewer;
 window.viewPDFOffline = viewPDFOffline;
 
 // ==================== CARREGAR DADOS ====================
@@ -504,11 +481,14 @@ async function downloadSelectedItems() {
   if(!navigator.onLine) { alert('❌ Conecte-se à internet para baixar os PDFs.'); return; }
   if(selectedItemsIds.size === 0) { alert('⚠️ Selecione pelo menos uma tenda.'); return; }
   if(isDownloading) { alert('⏳ Download em andamento...'); return; }
+  
   isDownloading = true;
-  showLoader(true, 'Baixando PDFs...');
+  showLoader(true, 'Preparando download...');
+  
   let selectedIdsArray = Array.from(selectedItemsIds).map(id => String(id));
   let itemsToDownload = currentItems.filter(item => selectedIdsArray.includes(String(item.id)));
   let pdfsToDownload = [];
+  
   for(let item of itemsToDownload) {
     for(let file of item.files) {
       if(file.file_url && (file.category === 'memorial' || monthKeys.includes(file.category))) {
@@ -517,13 +497,17 @@ async function downloadSelectedItems() {
       }
     }
   }
+  
   if(pdfsToDownload.length === 0) { alert(`✅ Todos os PDFs já estão em cache!`); showLoader(false); isDownloading = false; return; }
+  
   let progressFill = document.getElementById('cacheProgressFill');
   let downloaded = 0, errors = 0;
+  
   for(let i=0; i<pdfsToDownload.length; i++) {
     let pdf = pdfsToDownload[i];
     let progress = ((i+1)/pdfsToDownload.length)*100;
     if(progressFill) progressFill.style.width = `${progress}%`;
+    showLoader(true, `Baixando ${i+1}/${pdfsToDownload.length}: ${pdf.fileName.substring(0, 30)}...`);
     showToast(`📥 ${pdf.fileName.substring(0, 35)}...`, 800);
     try {
       let response = await fetch(pdf.url);
@@ -534,11 +518,13 @@ async function downloadSelectedItems() {
       } else { errors++; }
     } catch(e) { errors++; }
   }
+  
   await updateCacheStats();
   showLoader(false);
   alert(`✅ Baixados: ${downloaded}\n❌ Erros: ${errors}`);
   isDownloading = false;
   if(document.getElementById('cacheModal').style.display === 'flex') { await loadCacheItemsList(); }
+  if(progressFill) { setTimeout(() => { progressFill.style.width = '0%'; }, 1000); }
 }
 
 // ==================== CARREGAR LISTA DO MODAL ====================
