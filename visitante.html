@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="version" content="0.0.5">
-  <title>TENDEX | Modo Visitante 12</title>
+  <meta name="version" content="0.0.6">
+  <title>TENDEX | Modo Visitante v0.0.6</title>
   <link rel="manifest" href="https://cockpitformularios.github.io/TENDEX/manifest.json">
   <link rel="icon" type="image/x-icon" href="https://jklcvyuxwxgsfczrfaco.supabase.co/storage/v1/object/public/assinaturas/favicon.ico">
   <link rel="icon" type="image/png" sizes="192x192" href="https://jklcvyuxwxgsfczrfaco.supabase.co/storage/v1/object/public/assinaturas/icon-180.png">
@@ -491,152 +491,22 @@
 
 <script>
 // ==================== VERSÃO DO APP ====================
-const APP_VERSION = '0.0.5'; // ← MANTENHA SINCRONIZADO COM O SERVICE WORKER
+const APP_VERSION = '0.0.6';
 
 // ==================== DETECÇÃO DE PLATAFORMA ====================
 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 
-// ==================== FUNÇÕES DE COMUNICAÇÃO COM SERVICE WORKER ====================
-
-// Função para verificar atualizações via Service Worker
-async function checkForUpdatesViaSW() {
-  if (!('serviceWorker' in navigator) || !navigator.serviceWorker.controller) {
-    console.log('Service Worker não disponível');
-    return;
-  }
-  
-  return new Promise((resolve) => {
-    const messageChannel = new MessageChannel();
-    
-    messageChannel.port1.onmessage = (event) => {
-      console.log('Resposta do SW:', event.data);
-      if (event.data.hasUpdate) {
-        showUpdateNotification(event.data.version);
-      }
-      resolve(event.data);
-    };
-    
-    navigator.serviceWorker.controller.postMessage(
-      { type: 'CHECK_UPDATE' },
-      [messageChannel.port2]
-    );
-  });
-}
-
-// Função para forçar atualização via Service Worker
-async function forceUpdateViaSW() {
-  if (!('serviceWorker' in navigator) || !navigator.serviceWorker.controller) {
-    window.location.reload(true);
-    return;
-  }
-  
-  showLoader(true, 'Atualizando para nova versão...');
-  
-  return new Promise((resolve) => {
-    const messageChannel = new MessageChannel();
-    
-    messageChannel.port1.onmessage = async (event) => {
-      console.log('Update response:', event.data);
-      if (event.data.updated) {
-        showLoader(false);
-        alert('✅ Atualização concluída! A página será recarregada.');
-        window.location.reload(true);
-      }
-      resolve(event.data);
-    };
-    
-    navigator.serviceWorker.controller.postMessage(
-      { type: 'FORCE_UPDATE' },
-      [messageChannel.port2]
-    );
-  });
-}
-
-// Mostrar notificação de atualização
-function showUpdateNotification(newVersion) {
-  if (sessionStorage.getItem('update_notified') === newVersion) return;
-  
-  const notification = document.createElement('div');
-  notification.id = 'updateNotification';
-  notification.innerHTML = `
-    <div style="
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      background: linear-gradient(135deg, #f59e0b, #ea580c);
-      color: white;
-      padding: 15px;
-      text-align: center;
-      z-index: 10001;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-      animation: slideDown 0.3s ease-out;
-      cursor: pointer;
-    ">
-      <strong>🔄 Nova versão ${newVersion} disponível!</strong>
-      <p style="font-size: 12px; margin-top: 5px;">Clique para atualizar agora</p>
-    </div>
-  `;
-  
-  if (!document.querySelector('#updateAnimStyle')) {
-    const style = document.createElement('style');
-    style.id = 'updateAnimStyle';
-    style.textContent = `
-      @keyframes slideDown {
-        from { transform: translateY(-100%); }
-        to { transform: translateY(0); }
-      }
-    `;
-    document.head.appendChild(style);
-  }
-  
-  document.body.appendChild(notification);
-  sessionStorage.setItem('update_notified', newVersion);
-  
-  notification.onclick = () => {
-    notification.remove();
-    forceUpdateViaSW();
-  };
-  
-  setTimeout(() => {
-    if (notification.parentNode) notification.remove();
-  }, 10000);
-}
-
-// Iniciar verificação automática de atualizações
-function startAutoUpdateCheck() {
-  setTimeout(() => checkForUpdatesViaSW(), 3000);
-  
-  setInterval(() => {
-    if (navigator.onLine) {
-      checkForUpdatesViaSW();
-    }
-  }, 5 * 60 * 1000);
-  
-  window.addEventListener('online', () => {
-    console.log('🌐 Conexão restaurada, verificando atualizações...');
-    setTimeout(() => checkForUpdatesViaSW(), 1000);
-  });
-}
-
-// ==================== FUNÇÕES DO VISUALIZADOR PDF PARA IOS ====================
-function closeIOSPDFViewer() {
-  const viewer = document.getElementById('iosPdfViewer');
-  const iframe = document.getElementById('iosPdfFrame');
-  iframe.src = 'about:blank';
-  viewer.classList.remove('active');
-}
-window.closeIOSPDFViewer = closeIOSPDFViewer;
-
-// ==================== SISTEMA DE CACHE OFFLINE ====================
+// ==================== SUPABASE (declarado apenas uma vez) ====================
 const SUPABASE_URL = "https://jklcvyuxwxgsfczrfaco.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_oCE8y5qaLovVj0BU-rANHA__Zmy3XVl";
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+// ==================== VARIÁVEIS GLOBAIS ====================
 let currentItems = [];
 let db = null;
 let selectedItemsIds = new Set();
 
+// ==================== CONSTANTES ====================
 const DB_NAME = 'TendexVisitanteCache';
 const DB_VERSION = 1;
 const STORE_PDFS = 'pdf_files';
@@ -646,6 +516,7 @@ const monthNames = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho
 const monthKeys = ["jan","fev","mar","abr","mai","jun","jul","ago","set","out","nov","dez"];
 const BASE_URL = window.location.origin + window.location.pathname;
 
+// ==================== FUNÇÕES AUXILIARES ====================
 function escapeHtml(str) { if (!str) return ''; return str.replace(/[&<>]/g, m => m === '&' ? '&amp;' : m === '<' ? '&lt;' : '&gt;'); }
 
 function showLoader(show, text = 'Processando...') {
@@ -782,7 +653,7 @@ async function updateCacheStats() {
   return cached.length;
 }
 
-// ==================== VISUALIZAR PDF OFFLINE (COMPATÍVEL COM IOS) ====================
+// ==================== VISUALIZAR PDF OFFLINE ====================
 async function viewPDFOffline(url, fileName, itemId) {
   console.log('viewPDFOffline chamado para:', fileName, 'iOS:', isIOS);
   
@@ -857,6 +728,14 @@ async function viewPDFOffline(url, fileName, itemId) {
 }
 window.viewPDFOffline = viewPDFOffline;
 
+function closeIOSPDFViewer() {
+  const viewer = document.getElementById('iosPdfViewer');
+  const iframe = document.getElementById('iosPdfFrame');
+  iframe.src = 'about:blank';
+  viewer.classList.remove('active');
+}
+window.closeIOSPDFViewer = closeIOSPDFViewer;
+
 // ==================== CARREGAR DADOS ====================
 async function loadData() {
   showLoader(true, 'Carregando dados...');
@@ -886,8 +765,8 @@ async function loadData() {
   
   if(navigator.onLine) {
     try {
-      let { data: itemsData } = await supabase.from('items').select('*').order('name');
-      let { data: filesData } = await supabase.from('files').select('*');
+      let { data: itemsData } = await supabaseClient.from('items').select('*').order('name');
+      let { data: filesData } = await supabaseClient.from('files').select('*');
       let filesByItem = {};
       if(filesData) filesData.forEach(f => { if(!filesByItem[f.item_id]) filesByItem[f.item_id]=[]; filesByItem[f.item_id].push(f); });
       let newItems = (itemsData || []).map(item => ({
@@ -1185,6 +1064,124 @@ async function printItemQR() {
 async function openCacheModal() { await loadCacheItemsList(); document.getElementById('cacheModal').style.display = 'flex'; }
 async function openSettingsModal() { await updateCacheStats(); document.getElementById('settingsModal').style.display = 'flex'; }
 
+// ==================== COMUNICAÇÃO COM SERVICE WORKER ====================
+async function checkForUpdatesViaSW() {
+  if (!('serviceWorker' in navigator) || !navigator.serviceWorker.controller) {
+    console.log('Service Worker não disponível');
+    return;
+  }
+  
+  return new Promise((resolve) => {
+    const messageChannel = new MessageChannel();
+    
+    messageChannel.port1.onmessage = (event) => {
+      console.log('Resposta do SW:', event.data);
+      if (event.data.hasUpdate) {
+        showUpdateNotification(event.data.version);
+      }
+      resolve(event.data);
+    };
+    
+    navigator.serviceWorker.controller.postMessage(
+      { type: 'CHECK_UPDATE' },
+      [messageChannel.port2]
+    );
+  });
+}
+
+async function forceUpdateViaSW() {
+  if (!('serviceWorker' in navigator) || !navigator.serviceWorker.controller) {
+    window.location.reload(true);
+    return;
+  }
+  
+  showLoader(true, 'Atualizando para nova versão...');
+  
+  return new Promise((resolve) => {
+    const messageChannel = new MessageChannel();
+    
+    messageChannel.port1.onmessage = async (event) => {
+      console.log('Update response:', event.data);
+      if (event.data.updated) {
+        showLoader(false);
+        alert('✅ Atualização concluída! A página será recarregada.');
+        window.location.reload(true);
+      }
+      resolve(event.data);
+    };
+    
+    navigator.serviceWorker.controller.postMessage(
+      { type: 'FORCE_UPDATE' },
+      [messageChannel.port2]
+    );
+  });
+}
+
+function showUpdateNotification(newVersion) {
+  if (sessionStorage.getItem('update_notified') === newVersion) return;
+  
+  const notification = document.createElement('div');
+  notification.id = 'updateNotification';
+  notification.innerHTML = `
+    <div style="
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(135deg, #f59e0b, #ea580c);
+      color: white;
+      padding: 15px;
+      text-align: center;
+      z-index: 10001;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+      animation: slideDown 0.3s ease-out;
+      cursor: pointer;
+    ">
+      <strong>🔄 Nova versão ${newVersion} disponível!</strong>
+      <p style="font-size: 12px; margin-top: 5px;">Clique para atualizar agora</p>
+    </div>
+  `;
+  
+  if (!document.querySelector('#updateAnimStyle')) {
+    const style = document.createElement('style');
+    style.id = 'updateAnimStyle';
+    style.textContent = `
+      @keyframes slideDown {
+        from { transform: translateY(-100%); }
+        to { transform: translateY(0); }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+  
+  document.body.appendChild(notification);
+  sessionStorage.setItem('update_notified', newVersion);
+  
+  notification.onclick = () => {
+    notification.remove();
+    forceUpdateViaSW();
+  };
+  
+  setTimeout(() => {
+    if (notification.parentNode) notification.remove();
+  }, 10000);
+}
+
+function startAutoUpdateCheck() {
+  setTimeout(() => checkForUpdatesViaSW(), 3000);
+  
+  setInterval(() => {
+    if (navigator.onLine) {
+      checkForUpdatesViaSW();
+    }
+  }, 5 * 60 * 1000);
+  
+  window.addEventListener('online', () => {
+    console.log('🌐 Conexão restaurada, verificando atualizações...');
+    setTimeout(() => checkForUpdatesViaSW(), 1000);
+  });
+}
+
 // ==================== REGISTRO DO SERVICE WORKER ====================
 async function registerServiceWorker() {
   if (!('serviceWorker' in navigator)) return false;
@@ -1201,6 +1198,7 @@ async function registerServiceWorker() {
   } catch (error) {
     console.error('Erro SW:', error);
     document.getElementById('swStatus').innerHTML = '❌ SW: Erro';
+    document.getElementById('settingsSWStatus').innerHTML = '❌ Erro';
     return false;
   }
 }
@@ -1263,7 +1261,6 @@ window.onhashchange = checkHash;
 window.ononline = async () => { document.getElementById('connectionStatus').innerHTML = '🟢 Online'; await loadData(); await salvarCacheVisitante(); };
 window.onoffline = () => { document.getElementById('connectionStatus').innerHTML = '🔴 Offline (Cache)'; };
 
-// Escutar mensagens do Service Worker
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.addEventListener('message', (event) => {
     console.log('Mensagem do SW:', event.data);
