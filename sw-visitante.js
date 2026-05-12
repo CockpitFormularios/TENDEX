@@ -14,19 +14,12 @@ const CACHEABLE_EXTENSIONS = ['.html', '.js', '.css', '.json', '.ico', '.png', '
 
 // Verificar se a URL é cacheável (exceto PDFs que vão para IndexedDB)
 function isCacheableUrl(url) {
-  // NÃO cachear PDFs (serão gerenciados pelo IndexedDB)
   if (url.includes('.pdf')) return false;
-  
-  // NÃO cachear requisições de API do Supabase
   if (url.includes('supabase.co') && !url.includes('storage')) return false;
-  
-  // NÃO cachear analytics
   if (url.includes('google-analytics') || url.includes('gtag') || url.includes('googletagmanager')) return false;
   
-  // Verificar extensões cacheáveis
   const hasCacheableExt = CACHEABLE_EXTENSIONS.some(ext => url.includes(ext));
   
-  // Cachear página principal e recursos estáticos
   return hasCacheableExt || 
          url.includes('visitante.html') ||
          url === '/' ||
@@ -41,14 +34,12 @@ self.addEventListener('install', event => {
     caches.open(CACHE_NAME).then(async cache => {
       console.log('[SW] Cacheando arquivos estáticos');
       
-      // Cachear cada URL individualmente para evitar falhas
       const cachePromises = STATIC_ASSETS.map(async url => {
         try {
-          // Usar cache.add para garantir que a resposta seja cacheada
           await cache.add(url);
           console.log('[SW] Cacheado com sucesso:', url);
         } catch (error) {
-          console.warn('[SW] Erro ao cachear (pode ser normal se arquivo não existir):', url, error);
+          console.warn('[SW] Erro ao cachear:', url, error);
         }
       });
       
@@ -59,7 +50,6 @@ self.addEventListener('install', event => {
     })
   );
   
-  // Forçar ativação imediata
   self.skipWaiting();
 });
 
@@ -71,7 +61,6 @@ self.addEventListener('activate', event => {
     caches.keys().then(cacheNames => {
       return Promise.all(
         cacheNames.map(cacheName => {
-          // Remover caches antigos
           if (cacheName !== CACHE_NAME && cacheName !== DYNAMIC_CACHE && 
               (cacheName.startsWith('tendex-visitante') || cacheName.startsWith('tendex-dynamic'))) {
             console.log('[SW] Removendo cache antigo:', cacheName);
@@ -81,7 +70,6 @@ self.addEventListener('activate', event => {
       );
     }).then(() => {
       console.log('[SW] Cache limpo, reivindicando controle dos clientes');
-      // Importante para iOS: claim clients para controle imediato
       return self.clients.claim();
     })
   );
@@ -92,36 +80,23 @@ self.addEventListener('fetch', event => {
   const url = event.request.url;
   const request = event.request;
   
-  // Ignorar requisições que não são GET
   if (request.method !== 'GET') return;
-  
-  // Ignorar PDFs (serão tratados pelo IndexedDB no app principal)
-  if (url.includes('.pdf') || url.includes('/storage/v1/object/')) {
-    return;
-  }
-  
-  // Ignorar analytics e métricas
-  if (url.includes('google-analytics') || url.includes('gtag') || url.includes('googletagmanager')) {
-    return;
-  }
+  if (url.includes('.pdf') || url.includes('/storage/v1/object/')) return;
+  if (url.includes('google-analytics') || url.includes('gtag') || url.includes('googletagmanager')) return;
   
   event.respondWith(
     (async () => {
       try {
-        // Estratégia: Cache First, depois Network (stale-while-revalidate)
         const cachedResponse = await caches.match(request);
         
         if (cachedResponse) {
           console.log('[SW] Cache HIT:', url.replace(/^.*?:\/\//, '').substring(0, 50));
           
-          // Atualizar o cache em background (stale-while-revalidate)
-          // Isso é importante para iOS manter o cache fresco
           if (navigator.onLine !== false) {
             fetch(request).then(networkResponse => {
               if (networkResponse && networkResponse.ok && isCacheableUrl(url)) {
                 caches.open(CACHE_NAME).then(cache => {
                   cache.put(request, networkResponse);
-                  console.log('[SW] Cache atualizado em background:', url.replace(/^.*?:\/\//, '').substring(0, 50));
                 }).catch(() => {});
               }
             }).catch(() => {});
@@ -130,15 +105,12 @@ self.addEventListener('fetch', event => {
           return cachedResponse;
         }
         
-        // Se não estiver em cache, tentar rede
         console.log('[SW] Network fetch:', url.replace(/^.*?:\/\//, '').substring(0, 50));
         const networkResponse = await fetch(request);
         
-        // Cachear respostas bem-sucedidas de recursos estáticos
         if (networkResponse && networkResponse.ok && isCacheableUrl(url)) {
           const cache = await caches.open(CACHE_NAME);
           cache.put(request, networkResponse.clone());
-          console.log('[SW] Cacheado novo recurso:', url.replace(/^.*?:\/\//, '').substring(0, 50));
         }
         
         return networkResponse;
@@ -146,39 +118,30 @@ self.addEventListener('fetch', event => {
       } catch (error) {
         console.warn('[SW] Falha na requisição:', url.replace(/^.*?:\/\//, '').substring(0, 50), error);
         
-        // Fallback: tentar retornar a página principal para navegação
         if (request.mode === 'navigate') {
           const fallbackResponse = await caches.match('/TENDEX/visitante.html');
-          if (fallbackResponse) {
-            console.log('[SW] Retornando fallback (página principal)');
-            return fallbackResponse;
-          }
+          if (fallbackResponse) return fallbackResponse;
           
-          // Tentar fallback alternativo
           const altFallback = await caches.match('/TENDEX/');
           if (altFallback) return altFallback;
         }
         
-        // Para imagens, tentar retornar um placeholder (se existir)
         if (request.destination === 'image') {
           const placeholder = await caches.match('/TENDEX/placeholder.svg');
           if (placeholder) return placeholder;
         }
         
-        // Retornar resposta de erro amigável
         return new Response('Recurso indisponível offline - TENDEX', {
           status: 503,
           statusText: 'Service Unavailable',
-          headers: new Headers({
-            'Content-Type': 'text/plain; charset=utf-8'
-          })
+          headers: new Headers({ 'Content-Type': 'text/plain; charset=utf-8' })
         });
       }
     })()
   );
 });
 
-// Sincronização em background (útil para iOS)
+// Sincronização em background
 self.addEventListener('sync', event => {
   console.log('[SW] Sincronização em background:', event.tag);
   if (event.tag === 'sync-data') {
@@ -197,7 +160,6 @@ async function syncData() {
         const response = await fetch(request);
         if (response && response.ok) {
           await cache.put(request, response);
-          console.log('[SW] Sincronizado em background:', request.url);
         }
       } catch (error) {
         console.error('[SW] Erro na sincronização:', error);
@@ -221,7 +183,6 @@ self.addEventListener('message', event => {
   }
   
   if (event.data && event.data.type === 'GET_VERSION') {
-    // Responder com versão do cache para o cliente
     if (event.ports && event.ports[0]) {
       event.ports[0].postMessage({ version: CACHE_NAME });
     }
@@ -241,7 +202,6 @@ async function clearCache() {
     );
     console.log('[SW] Cache limpo com sucesso');
     
-    // Notificar todos os clientes
     const clients = await self.clients.matchAll();
     clients.forEach(client => {
       client.postMessage({ type: 'CACHE_CLEARED', timestamp: Date.now() });
@@ -251,7 +211,7 @@ async function clearCache() {
   }
 }
 
-// Evento de push notifications (opcional)
+// Push notifications
 self.addEventListener('push', event => {
   console.log('[SW] Push notification recebida');
   
@@ -265,9 +225,7 @@ self.addEventListener('push', event => {
       icon: '/TENDEX/icon-192.png',
       badge: '/TENDEX/badge.png',
       vibrate: [200, 100, 200],
-      data: {
-        url: data.url || '/TENDEX/'
-      }
+      data: { url: data.url || '/TENDEX/' }
     };
     
     event.waitUntil(
@@ -278,10 +236,9 @@ self.addEventListener('push', event => {
   }
 });
 
-// Evento de clique em notificação
+// Clique em notificação
 self.addEventListener('notificationclick', event => {
-  console.log('[SW] Clique em notificação:', event.notification.data);
-  
+  console.log('[SW] Clique em notificação');
   event.notification.close();
   
   event.waitUntil(
@@ -289,33 +246,15 @@ self.addEventListener('notificationclick', event => {
       .then(clientList => {
         const url = event.notification.data?.url || '/TENDEX/';
         
-        // Verificar se já existe uma janela aberta com a URL
         for (const client of clientList) {
           if (client.url === url && 'focus' in client) {
             return client.focus();
           }
         }
         
-        // Abrir nova janela
         if (clients.openWindow) {
           return clients.openWindow(url);
         }
       })
   );
-});
-
-// Monitorar falhas de rede (útil para diagnóstico)
-self.addEventListener('fetch', event => {
-  // Adicionar header de diagnóstico para debug
-  const responsePromise = (async () => {
-    try {
-      const response = await fetch(event.request);
-      return response;
-    } catch (error) {
-      console.warn('[SW] Falha de rede para:', event.request.url);
-      throw error;
-    }
-  })();
-  
-  event.respondWith(responsePromise);
 });
