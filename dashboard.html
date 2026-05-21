@@ -1692,7 +1692,7 @@
       }
     }
 
-    // ==================== GERAR PDF BLOB (CORRIGIDO) ====================
+    // ==================== GERAR PDF BLOB ====================
     async function gerarPDFBlob(formData, itemInfo, fotoFile) {
       if (!window.PDFLib || !window.PDFLib.PDFDocument) {
         console.log('PDF-lib não disponível, tentando carregar...');
@@ -2231,7 +2231,7 @@
       } 
     });
 
-    // ==================== DOWNLOAD MENSAL OTIMIZADO COM BARRA DE PROGRESSO ====================
+    // ==================== DOWNLOAD MENSAL OTIMIZADO COM BARRA DE PROGRESSO E RETRY ====================
     async function downloadMonthPDFs(category, monthName) {
       const modal = document.getElementById('downloadProgressModal');
       const progressFill = document.getElementById('downloadProgressFill');
@@ -2241,9 +2241,11 @@
       const cancelBtn = document.getElementById('cancelDownloadBtn');
       
       let cancelled = false;
+      let isDownloading = true;
       
       const closeModal = () => {
         cancelled = true;
+        isDownloading = false;
         modal.style.display = 'none';
       };
       
@@ -2293,66 +2295,108 @@
           </div>`
         ).join('');
         
-        const downloadWithProgress = async (file, index) => {
+        // Função de download com retry automático
+        const downloadWithRetry = async (file, index, maxRetries = 2) => {
           const fileId = `file-${file.name.replace(/[^a-zA-Z0-9]/g, '_')}`;
           const element = document.getElementById(fileId);
-          if (element) {
-            element.className = 'download-file-item pending';
-            element.querySelector('span:first-child').innerHTML = '⏳';
+          
+          for (let attempt = 1; attempt <= maxRetries; attempt++) {
+            if (cancelled) return { success: false, error: 'Cancelado' };
+            
+            if (element) {
+              element.className = 'download-file-item pending';
+              element.querySelector('span:first-child').innerHTML = attempt > 1 ? '🔄' : '⏳';
+              if (attempt > 1) {
+                const statusSpan = element.querySelector('span:last-child');
+                if (statusSpan) statusSpan.innerHTML = `${escapeHtml(file.itemName)} (${escapeHtml(file.code)}) - Tentativa ${attempt}/${maxRetries}`;
+              }
+            }
+            
+            try {
+              const controller = new AbortController();
+              const timeoutId = setTimeout(() => controller.abort(), 60000);
+              
+              const response = await fetch(file.url, { 
+                signal: controller.signal,
+                cache: 'force-cache',
+                headers: {
+                  'Cache-Control': 'max-age=3600'
+                }
+              });
+              clearTimeout(timeoutId);
+              
+              if (!response.ok) throw new Error(`HTTP ${response.status}`);
+              const blob = await response.blob();
+              
+              if (blob.size < 1024) {
+                throw new Error('Arquivo corrompido ou vazio');
+              }
+              
+              if (element) {
+                element.className = 'download-file-item success';
+                element.querySelector('span:first-child').innerHTML = '✅';
+              }
+              
+              const completedCount = document.querySelectorAll('.download-file-item.success').length;
+              const percent = (completedCount / filesToMerge.length) * 100;
+              progressFill.style.width = `${percent}%`;
+              downloadStats.innerHTML = `📥 Baixando... ${completedCount}/${filesToMerge.length} arquivos (${Math.round(percent)}%)`;
+              
+              return { success: true, blob, name: file.name };
+              
+            } catch (err) {
+              console.warn(`Tentativa ${attempt} falhou para ${file.name}:`, err.message);
+              
+              if (attempt === maxRetries) {
+                if (element) {
+                  element.className = 'download-file-item error';
+                  element.querySelector('span:first-child').innerHTML = '❌';
+                }
+                return { success: false, error: err.message };
+              }
+              
+              await new Promise(resolve => setTimeout(resolve, 1000));
+            }
           }
           
-          try {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 30000);
-            
-            const response = await fetch(file.url, { 
-              signal: controller.signal,
-              cache: 'force-cache'
-            });
-            clearTimeout(timeoutId);
-            
-            if (!response.ok) throw new Error(`HTTP ${response.status}`);
-            const blob = await response.blob();
-            
-            if (element) {
-              element.className = 'download-file-item success';
-              element.querySelector('span:first-child').innerHTML = '✅';
-            }
-            
-            const percent = ((index + 1) / filesToMerge.length) * 100;
-            progressFill.style.width = `${percent}%`;
-            downloadStats.innerHTML = `📥 Baixando... ${index + 1}/${filesToMerge.length} arquivos (${Math.round(percent)}%)`;
-            
-            return { success: true, blob, name: file.name };
-          } catch (err) {
-            console.error(`Erro ao baixar ${file.name}:`, err);
-            if (element) {
-              element.className = 'download-file-item error';
-              element.querySelector('span:first-child').innerHTML = '❌';
-            }
-            return { success: false, error: err.message };
-          }
+          return { success: false, error: 'Falha após múltiplas tentativas' };
         };
         
+        // Download paralelo controlado (máximo 2 simultâneos)
         const results = [];
-        const batchSize = 3;
-        for (let i = 0; i < filesToMerge.length; i += batchSize) {
+        const successfulDownloads = [];
+        const failedDownloads = [];
+        
+        for (let i = 0; i < filesToMerge.length; i++) {
           if (cancelled) {
             downloadStats.innerHTML = '⚠️ Download cancelado pelo usuário.';
             return;
           }
-          const batch = filesToMerge.slice(i, i + batchSize);
-          const batchResults = await Promise.all(
-            batch.map((file, idx) => downloadWithProgress(file, i + idx))
-          );
-          results.push(...batchResults);
+          
+          const batch = [];
+          for (let j = i; j < Math.min(i + 2, filesToMerge.length); j++) {
+            batch.push(downloadWithRetry(filesToMerge[j], j));
+          }
+          
+          const batchResults = await Promise.all(batch);
+          
+          for (const result of batchResults) {
+            if (result.success) {
+              successfulDownloads.push(result);
+            } else {
+              failedDownloads.push(result);
+            }
+            results.push(result);
+          }
+          
+          i += 1;
         }
         
-        const successfulDownloads = results.filter(r => r.success);
-        const failedDownloads = results.filter(r => !r.success);
-        
         if (successfulDownloads.length === 0) {
-          downloadStats.innerHTML = `❌ Falha ao baixar todos os PDFs de ${monthName}.`;
+          downloadStats.innerHTML = `❌ Falha ao baixar todos os PDFs de ${monthName}. Verifique sua conexão.`;
+          fileListDiv.innerHTML += `<div style="margin-top:0.8rem; padding:0.5rem; background:#fee2e2; border-radius:0.5rem; text-align:center; color:#dc2626;">
+            ❌ Nenhum arquivo pôde ser baixado. ${failedDownloads.length} falhas.
+          </div>`;
           return;
         }
         
@@ -2361,6 +2405,7 @@
         
         const mergedPdf = await PDFDocument.create();
         let mergedCount = 0;
+        let mergeErrors = 0;
         
         for (const result of successfulDownloads) {
           if (cancelled) {
@@ -2368,7 +2413,8 @@
             return;
           }
           try {
-            const pdf = await PDFDocument.load(await result.blob.arrayBuffer());
+            const pdfBytes = await result.blob.arrayBuffer();
+            const pdf = await PDFDocument.load(pdfBytes);
             const pages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
             pages.forEach(page => mergedPdf.addPage(page));
             mergedCount++;
@@ -2377,11 +2423,20 @@
             downloadStats.innerHTML = `📄 Mesclando... ${mergedCount}/${successfulDownloads.length} PDFs`;
           } catch (err) {
             console.error('Erro ao mesclar PDF:', err);
+            mergeErrors++;
+            const failedFileDiv = Array.from(document.querySelectorAll('.download-file-item')).find(
+              div => div.innerHTML.includes(result.name?.substring(0, 30) || '')
+            );
+            if (failedFileDiv) {
+              failedFileDiv.classList.add('error');
+              const span = failedFileDiv.querySelector('span:first-child');
+              if (span) span.innerHTML = '⚠️';
+            }
           }
         }
         
         if (mergedPdf.getPageCount() === 0) {
-          throw new Error('Nenhum PDF válido para mesclar');
+          throw new Error('Nenhum PDF válido para mesclar. Todos os arquivos estão corrompidos.');
         }
         
         downloadStats.innerHTML = `💾 Salvando arquivo final...`;
@@ -2398,20 +2453,22 @@
         
         const successCount = successfulDownloads.length;
         const failCount = failedDownloads.length;
+        const errorMergeCount = mergeErrors;
         
-        if (failCount > 0) {
-          downloadStats.innerHTML = `✅ Download concluído! ${successCount} PDFs mesclados com sucesso. ${failCount} falhas ignoradas.`;
-        } else {
-          downloadStats.innerHTML = `✅ Download concluído! ${successCount} PDFs mesclados com sucesso.`;
-        }
+        let resultMessage = `✅ Download concluído! ${successCount - errorMergeCount} PDFs mesclados com sucesso.`;
+        if (failCount > 0) resultMessage += ` ${failCount} downloads falhos.`;
+        if (errorMergeCount > 0) resultMessage += ` ${errorMergeCount} arquivos corrompidos ignorados.`;
+        
+        downloadStats.innerHTML = resultMessage;
         
         fileListDiv.innerHTML += `<div style="margin-top:0.8rem; padding:0.5rem; background:#d1fae5; border-radius:0.5rem; text-align:center;">
-          ✅ Arquivo salvo: todos_${monthName}_*.pdf
+          ✅ Download finalizado! ${successCount - errorMergeCount} PDFs mesclados.
+          ${failCount > 0 ? `<br><span style="color:#f59e0b;">⚠️ ${failCount} arquivos não puderam ser baixados.</span>` : ''}
         </div>`;
         
         setTimeout(() => {
           if (modal.style.display === 'flex') modal.style.display = 'none';
-        }, 3000);
+        }, 4000);
         
       } catch (err) {
         console.error('Erro no download:', err);
@@ -2419,6 +2476,10 @@
         fileListDiv.innerHTML += `<div style="margin-top:0.8rem; padding:0.5rem; background:#fee2e2; border-radius:0.5rem; text-align:center; color:#dc2626;">
           ❌ Falha ao gerar PDF: ${err.message}
         </div>`;
+        
+        setTimeout(() => {
+          if (modal.style.display === 'flex') modal.style.display = 'none';
+        }, 5000);
       }
     }
 
