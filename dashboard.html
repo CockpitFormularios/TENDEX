@@ -2231,7 +2231,7 @@
       } 
     });
 
-    // ==================== DOWNLOAD MENSAL COM SELEÇÃO DE ARQUIVOS E CORREÇÃO DE ERRO QUIC ====================
+    // ==================== DOWNLOAD MENSAL FUNCIONAL ====================
     async function downloadMonthPDFs(category, monthName) {
       const modal = document.getElementById('downloadProgressModal');
       const progressFill = document.getElementById('downloadProgressFill');
@@ -2241,7 +2241,6 @@
       const cancelBtn = document.getElementById('cancelDownloadBtn');
       
       let cancelled = false;
-      let selectedFiles = new Set();
       
       const closeModal = () => {
         cancelled = true;
@@ -2257,7 +2256,9 @@
       fileListDiv.innerHTML = '';
       
       try {
-        if (!window.PDFLib) throw new Error("PDF-lib não carregado.");
+        if (!window.PDFLib || !window.PDFLib.PDFDocument) {
+          await carregarPDFLib();
+        }
         const { PDFDocument } = window.PDFLib;
         
         const items = await getAllItemsWithFiles();
@@ -2275,8 +2276,7 @@
               name: `${item.name} - ${item.code}.pdf`,
               url: file.file_url,
               itemName: item.name,
-              code: item.code,
-              fileId: file.id
+              code: item.code
             });
           }
         }
@@ -2287,11 +2287,6 @@
           setTimeout(() => modal.style.display = 'none', 2000);
           return;
         }
-        
-        // Selecionar todos por padrão
-        filesToMerge.forEach(f => selectedFiles.add(f.id));
-        
-        downloadStats.innerHTML = `📄 Encontrados ${filesToMerge.length} PDFs. Selecione os que deseja baixar:`;
         
         // Criar lista com checkboxes para seleção
         fileListDiv.innerHTML = `
@@ -2304,10 +2299,9 @@
           </div>
           <div style="max-height: 300px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 0.5rem; padding: 0.5rem;">
             ${filesToMerge.map(file => `
-              <div class="download-file-item pending" style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem; border-bottom: 1px solid #e2e8f0;">
+              <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem; border-bottom: 1px solid #e2e8f0;">
                 <input type="checkbox" class="file-checkbox" data-id="${file.id}" checked style="width: 16px; height: 16px; cursor: pointer;">
                 <span style="flex: 1;">📄 ${escapeHtml(file.itemName)} (${escapeHtml(file.code)})</span>
-                <span style="font-size: 0.7rem; color: #64748b;" id="status-${file.id}">Aguardando</span>
               </div>
             `).join('')}
           </div>
@@ -2317,7 +2311,7 @@
           </div>
         `;
         
-        // Atualizar contador de selecionados
+        // Atualizar contador
         const updateSelectedCount = () => {
           const checkboxes = document.querySelectorAll('.file-checkbox:checked');
           const count = checkboxes.length;
@@ -2325,260 +2319,156 @@
           if (startBtn) {
             startBtn.innerHTML = `📥 Iniciar Download (${count} ${count === 1 ? 'arquivo' : 'arquivos'} selecionado${count !== 1 ? 's' : ''})`;
           }
-          const selectedCountSpan = document.getElementById('selectedCount');
-          if (selectedCountSpan) selectedCountSpan.innerText = `${count} selecionado${count !== 1 ? 's' : ''}`;
+          const selectedSpan = document.getElementById('selectedCount');
+          if (selectedSpan) selectedSpan.innerText = `${count} selecionado${count !== 1 ? 's' : ''}`;
         };
         
-        // Evento de selecionar todos
+        // Selecionar todos
         const selectAllCheckbox = document.getElementById('selectAllCheckbox');
         if (selectAllCheckbox) {
           selectAllCheckbox.addEventListener('change', (e) => {
-            const isChecked = e.target.checked;
             document.querySelectorAll('.file-checkbox').forEach(cb => {
-              cb.checked = isChecked;
-              const fileId = cb.dataset.id;
-              if (isChecked) {
-                selectedFiles.add(fileId);
-              } else {
-                selectedFiles.delete(fileId);
-              }
+              cb.checked = e.target.checked;
             });
             updateSelectedCount();
           });
         }
         
-        // Evento de checkbox individual
+        // Checkbox individual
         document.querySelectorAll('.file-checkbox').forEach(cb => {
-          cb.addEventListener('change', (e) => {
-            const fileId = e.target.dataset.id;
-            if (e.target.checked) {
-              selectedFiles.add(fileId);
-            } else {
-              selectedFiles.delete(fileId);
-              const selectAll = document.getElementById('selectAllCheckbox');
-              if (selectAll) selectAll.checked = false;
-            }
+          cb.addEventListener('change', () => {
+            const allChecked = Array.from(document.querySelectorAll('.file-checkbox')).every(c => c.checked);
+            if (selectAllCheckbox) selectAllCheckbox.checked = allChecked;
             updateSelectedCount();
           });
         });
         
-        // Botão cancelar seleção
+        // Cancelar seleção
         const cancelSelectionBtn = document.getElementById('cancelSelectionBtn');
         if (cancelSelectionBtn) {
           cancelSelectionBtn.onclick = closeModal;
         }
         
-        // Função para buscar PDF via Supabase Storage com retry
-        const fetchPDFWithRetry = async (file, maxRetries = 3) => {
-          const element = document.getElementById(`file-${file.id}`);
-          
-          for (let attempt = 1; attempt <= maxRetries; attempt++) {
-            if (cancelled) return { success: false, error: 'Cancelado', file };
-            
-            if (element && element.parentElement) {
-              element.className = 'download-file-item pending';
-              const span = element.querySelector('span:first-child');
-              if (span) span.innerHTML = attempt > 1 ? '🔄' : '⏳';
-            }
-            
-            try {
-              const controller = new AbortController();
-              const timeoutId = setTimeout(() => controller.abort(), 45000);
-              
-              // Extrair o caminho do arquivo da URL
-              const urlParts = file.url.split('/storage/v1/object/public/pdfs/');
-              const filePath = urlParts.length > 1 ? urlParts[1] : null;
-              
-              let response;
-              
-              if (filePath) {
-                // Usar API do Supabase Storage com token
-                const storageUrl = `${SUPABASE_URL}/storage/v1/object/public/pdfs/${filePath}`;
-                response = await fetch(storageUrl, {
-                  signal: controller.signal,
-                  headers: {
-                    'apikey': SUPABASE_ANON_KEY,
-                    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
-                  }
-                });
-              } else {
-                // Fallback para URL direta
-                response = await fetch(file.url, {
-                  signal: controller.signal,
-                  headers: {
-                    'Accept': 'application/pdf',
-                    'Cache-Control': 'no-cache'
-                  }
-                });
-              }
-              
-              clearTimeout(timeoutId);
-              
-              if (!response.ok) throw new Error(`HTTP ${response.status}`);
-              const blob = await response.blob();
-              
-              if (blob.size < 1024) {
-                throw new Error('Arquivo corrompido ou vazio');
-              }
-              
-              if (blob.type !== 'application/pdf' && !blob.type.includes('pdf')) {
-                console.warn(`Tipo MIME inesperado: ${blob.type}, tentando forçar como PDF`);
-              }
-              
-              if (element && element.parentElement) {
-                element.className = 'download-file-item success';
-                const span = element.querySelector('span:first-child');
-                if (span) span.innerHTML = '✅';
-              }
-              
-              const completedCount = document.querySelectorAll('.download-file-item.success').length;
-              const percent = (completedCount / selectedFilesList.length) * 100;
-              progressFill.style.width = `${percent}%`;
-              downloadStats.innerHTML = `📥 Baixando... ${completedCount}/${selectedFilesList.length} arquivos (${Math.round(percent)}%)`;
-              
-              return { success: true, blob, name: file.name, file };
-              
-            } catch (err) {
-              console.warn(`Tentativa ${attempt} falhou para ${file.name}:`, err.message);
-              
-              if (attempt === maxRetries) {
-                if (element && element.parentElement) {
-                  element.className = 'download-file-item error';
-                  const span = element.querySelector('span:first-child');
-                  if (span) span.innerHTML = '❌';
-                }
-                return { success: false, error: err.message, file };
-              }
-              
-              // Aguardar antes de tentar novamente (backoff exponencial)
-              await new Promise(resolve => setTimeout(resolve, attempt * 1500));
-            }
-          }
-          
-          return { success: false, error: 'Falha após múltiplas tentativas', file };
-        };
-        
-        // Botão iniciar download
+        // Iniciar download
         const startDownloadBtn = document.getElementById('startDownloadBtn');
         if (startDownloadBtn) {
           startDownloadBtn.onclick = async () => {
-            const selectedCheckboxes = document.querySelectorAll('.file-checkbox:checked');
-            if (selectedCheckboxes.length === 0) {
+            const selectedIds = Array.from(document.querySelectorAll('.file-checkbox:checked')).map(cb => cb.dataset.id);
+            const selectedFiles = filesToMerge.filter(f => selectedIds.includes(f.id));
+            
+            if (selectedFiles.length === 0) {
               alert('Selecione pelo menos um arquivo para download.');
               return;
             }
             
-            // Filtrar arquivos selecionados
-            const selectedFilesList = filesToMerge.filter(f => {
-              const cb = document.querySelector(`.file-checkbox[data-id="${f.id}"]`);
-              return cb && cb.checked;
-            });
-            
-            if (selectedFilesList.length === 0) {
-              alert('Nenhum arquivo selecionado.');
-              return;
-            }
-            
             // Mudar para modo de progresso
-            fileListDiv.innerHTML = selectedFilesList.map(f => 
+            fileListDiv.innerHTML = selectedFiles.map(f => 
               `<div class="download-file-item pending" id="file-${f.id}">
                 <span>⏳</span> <span>${escapeHtml(f.itemName)} (${escapeHtml(f.code)})</span>
               </div>`
             ).join('');
             
-            downloadStats.innerHTML = `📥 Baixando ${selectedFilesList.length} arquivo${selectedFilesList.length !== 1 ? 's' : ''}...`;
+            downloadStats.innerHTML = `📥 Baixando ${selectedFiles.length} arquivo${selectedFiles.length !== 1 ? 's' : ''}...`;
             progressFill.style.width = '0%';
             
-            // Download serial (um por vez) para evitar sobrecarga de conexão
-            const successfulDownloads = [];
-            const failedDownloads = [];
+            // Baixar arquivos
+            const successfulBlobs = [];
+            const failedFiles = [];
             
-            for (let i = 0; i < selectedFilesList.length; i++) {
+            for (let i = 0; i < selectedFiles.length; i++) {
               if (cancelled) {
-                downloadStats.innerHTML = '⚠️ Download cancelado pelo usuário.';
+                downloadStats.innerHTML = '⚠️ Download cancelado.';
                 return;
               }
               
-              const result = await fetchPDFWithRetry(selectedFilesList[i]);
+              const file = selectedFiles[i];
+              const element = document.getElementById(`file-${file.id}`);
               
-              if (result.success) {
-                successfulDownloads.push(result);
-              } else {
-                failedDownloads.push(result);
+              try {
+                if (element) {
+                  element.className = 'download-file-item pending';
+                  element.querySelector('span:first-child').innerHTML = '⏳';
+                }
+                
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 45000);
+                
+                const response = await fetch(file.url, { signal: controller.signal });
+                clearTimeout(timeoutId);
+                
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const blob = await response.blob();
+                
+                if (blob.size < 1024) throw new Error('Arquivo vazio ou corrompido');
+                
+                successfulBlobs.push({ blob, name: file.name });
+                
+                if (element) {
+                  element.className = 'download-file-item success';
+                  element.querySelector('span:first-child').innerHTML = '✅';
+                }
+                
+                const percent = ((i + 1) / selectedFiles.length) * 100;
+                progressFill.style.width = `${percent}%`;
+                downloadStats.innerHTML = `📥 Baixando... ${i + 1}/${selectedFiles.length} arquivos (${Math.round(percent)}%)`;
+                
+              } catch (err) {
+                console.error(`Erro ao baixar ${file.name}:`, err);
+                failedFiles.push(file.name);
+                if (element) {
+                  element.className = 'download-file-item error';
+                  element.querySelector('span:first-child').innerHTML = '❌';
+                }
               }
-              
-              // Pequena pausa entre downloads para não sobrecarregar
-              await new Promise(resolve => setTimeout(resolve, 500));
             }
             
-            if (successfulDownloads.length === 0) {
-              downloadStats.innerHTML = `❌ Falha ao baixar os arquivos selecionados. Verifique sua conexão com a internet.`;
-              fileListDiv.innerHTML += `<div style="margin-top:0.8rem; padding:0.5rem; background:#fee2e2; border-radius:0.5rem; text-align:center; color:#dc2626;">
-                ❌ Nenhum arquivo pôde ser baixado. ${failedDownloads.length} falhas.
-                <br><small>Tente novamente mais tarde ou verifique sua conexão.</small>
-              </div>`;
+            if (successfulBlobs.length === 0) {
+              downloadStats.innerHTML = '❌ Falha ao baixar os arquivos. Tente novamente.';
               return;
             }
             
-            // Se apenas um arquivo, baixar diretamente sem mesclar
-            if (successfulDownloads.length === 1) {
-              downloadStats.innerHTML = `💾 Salvando arquivo...`;
-              progressFill.style.width = '100%';
-              
-              const url = URL.createObjectURL(successfulDownloads[0].blob);
+            // Se apenas um arquivo, baixar diretamente
+            if (successfulBlobs.length === 1) {
+              const url = URL.createObjectURL(successfulBlobs[0].blob);
               const a = document.createElement('a');
               a.href = url;
-              a.download = successfulDownloads[0].name;
+              a.download = successfulBlobs[0].name;
               a.click();
               URL.revokeObjectURL(url);
               
               downloadStats.innerHTML = `✅ Download concluído! 1 arquivo baixado.`;
               fileListDiv.innerHTML += `<div style="margin-top:0.8rem; padding:0.5rem; background:#d1fae5; border-radius:0.5rem; text-align:center;">
-                ✅ Arquivo salvo: ${successfulDownloads[0].name}
+                ✅ Arquivo salvo: ${successfulBlobs[0].name}
               </div>`;
               
-              setTimeout(() => {
-                if (modal.style.display === 'flex') modal.style.display = 'none';
-              }, 3000);
+              setTimeout(() => closeModal(), 3000);
               return;
             }
             
-            // Múltiplos arquivos - mesclar
-            downloadStats.innerHTML = `🔄 Mesclando ${successfulDownloads.length} PDFs...`;
+            // Mesclar múltiplos arquivos
+            downloadStats.innerHTML = `🔄 Mesclando ${successfulBlobs.length} PDFs...`;
             progressFill.style.width = '90%';
             
             const mergedPdf = await PDFDocument.create();
             let mergedCount = 0;
-            let mergeErrors = 0;
             
-            for (const result of successfulDownloads) {
-              if (cancelled) {
-                downloadStats.innerHTML = '⚠️ Download cancelado pelo usuário.';
-                return;
-              }
+            for (const item of successfulBlobs) {
               try {
-                const pdfBytes = await result.blob.arrayBuffer();
+                const pdfBytes = await item.blob.arrayBuffer();
                 const pdf = await PDFDocument.load(pdfBytes);
                 const pages = await mergedPdf.copyPages(pdf, pdf.getPageIndices());
                 pages.forEach(page => mergedPdf.addPage(page));
                 mergedCount++;
-                const percent = 90 + (mergedCount / successfulDownloads.length) * 10;
+                const percent = 90 + (mergedCount / successfulBlobs.length) * 10;
                 progressFill.style.width = `${percent}%`;
-                downloadStats.innerHTML = `📄 Mesclando... ${mergedCount}/${successfulDownloads.length} PDFs`;
+                downloadStats.innerHTML = `📄 Mesclando... ${mergedCount}/${successfulBlobs.length} PDFs`;
               } catch (err) {
                 console.error('Erro ao mesclar PDF:', err);
-                mergeErrors++;
-                const failedFileDiv = document.getElementById(`file-${result.file.id}`);
-                if (failedFileDiv) {
-                  failedFileDiv.classList.add('error');
-                  const span = failedFileDiv.querySelector('span:first-child');
-                  if (span) span.innerHTML = '⚠️';
-                }
               }
             }
             
             if (mergedPdf.getPageCount() === 0) {
-              throw new Error('Nenhum PDF válido para mesclar.');
+              throw new Error('Nenhum PDF válido para mesclar');
             }
             
             downloadStats.innerHTML = `💾 Salvando arquivo final...`;
@@ -2593,23 +2483,15 @@
             a.click();
             URL.revokeObjectURL(url);
             
-            const successCount = successfulDownloads.length;
-            const failCount = failedDownloads.length;
-            
-            let resultMessage = `✅ Download concluído! ${successCount - mergeErrors} PDFs mesclados com sucesso.`;
-            if (failCount > 0) resultMessage += ` ${failCount} downloads falhos.`;
-            if (mergeErrors > 0) resultMessage += ` ${mergeErrors} arquivos corrompidos ignorados.`;
-            
-            downloadStats.innerHTML = resultMessage;
+            const successMsg = `✅ Download concluído! ${successfulBlobs.length} PDFs mesclados com sucesso.`;
+            downloadStats.innerHTML = successMsg + (failedFiles.length ? ` ${failedFiles.length} falhas ignoradas.` : '');
             
             fileListDiv.innerHTML += `<div style="margin-top:0.8rem; padding:0.5rem; background:#d1fae5; border-radius:0.5rem; text-align:center;">
-              ✅ Download finalizado! ${successCount - mergeErrors} PDFs mesclados.
-              ${failCount > 0 ? `<br><span style="color:#f59e0b;">⚠️ ${failCount} arquivo${failCount !== 1 ? 's' : ''} não pode${failCount !== 1 ? 'ram' : 'de'} ser baixado${failCount !== 1 ? 's' : ''}.</span>` : ''}
+              ✅ Download finalizado! ${successfulBlobs.length} PDFs mesclados.
+              ${failedFiles.length > 0 ? `<br><span style="color:#f59e0b;">⚠️ ${failedFiles.length} arquivo${failedFiles.length !== 1 ? 's' : ''} não pode${failedFiles.length !== 1 ? 'ram' : 'de'} ser baixado${failedFiles.length !== 1 ? 's' : ''}.</span>` : ''}
             </div>`;
             
-            setTimeout(() => {
-              if (modal.style.display === 'flex') modal.style.display = 'none';
-            }, 4000);
+            setTimeout(() => closeModal(), 4000);
           };
         }
         
@@ -2618,12 +2500,8 @@
         downloadStats.innerHTML = `❌ Erro: ${err.message}`;
         fileListDiv.innerHTML += `<div style="margin-top:0.8rem; padding:0.5rem; background:#fee2e2; border-radius:0.5rem; text-align:center; color:#dc2626;">
           ❌ Falha ao gerar PDF: ${err.message}
-          <br><small>Tente novamente em alguns instantes.</small>
         </div>`;
-        
-        setTimeout(() => {
-          if (modal.style.display === 'flex') modal.style.display = 'none';
-        }, 5000);
+        setTimeout(() => closeModal(), 5000);
       }
     }
 
