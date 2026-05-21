@@ -2231,7 +2231,7 @@
       } 
     });
 
-    // ==================== DOWNLOAD MENSAL COM SELEÇÃO DE ARQUIVOS ====================
+    // ==================== DOWNLOAD MENSAL COM SELEÇÃO DE ARQUIVOS E CORREÇÃO DE ERRO QUIC ====================
     async function downloadMonthPDFs(category, monthName) {
       const modal = document.getElementById('downloadProgressModal');
       const progressFill = document.getElementById('downloadProgressFill');
@@ -2275,7 +2275,8 @@
               name: `${item.name} - ${item.code}.pdf`,
               url: file.file_url,
               itemName: item.name,
-              code: item.code
+              code: item.code,
+              fileId: file.id
             });
           }
         }
@@ -2367,6 +2368,96 @@
           cancelSelectionBtn.onclick = closeModal;
         }
         
+        // Função para buscar PDF via Supabase Storage com retry
+        const fetchPDFWithRetry = async (file, maxRetries = 3) => {
+          const element = document.getElementById(`file-${file.id}`);
+          
+          for (let attempt = 1; attempt <= maxRetries; attempt++) {
+            if (cancelled) return { success: false, error: 'Cancelado', file };
+            
+            if (element && element.parentElement) {
+              element.className = 'download-file-item pending';
+              const span = element.querySelector('span:first-child');
+              if (span) span.innerHTML = attempt > 1 ? '🔄' : '⏳';
+            }
+            
+            try {
+              const controller = new AbortController();
+              const timeoutId = setTimeout(() => controller.abort(), 45000);
+              
+              // Extrair o caminho do arquivo da URL
+              const urlParts = file.url.split('/storage/v1/object/public/pdfs/');
+              const filePath = urlParts.length > 1 ? urlParts[1] : null;
+              
+              let response;
+              
+              if (filePath) {
+                // Usar API do Supabase Storage com token
+                const storageUrl = `${SUPABASE_URL}/storage/v1/object/public/pdfs/${filePath}`;
+                response = await fetch(storageUrl, {
+                  signal: controller.signal,
+                  headers: {
+                    'apikey': SUPABASE_ANON_KEY,
+                    'Authorization': `Bearer ${SUPABASE_ANON_KEY}`
+                  }
+                });
+              } else {
+                // Fallback para URL direta
+                response = await fetch(file.url, {
+                  signal: controller.signal,
+                  headers: {
+                    'Accept': 'application/pdf',
+                    'Cache-Control': 'no-cache'
+                  }
+                });
+              }
+              
+              clearTimeout(timeoutId);
+              
+              if (!response.ok) throw new Error(`HTTP ${response.status}`);
+              const blob = await response.blob();
+              
+              if (blob.size < 1024) {
+                throw new Error('Arquivo corrompido ou vazio');
+              }
+              
+              if (blob.type !== 'application/pdf' && !blob.type.includes('pdf')) {
+                console.warn(`Tipo MIME inesperado: ${blob.type}, tentando forçar como PDF`);
+              }
+              
+              if (element && element.parentElement) {
+                element.className = 'download-file-item success';
+                const span = element.querySelector('span:first-child');
+                if (span) span.innerHTML = '✅';
+              }
+              
+              const completedCount = document.querySelectorAll('.download-file-item.success').length;
+              const percent = (completedCount / selectedFilesList.length) * 100;
+              progressFill.style.width = `${percent}%`;
+              downloadStats.innerHTML = `📥 Baixando... ${completedCount}/${selectedFilesList.length} arquivos (${Math.round(percent)}%)`;
+              
+              return { success: true, blob, name: file.name, file };
+              
+            } catch (err) {
+              console.warn(`Tentativa ${attempt} falhou para ${file.name}:`, err.message);
+              
+              if (attempt === maxRetries) {
+                if (element && element.parentElement) {
+                  element.className = 'download-file-item error';
+                  const span = element.querySelector('span:first-child');
+                  if (span) span.innerHTML = '❌';
+                }
+                return { success: false, error: err.message, file };
+              }
+              
+              // Aguardar antes de tentar novamente (backoff exponencial)
+              await new Promise(resolve => setTimeout(resolve, attempt * 1500));
+            }
+          }
+          
+          return { success: false, error: 'Falha após múltiplas tentativas', file };
+        };
+        
         // Botão iniciar download
         const startDownloadBtn = document.getElementById('startDownloadBtn');
         if (startDownloadBtn) {
@@ -2398,91 +2489,34 @@
             downloadStats.innerHTML = `📥 Baixando ${selectedFilesList.length} arquivo${selectedFilesList.length !== 1 ? 's' : ''}...`;
             progressFill.style.width = '0%';
             
-            // Função de download com retry
-            const downloadWithRetry = async (file, index, maxRetries = 2) => {
-              const element = document.getElementById(`file-${file.id}`);
-              
-              for (let attempt = 1; attempt <= maxRetries; attempt++) {
-                if (cancelled) return { success: false, error: 'Cancelado', file };
-                
-                if (element) {
-                  element.className = 'download-file-item pending';
-                  element.querySelector('span:first-child').innerHTML = attempt > 1 ? '🔄' : '⏳';
-                }
-                
-                try {
-                  const controller = new AbortController();
-                  const timeoutId = setTimeout(() => controller.abort(), 60000);
-                  
-                  const response = await fetch(file.url, { 
-                    signal: controller.signal,
-                    cache: 'force-cache'
-                  });
-                  clearTimeout(timeoutId);
-                  
-                  if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                  const blob = await response.blob();
-                  
-                  if (blob.size < 1024) {
-                    throw new Error('Arquivo corrompido ou vazio');
-                  }
-                  
-                  if (element) {
-                    element.className = 'download-file-item success';
-                    element.querySelector('span:first-child').innerHTML = '✅';
-                  }
-                  
-                  const completedCount = document.querySelectorAll('.download-file-item.success').length;
-                  const percent = (completedCount / selectedFilesList.length) * 100;
-                  progressFill.style.width = `${percent}%`;
-                  downloadStats.innerHTML = `📥 Baixando... ${completedCount}/${selectedFilesList.length} arquivos (${Math.round(percent)}%)`;
-                  
-                  return { success: true, blob, name: file.name, file };
-                  
-                } catch (err) {
-                  console.warn(`Tentativa ${attempt} falhou para ${file.name}:`, err.message);
-                  
-                  if (attempt === maxRetries) {
-                    if (element) {
-                      element.className = 'download-file-item error';
-                      element.querySelector('span:first-child').innerHTML = '❌';
-                    }
-                    return { success: false, error: err.message, file };
-                  }
-                  
-                  await new Promise(resolve => setTimeout(resolve, 1000));
-                }
-              }
-              
-              return { success: false, error: 'Falha após múltiplas tentativas', file };
-            };
-            
-            // Download paralelo (máximo 3 simultâneos)
+            // Download serial (um por vez) para evitar sobrecarga de conexão
             const successfulDownloads = [];
             const failedDownloads = [];
             
-            for (let i = 0; i < selectedFilesList.length; i += 3) {
+            for (let i = 0; i < selectedFilesList.length; i++) {
               if (cancelled) {
                 downloadStats.innerHTML = '⚠️ Download cancelado pelo usuário.';
                 return;
               }
               
-              const batch = selectedFilesList.slice(i, i + 3);
-              const batchResults = await Promise.all(
-                batch.map((file, idx) => downloadWithRetry(file, i + idx))
-              );
+              const result = await fetchPDFWithRetry(selectedFilesList[i]);
               
-              for (const result of batchResults) {
-                if (result.success) {
-                  successfulDownloads.push(result);
-                } else {
-                  failedDownloads.push(result);
-                }
+              if (result.success) {
+                successfulDownloads.push(result);
+              } else {
+                failedDownloads.push(result);
               }
+              
+              // Pequena pausa entre downloads para não sobrecarregar
+              await new Promise(resolve => setTimeout(resolve, 500));
             }
             
             if (successfulDownloads.length === 0) {
-              downloadStats.innerHTML = `❌ Falha ao baixar os arquivos selecionados.`;
+              downloadStats.innerHTML = `❌ Falha ao baixar os arquivos selecionados. Verifique sua conexão com a internet.`;
+              fileListDiv.innerHTML += `<div style="margin-top:0.8rem; padding:0.5rem; background:#fee2e2; border-radius:0.5rem; text-align:center; color:#dc2626;">
+                ❌ Nenhum arquivo pôde ser baixado. ${failedDownloads.length} falhas.
+                <br><small>Tente novamente mais tarde ou verifique sua conexão.</small>
+              </div>`;
               return;
             }
             
@@ -2534,6 +2568,12 @@
               } catch (err) {
                 console.error('Erro ao mesclar PDF:', err);
                 mergeErrors++;
+                const failedFileDiv = document.getElementById(`file-${result.file.id}`);
+                if (failedFileDiv) {
+                  failedFileDiv.classList.add('error');
+                  const span = failedFileDiv.querySelector('span:first-child');
+                  if (span) span.innerHTML = '⚠️';
+                }
               }
             }
             
@@ -2578,6 +2618,7 @@
         downloadStats.innerHTML = `❌ Erro: ${err.message}`;
         fileListDiv.innerHTML += `<div style="margin-top:0.8rem; padding:0.5rem; background:#fee2e2; border-radius:0.5rem; text-align:center; color:#dc2626;">
           ❌ Falha ao gerar PDF: ${err.message}
+          <br><small>Tente novamente em alguns instantes.</small>
         </div>`;
         
         setTimeout(() => {
